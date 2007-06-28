@@ -1,0 +1,61 @@
+HTML::DOM, version 0.001
+
+HTML::DOM is a Perl implementation of the HTML Document Object Model
+
+This is an alpha release.  So far, most of the level-1 core DOM is
+implemented, and a couple of HTML-specific methods, but that's all.
+
+
+TO DO
+
+- Finish HTML DOM interfaces, CSS, etc.
+- Add support for event-handling
+- Make as_text and as_HTML (inherited from HTML::Element) work properly
+- Write more complete documentation
+
+
+INSTALLATION
+
+The easiest way to install this module is to use the CPAN module or
+the cpan script:
+
+    [sudo] perl -MCPAN -e "install HTML::DOM"
+
+    [sudo] cpan
+    cpan> install HTML::DOM
+
+Or you can use the following:
+
+    perl Makefile.PL
+    make
+    make test
+    [sudo] make install
+
+
+DEPENDENCIES
+
+This module requires Perl 5.6.0 or later (only tested with 5.8.8) and
+HTML::TreeBuilder and HTML::Element (both part of the HTML::Tree dis-
+tribution) (tested with 3.23).
+
+Later it will require other modules (including some CSS modules).
+
+
+DOCUMENTATION
+
+After installing, you can find documentation for this module with the 
+perldoc command.
+
+    perldoc HTML::DOM
+
+Or try using man (it's faster, in my experience):
+
+    man HTML::DOM
+
+
+COPYRIGHT AND LICENCE
+
+Copyright (C) 2007 Father Chrysostomos
+
+This program is free software; you may redistribute it and/or modify
+it under the same terms as perl.

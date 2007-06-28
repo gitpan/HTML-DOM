@@ -1,0 +1,229 @@
+package HTML::DOM::CharacterData;
+
+# This contains those methods that are shared both by comments and  text
+# nodes.
+
+use warnings;
+use strict;
+
+use HTML::DOM::Exception qw'INDEX_SIZE_ERR';
+use Scalar::Util qw'blessed weaken';
+
+require HTML::DOM::Node;
+
+our @ISA = 'HTML::DOM::Node';
+our $VERSION = '0.001';
+
+
+sub   surrogify($);
+sub desurrogify($);
+
+
+# ~comment and ~text pseudo-elements (see HTML::Element) store the
+# character data in the 'text' attribute.
+sub data {
+	$_[0]->attr('text', @_ > 1 ? $_[1] :() );
+}
+
+sub length {
+	length $_[0]->attr('text');
+}
+
+sub length16 {
+	CORE::length surrogify $_[0]->attr('text');
+}
+
+sub substringData { # obj, offset, length
+	# Throwing exceptions in these cases is really dumb, but what can I
+	# do? I'm trying to follow standards.
+	my($self,$off,$len) = @_;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'substringData cannot take a negative offset')
+		if $off <0;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'substringData cannot take a negative substring length')
+		if $len && $len <0;
+	my $text = $self->attr('text');
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+	    "substringData: $off is greater than the length of the text")
+		if $off > CORE::length $text;
+	defined $len ? substr( $text, $off, $len) : substr $text, $off, ;
+}
+
+sub substringData16 { # obj, offset, length
+	my($self,$off,$len) = @_;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'substringData cannot take a negative offset')
+		if $off <0;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'substringData cannot take a negative substring length')
+		if $len && $len<0;
+	my $text = surrogify $self->attr('text');
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+	    "substringData: $off is greater than the length of the text")
+		if $off > CORE::length $text;
+	desurrogify defined $len
+		? substr($text, $off, $len)
+		: substr $text, $off, ;
+}
+
+sub appendData {
+	$_[0]->attr(text => $_[0]->attr('text').$_[1]);
+	return # nothing
+}
+
+sub insertData { # obj, offset, string to insert
+	my ($self,$off,$insert) = @_;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'insertData cannot take a negative offset')
+		if $off <0;
+	my $text = $self->attr('text');
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+	    "insertData: $off is greater than the length of the text")
+		if $off > CORE::length $text;
+	substr($text, $off, 0) = $insert;	
+	$self->attr(text => $text);
+	return # nothing
+}
+
+sub insertData16 { # obj, offset, string to insert
+	my ($self,$off,$insert) = @_;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'insertData cannot take a negative offset')
+		if $off <0;
+	my $text = surrogify $self->attr('text');
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+	    "insertData: $off is greater than the length of the text")
+		if $off > CORE::length $text;
+	substr($text, $off, 0) = $insert;	
+	$self->attr(text => desurrogify $text);
+	return # nothing
+}
+
+sub deleteData { # obj, offset, length
+	my ($self,$off,$len) = @_;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'deleteData cannot take a negative offset')
+		if $off <0;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'deleteData cannot take a negative substring length')
+		if $len && $len <0;
+	my $text = $self->attr('text');
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+	    "deleteData: $off is greater than the length of the text")
+		if $off > CORE::length $text; 
+	no warnings; # Silence nonsensical warnings
+	undef(defined $len
+		? substr( $text, $off, $len)
+		: substr $text, $off, );	
+	$_[0]->attr(text => $text);
+	return # nothing
+}
+
+sub deleteData16 { # obj, offset, length
+	my ($self,$off,$len) = @_;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'deleteData cannot take a negative offset')
+		if $off <0;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'deleteData cannot take a negative substring length')
+		if $len && $len <0;
+	my $text = desurrogify $self->attr('text');
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+	    "deleteData: $off is greater than the length of the text")
+		if $off > CORE::length $text;
+	no warnings; # Silence nonsensical warnings
+	undef( defined $len
+		? substr( $text, $off, $len)
+		: substr $text, $off, );	
+	$self->attr(text => surrogify $text);
+	return # nothing
+}
+
+sub replaceData { # obj, offset, length, replacement
+	my ($self,$off,$len,$subst) = @_;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'replaceData cannot take a negative offset')
+		if $off <0;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'replaceData cannot take a negative substring length')
+		if $len <0;
+	my $text = $self->attr('text');
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+	    "replaceData: $off is greater than the length of the text")
+		if $off > CORE::length $text;
+	substr($text, $off, $len) = $subst;
+	$self->attr(text => $text);
+	return # nothing
+}
+
+sub replaceData16 { # obj, offset, length, replacement
+	my ($self,$off,$len,$subst) = @_;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'replaceData cannot take a negative offset')
+		if $off <0;
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+		'replaceData cannot take a negative substring length')
+		if $len <0;
+	my $text = surrogify $self->attr('text');
+	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
+	    "replaceData: $off is greater than the length of the text")
+		if $off > CORE::length $text;
+	substr($text, $off, $len) = $subst;
+	$self->attr(text => desurrogify $text);
+	return # nothing
+}
+
+#------- UTILITY FUNCTIONS ---------#
+
+# ~~~ Should these be exported?
+
+sub surrogify($) { # copied straight from JE::String
+	my $ret = shift;
+
+	no warnings 'utf8';
+
+	$ret =~ s<([^\0-\x{ffff}])><
+		  chr((ord($1) - 0x10000) / 0x400 + 0xD800)
+		. chr((ord($1) - 0x10000) % 0x400 + 0xDC00)
+	>eg;
+	$ret;
+}
+
+sub desurrogify($) { # copied straight from JE::String (with length changed
+                     # to CORE::length)
+	my $ret = shift;
+	my($ord1, $ord2);
+	for(my $n = 0; $n < CORE::length $ret; ++$n) {  # really slow
+		($ord1 = ord substr $ret,$n,1) >= 0xd800 and
+		 $ord1                          <= 0xdbff and
+		($ord2 = ord substr $ret,$n+1,1) >= 0xdc00 and
+		$ord2                            <= 0xdfff and
+		substr($ret,$n,2) =
+		chr 0x10000 + ($ord1 - 0xD800) * 0x400 + ($ord2 - 0xDC00);
+	}
+
+	# In perl 5.8.8, if there is a sub on the call stack that was
+	# triggered by the overloading mechanism when the object with the 
+	# overloaded operator was passed as the only argument to 'die',
+	# then the following substitution magically calls that subroutine
+	# again with the same arguments, thereby causing infinite
+	# recursion:
+	#
+	# $ret =~ s/([\x{d800}-\x{dbff}])([\x{dc00}-\x{dfff}])/
+	# 	chr 0x10000 + (ord($1) - 0xD800) * 0x400 +
+	#		(ord($2) - 0xDC00)
+	# /ge;
+	#
+	# 5.9.4 still has this bug.
+	# (fixed in 5.9.5--don't know which patch)
+
+	$ret;
+}
+
+1
+
+
+# ~~~ TO DO : Document that substringData and deleteData don't
+#  require the length arg.
+

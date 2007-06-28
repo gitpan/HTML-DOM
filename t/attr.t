@@ -1,0 +1,198 @@
+#!/usr/bin/perl -T
+
+# This script contains a full test of the Node interface, since H:D:Attr
+# implements it itself, and does not inherit from H:D:Node.
+
+use strict; use warnings;
+
+use Scalar::Util 'refaddr';
+use Test::More tests => 53;
+
+
+# -------------------------#
+# Test 1: load the modules
+
+BEGIN { use_ok 'HTML::DOM'; }
+
+# -------------------------#
+# Tests 2-5: constructors
+
+my $doc = new HTML::DOM;
+isa_ok $doc, 'HTML::DOM';
+
+my $elem = $doc->createElement('a');
+isa_ok $elem, 'HTML::DOM::Element';
+
+$elem->setAttribute(href => 'about:blank');
+
+my $attr = $elem->getAttributeNode('href');
+isa_ok $attr, 'HTML::DOM::Attr';
+ok $attr->DOES('HTML::DOM::Node'), '$attr does HTML::DOM::Node';
+
+
+# -------------------------#
+# Test 6: overloading
+
+is $attr, 'about:blank', '""';
+
+# -------------------------#
+# Tests 7-12: Attr interface
+
+is name $attr, 'href', 'name';
+SKIP :{
+	skip unimplemented => 2;
+	ok !specified $attr;
+	# ~~~ We need another test here for a specified attr
+}
+
+is value $attr, 'about:blank', 'get value';
+is $attr->value('javascript:window.close()'), 'about:blank',
+	'return value of setting the value is the old value';
+is $elem->getAttribute('href'), 'javascript:window.close()',
+	'setting the value works';
+
+# -------------------------#
+# Tests 13-27: Node interface attributes
+
+# HTML::DOM::Attr implements all the Node interface itself, and does not
+# inherit from HTML::DOM::Node.
+
+is nodeName $attr, 'href', 'nodeName';
+is nodeValue $attr, 'javascript:window.close()', 'nodeValue';
+cmp_ok nodeType $attr, '==', HTML::DOM::Node::ATTRIBUTE_NODE, 'nodeType';
+is_deeply[parentNode$attr],[],'parentNode';
+
+my $children = childNodes $attr;
+my @children = childNodes $attr; # list context
+is $children->length, 1, 'number of child nodes';
+is scalar @children, 1, 'number of child nodes (list context)';
+isa_ok my $text_node = $children->[0], 'HTML::DOM::Text', 'child node';
+&cmp_ok(@children, '==', $text_node,
+	'(childNodes $attr)[0] is the same as childNodes $attr ->[0]');
+is $text_node->data, 'javascript:window.close()',
+	'data contained by child node';
+
+cmp_ok firstChild $attr, '==', $text_node, 'firstChild';
+cmp_ok  lastChild $attr, '==', $text_node,  'lastChild';
+is_deeply[previousSibling$attr],[],'previousSibling';
+is_deeply[    nextSibling$attr],[],    'nextSibling';
+is_deeply[attributes$attr],[],'attributes';
+cmp_ok  ownerDocument $attr, '==', $doc,  'ownerDocument';
+
+
+# -------------------------#
+# Tests 28-53: Node interface methods
+
+eval { insertBefore $attr };
+isa_ok $@, 'HTML::DOM::Exception',
+	'$@ (after insertBefore)';
+cmp_ok $@, '==', 
+	HTML::DOM::Exception::NO_MODIFICATION_ALLOWED_ERR,
+	'insertBefore throws a "no modification allowed" error';
+
+{ # replaceChild
+	$elem->appendChild(my $new_text =
+		createTextNode $doc 'http://www.perl.org/');
+	cmp_ok $text_node, '==', $attr->replaceChild(
+			$new_text, $text_node
+		), 'replaceChild returns the replaced node';
+	is scalar(()=childNodes$elem), 0,
+		'replaceChild removes from the tree first';
+
+	my $frag = createDocumentFragment $doc;
+
+	eval { $attr->replaceChild($frag, $new_text); };
+	isa_ok $@, 'HTML::DOM::Exception',
+		'$@ (after replaceChild with a frag that does not have ' .
+		'exactly one child node)';
+	cmp_ok $@, '==',
+		HTML::DOM::Exception::HIERARCHY_REQUEST_ERR,
+		'replaceChild with with a frag that does not have ' .
+		'exactly one child node throws a ' .
+		'hierarchy error';	
+
+	$frag->appendChild(createTextNode $doc 'lalala');
+	$attr->replaceChild($frag, $new_text);
+	is $attr->value, 'lalala',
+		'replaceChild(frag,node) inserts the frag\'s children';
+
+	eval {
+		$attr->replaceChild(
+			(createAttribute $doc 'ddk'), $attr->firstChild
+		);
+	};
+	isa_ok $@, 'HTML::DOM::Exception',
+		'$@ (after replaceChild with wrong node type)';
+	cmp_ok $@, '==',
+		HTML::DOM::Exception::HIERARCHY_REQUEST_ERR,
+		'replaceChild with wrong node type throws a ' .
+		'hierarchy error';
+	
+	appendChild $frag createElement $doc 'div';
+	eval { $attr->replaceChild($frag, firstChild $attr); };
+	isa_ok $@, 'HTML::DOM::Exception',
+		'$@ (after replaceChild with a frag containing the wrong' .
+		' node type)';
+	cmp_ok $@, '==',
+		HTML::DOM::Exception::HIERARCHY_REQUEST_ERR,
+		'replaceChild with a frag containing the wrong' .
+		' node type throws a ' .
+		'hierarchy error';
+
+	eval {
+		my $another_doc = new HTML::DOM;
+		$attr->replaceChild(
+			(createTextNode $another_doc 'ddk'),
+			(childNodes $attr)[0],
+		);
+	};
+	isa_ok $@, 'HTML::DOM::Exception',
+		'$@ (after replaceChild with wrong doc)';
+	cmp_ok $@, '==', HTML::DOM::Exception::WRONG_DOCUMENT_ERR,
+	    'replaceChild with wrong doc throws the appropriate error';
+
+	eval {
+		$attr-> replaceChild(
+			$doc->createTextNode('ddk'), $text_node
+		);
+	};
+	isa_ok $@, 'HTML::DOM::Exception',
+		'$@ (after replaceChild with a bad refChild)';
+	cmp_ok $@, '==', HTML::DOM::Exception::NOT_FOUND_ERR,
+		'replaceChild with a 2nd arg that\'s not a child of ' .
+		'this node throws a "not found" error';
+}
+
+eval { removeChild $attr };
+isa_ok $@, 'HTML::DOM::Exception',
+	'$@ (after removeChild)';
+cmp_ok $@, '==', 
+	HTML::DOM::Exception::NO_MODIFICATION_ALLOWED_ERR,
+	'removeChild throws a "no modification allowed" error';
+
+eval { appendChild $attr };
+isa_ok $@, 'HTML::DOM::Exception',
+	'$@ (after appendChild)';
+cmp_ok $@, '==', 
+	HTML::DOM::Exception::NO_MODIFICATION_ALLOWED_ERR,
+	'appendChild throws a "no modification allowed" error';
+
+ok hasChildNodes $attr, 'hasChildNodes';
+
+my $clone = cloneNode $attr; # shallow
+
+cmp_ok refaddr $attr, '!=', refaddr $clone, 'cloneNode makes a new object';
+cmp_ok +(childNodes $attr)[0], '==', (childNodes $clone)[0],
+	'shallow clone works';
+is_deeply [parentNode $clone], [], 'clones are orphans';
+
+$clone = cloneNode $attr 1; # deep
+
+cmp_ok refaddr $attr, '!=', refaddr $clone,
+	'deep cloneNode makes a new object';
+cmp_ok +(childNodes $attr)[0], '!=', (childNodes $clone)[0],
+	'deep clone works';
+is_deeply [parentNode $clone], [], 'deep clones are parentless';
+
+
+

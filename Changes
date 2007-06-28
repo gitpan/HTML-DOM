@@ -1,0 +1,6 @@
+Revision history for HTML::DOM
+
+0.001   27 June, 2007
+        The first version. So far, most of the level-1 core DOM is
+        implemented,  and a couple of HTML-specific  methods,  but
+        that's all.
