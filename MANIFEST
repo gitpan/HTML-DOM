@@ -4,6 +4,7 @@ lib/HTML/DOM/CharacterData.pm
 lib/HTML/DOM/Comment.pm
 lib/HTML/DOM/DocumentFragment.pm
 lib/HTML/DOM/Element.pm
+lib/HTML/DOM/Event.pm
 lib/HTML/DOM/Exception.pm
 lib/HTML/DOM/Implementation.pm
 lib/HTML/DOM/NamedNodeMap.pm
@@ -20,6 +21,7 @@ t/char-data.t
 t/comment.t
 t/document.t
 t/element.t
+t/event-basics.t
 t/exception.t
 t/fragment.t
 t/html-dom.t

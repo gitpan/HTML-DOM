@@ -3,15 +3,26 @@ package HTML::DOM::Implementation;
 use strict;
 use warnings;
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 
 our $it = bless do{\my$x};
 
-sub hasFeature {
-	# ~~~ what zigackly are the various features support by levels
-	#     higher than 1?
+my %features = (
+	html => { '1.0' => 1 },
+#	core => { '2.0' => 1 },
+#	events => { '2.0' => 1 },
+);
 
-	return(lc $_[1] eq 'html' and !defined $_[2] || $_[2] eq '1.0');
+sub hasFeature {
+	my($feature,$v) = (lc $_[1], $_[2]);
+	exists $features{$feature} and
+		!defined $v || exists $features{$feature}{$v};
+}
+
+# ~~~ documentation, please!
+# ~~~ not until I actually decide this should be here.
+sub add_feature { # feature, version
+	$features{$_[1]}{$_[2]}++;
 }
 
 1

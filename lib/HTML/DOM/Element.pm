@@ -14,10 +14,14 @@ require HTML::DOM::Node;
 require HTML::DOM::NodeList::Magic;
 
 our @ISA = qw'HTML::DOM::Node';
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 
 
 {
+	 # ~~~ Perhaps I should make class_for into a class method, rather
+	 # than a function, so Element.pm can be subclassed. Maybe I'll
+	 # wait until someone tries to subclass it. (Applies to Event.pm
+	 # as well.)
 	my %class_for = (
 		'~text' => 'HTML::DOM::Text',
 	);
@@ -55,6 +59,18 @@ sub setAttribute {
 	}else{
 		$_[0]->attr(@_[1..2]);
 	}
+
+	# possible event handler
+	if ($_[1] =~ /^on(.*)/is and my $listener_maker = $_[0]->
+	     ownerDocument->event_attr_handler) {
+		my $eavesdropper = &$listener_maker(
+			$_[0], my $name = lc $1, $_[2]
+		);
+		defined $eavesdropper and $_[0]-> _add_attr_event(
+			$name, $eavesdropper
+		);
+	}
+
 	return # nothing;
 }
 
@@ -96,6 +112,23 @@ sub setAttributeNode {
 
 	my $old = $_[0]->attr(my $name = $_[1]->nodeName, $_[1]);
 	$_[1]->_element($_[0]);
+
+	# possible event handler
+	if ($name =~ /^on(.*)/is and my $listener_maker = $_[0]->
+	     ownerDocument->event_attr_handler) {
+		# ~~~ Is there a possibility that the listener-maker
+		#     will have a reference to the old attr node, and
+		#     that calling it when that attr still has an
+		#    'owner' element when it shouldn't will cause any
+		#     problems? Yet I don't want to intertwine this
+		#     section of code with the one below.
+		my $eavesdropper = &$listener_maker(
+			$_[0], $name = lc $1, $_[1]->nodeValue
+		);
+		defined $eavesdropper and $_[0]-> _add_attr_event(
+			$name, $eavesdropper
+		);
+	}
 
 	if(defined $old) {
 		if(ref $old) {

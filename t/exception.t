@@ -1,8 +1,11 @@
 #!/usr/bin/perl -T
 
+# This tests the DOMException and EventException interfaces, which are both
+# implemented by HTML::DOM::Exception
+
 use strict; use warnings;
 
-use Test::More tests => 15;
+use Test::More tests => 16;
 
 
 # -------------------------#
@@ -11,7 +14,7 @@ use Test::More tests => 15;
 BEGIN { use_ok 'HTML::DOM::Exception', ':all'; }
 
 # -------------------------#
-# Tests 2-11: check constants
+# Tests 2-12: check constants
 
 {
 	my $x;
@@ -22,10 +25,11 @@ BEGIN { use_ok 'HTML::DOM::Exception', ':all'; }
 	     NOT_FOUND_ERR NOT_SUPPORTED_ERR INUSE_ATTRIBUTE_ERR /) {
 		eval "is $_, " . ++$x . ", '$_'";
 	}
+	is UNSPECIFIED_EVENT_TYPE_ERR, 0, 'UNSPECIFIED_EVENT_TYPE_ERR';
 }
 
 # --------------------------------------- #
-# Tests 12-15: constructor and overloading #
+# Tests 13-16: constructor and overloading #
 
 {
 	my $x = new HTML::DOM::Exception NOT_SUPPORTED_ERR,

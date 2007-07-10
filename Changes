@@ -1,5 +1,10 @@
 Revision history for HTML::DOM
 
+0.002   9 July, 2007
+        The basic mechanism for event handling has been implemented.
+        The various different flavours of event objects still  need
+        to be added.
+
 0.001   27 June, 2007
         The first version. So far, most of the level-1 core DOM is
         implemented,  and a couple of HTML-specific  methods,  but

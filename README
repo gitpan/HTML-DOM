@@ -1,16 +1,22 @@
-HTML::DOM, version 0.001
+HTML::DOM, version 0.002
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
 This is an alpha release.  So far, most of the level-1 core DOM is
-implemented, and a couple of HTML-specific methods, but that's all.
+implemented,  a couple of HTML-specific methods,  and some of  the
+level-2 DOM event interfaces.
 
 
 TO DO
 
-- Finish HTML DOM interfaces, CSS, etc.
-- Add support for event-handling
-- Make as_text and as_HTML (inherited from HTML::Element) work properly
+- Add Level 1 HTML support
+- Add Level 2 Core support
+- Add Level 2 HTML support
+- Finish Level 2 Events support
+- Add Level 2 CSS support
+- etc.
+- Make as_text and as_HTML (inherited from HTML::Element)
+  work properly
 - Write more complete documentation
 
 
@@ -21,8 +27,7 @@ the cpan script:
 
     [sudo] perl -MCPAN -e "install HTML::DOM"
 
-    [sudo] cpan
-    cpan> install HTML::DOM
+    [sudo] cpan HTML::DOM
 
 Or you can use the following:
 
@@ -34,9 +39,9 @@ Or you can use the following:
 
 DEPENDENCIES
 
-This module requires Perl 5.6.0 or later (only tested with 5.8.8) and
-HTML::TreeBuilder and HTML::Element (both part of the HTML::Tree dis-
-tribution) (tested with 3.23).
+This module requires Perl 5.6.0 or later (only tested with 5.8.7 and
+5.8.8)  and HTML::TreeBuilder and HTML::Element  (both part  of  the
+HTML::Tree distribution) (tested with 3.23).
 
 Later it will require other modules (including some CSS modules).
 

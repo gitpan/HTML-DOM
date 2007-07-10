@@ -1,6 +1,7 @@
 package HTML::DOM::Exception;
 
 use constant {
+# DOMException:
 	INDEX_SIZE_ERR              => 1,
 	DOMSTRING_SIZE_ERR          => 2,
 	HIERARCHY_REQUEST_ERR       => 3,
@@ -11,11 +12,14 @@ use constant {
 	NOT_FOUND_ERR               => 8,
 	NOT_SUPPORTED_ERR           => 9,
 	INUSE_ATTRIBUTE_ERR         => 10,
+
+# EventException:
+	UNSPECIFIED_EVENT_TYPE_ERR => 0,
 };
 
 use Exporter 'import';
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 our @EXPORT_OK = qw'
 	INDEX_SIZE_ERR             
 	DOMSTRING_SIZE_ERR         
@@ -27,6 +31,8 @@ our @EXPORT_OK = qw'
 	NOT_FOUND_ERR              
 	NOT_SUPPORTED_ERR          
 	INUSE_ATTRIBUTE_ERR
+
+	UNSPECIFIED_EVENT_TYPE_ERR
 ';
 our %EXPORT_TAGS = (all => [@EXPORT_OK]);
 
@@ -64,7 +70,8 @@ HTML::DOM::Exception - The Exception interface for HTML::DOM
 
 =head1 DESCRIPTION
 
-This module implementations the W3C's DOMException interface.
+This module implementations the W3C's DOMException and EventException 
+interfaces.
 HTML::DOM::Exception objects
 stringify to the message passed to the constructer and numify to the 
 error
@@ -133,6 +140,12 @@ If the implementation does not support the type of object requested
 =item INUSE_ATTRIBUTE_ERR (10)
 
 If an attempt is made to add an attribute that is already inuse elsewhere
+
+=item UNSPECIFIED_EVENT_TYPE_ERR (0)
+
+If the Event's type was not specified by initializing the event before the
+method was called. Specification of the Event's type as null or an empty
+string will also trigger this exception.
 
 =back
 

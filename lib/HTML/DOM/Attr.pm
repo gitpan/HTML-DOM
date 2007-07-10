@@ -1,5 +1,7 @@
 package HTML::DOM::Attr;
 
+# ~~~ Eventually I need to add event-handling methods to Attr.
+
 use warnings;
 use strict;
 
@@ -21,7 +23,7 @@ use Scalar::Util qw'weaken blessed';
 
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 
