@@ -1,6 +1,7 @@
 #!/usr/bin/perl -T
 
-# This needs to test the creation of text node objects
+# ~~~ This needs to test the creation of text node objects (i.e., the
+# automatic objection [?] of simple text strings into objects).
 
 use strict; use warnings;
 

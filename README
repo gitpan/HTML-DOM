@@ -1,10 +1,15 @@
-HTML::DOM, version 0.002
+HTML::DOM, version 0.003
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
 This is an alpha release.  So far, most of the level-1 core DOM is
 implemented,  a couple of HTML-specific methods,  and some of  the
 level-2 DOM event interfaces.
+
+
+CHANGES IN THIS RELEASE
+
+as_text and as_HTML now work. See the Changes file for more.
 
 
 TO DO
@@ -15,8 +20,7 @@ TO DO
 - Finish Level 2 Events support
 - Add Level 2 CSS support
 - etc.
-- Make as_text and as_HTML (inherited from HTML::Element)
-  work properly
+- Make HTML::DOM::Element::Form compatible with HTML::Form
 - Write more complete documentation
 
 

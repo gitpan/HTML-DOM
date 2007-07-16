@@ -12,7 +12,7 @@ use Scalar::Util qw'blessed weaken';
 require HTML::DOM::Node;
 
 our @ISA = 'HTML::DOM::Node';
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 
 
 sub   surrogify($);
@@ -220,6 +220,9 @@ sub desurrogify($) { # copied straight from JE::String (with length changed
 
 	$ret;
 }
+
+sub nodeValue { $_[0]->data(@_[1..$#_]); }
+
 
 1
 

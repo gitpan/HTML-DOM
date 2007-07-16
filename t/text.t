@@ -2,7 +2,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 9;
+use Test::More tests => 10;
 
 
 # -------------------------#
@@ -42,3 +42,7 @@ ok firstChild $elem == $t && (childNodes $elem)[1] == $u &&
 
 diag "TO DO: Write tests for the UTF-16 methods";
 
+# -------------------------#
+# Test 10: nodeValue
+
+is $doc->createTextNode('aoeusnth')->nodeValue, 'aoeusnth', 'nodeValue';

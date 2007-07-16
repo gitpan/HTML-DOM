@@ -7,9 +7,12 @@
 # doesn't have any methods of its own,  but only those  in  inherits
 # from Node.
 
+# There are also tests in here for as_text and as_HTML, which are overrid-
+# den by HTML::DOM::Node.
+
 use strict; use warnings;
 
-use Test::More tests => scalar reverse 87;
+use Test::More tests => scalar reverse '08';
 
 
 # -------------------------#
@@ -344,5 +347,22 @@ cmp_ok $frag, '!=', $clone, 'deep cloneNode makes a new object';
 cmp_ok +(childNodes $frag)[0], '!=', (childNodes $clone)[0],
 	'deep clone works';
 is_deeply [parentNode $clone], [], 'deep clones are parentless';
+
+# -------------------------#
+# Tests 79-80: as_text and as_HTML
+
+{
+	my $element = $doc->createElement('p');
+	$element->appendChild($doc->createTextNode('This text contains '));
+	$element->appendChild(my $belem = $doc->createElement('tt'));
+	$belem->appendChild($doc->createTextNode('<tags>'));
+	$element->appendChild($doc->createTextNode('.'));
+	$element->appendChild($doc->createComment('<no comment>'));
+
+	is $element->as_text, 'This text contains <tags>.', 'as_text';
+	is $element->as_HTML,
+	   '<p>This text contains <tt>&lt;tags&gt;</tt>.<!--<no comment>-->
+',	   "as_HTML";
+}
 
 

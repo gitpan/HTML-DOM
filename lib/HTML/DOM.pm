@@ -13,7 +13,7 @@ use HTML::DOM::Exception 'NOT_SUPPORTED_ERR';
 use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 our @ISA = 'HTML::DOM::Node';
 
 require         HTML::DOM::Comment;
@@ -32,7 +32,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.002 (alpha)
+Version 0.003 (alpha)
 
 B<WARNING:> This module is still at an experimental stage. Only a few
 features have been implemented so far. The API is subject to change without
@@ -49,13 +49,13 @@ notice.
            $dom_tree->createElement('input')
   );
   
+  print $dom_tree->documentElement->as_HTML, "\n";
+  # (inherited from HTML::Element)
+
   my $text = $dom_tree->createTextNode('text');
   $text->data;              # get attribute
   $text->data('new value'); # set attribute
   
-  # print $dom_tree->documentElement->outerHTML, "\n";
-  # (doesn't work yet)
-
 =head1 DESCRIPTION
 
 This module implements the HTML Document Object Model by extending the
@@ -160,7 +160,6 @@ or security into account):
   $tree->eof;
 
   print $tree->documentElement->as_text, "\n";
-  # as_text doesn't work yet
 
 =cut
 
@@ -242,7 +241,7 @@ See L</EVENT HANDLING>, below.
 
 =head2 DOM Methods
 
-(to be written)
+(This section needs to be written.)
 
 =over 4
 
@@ -419,7 +418,7 @@ handlers are Perl code:
           return sub {
                   my($event) = @_;
                   local *_ = \$elem;
-                  my $ret = &$code;
+                  my $ret = &$sub;
                   defined $ret and !$ret and
                           $event->preventDefault;
           };

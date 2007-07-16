@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 
 
 use strict;
@@ -498,6 +498,27 @@ sub trigger_event { # non-DOM method
 		|| return
 	}($event);
 }
+
+=item as_text
+
+=item as_HTML
+
+These two (non-DOM) methods of L<HTML::Element> are overridden, so that
+they work correctly with comment and text nodes.
+
+=cut
+
+sub as_text{
+	(my $clone = shift->clone)->deobjectify_text;
+	$clone->SUPER::as_text;
+}
+
+sub as_HTML{
+	(my $clone = shift->clone)->deobjectify_text;
+	$clone->SUPER::as_HTML;
+}
+
+
 
 =back
 

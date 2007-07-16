@@ -1,5 +1,11 @@
 Revision history for HTML::DOM
 
+0.003   9 July, 2007
+      - HTML::DOM::Text now has its nodeValue method, which I forgot
+        about before. (Actually, I moved HTML::DOM::Comment's
+        nodeValue to HTML::DOM::CharacterData.)
+      - as_text and as_HTML have been overridden and now work.
+
 0.002   9 July, 2007
         The basic mechanism for event handling has been implemented.
         The various different flavours of event objects still  need

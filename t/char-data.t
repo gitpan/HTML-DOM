@@ -6,7 +6,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 99/3-1;
+use Test::More tests => 99/3+2;
 
 
 # -------------------------#
@@ -21,16 +21,19 @@ our $c = createComment{new HTML::DOM}'comment contents';
 isa_ok $c, 'HTML::DOM::CharacterData';
 
 # -------------------------#
-# Tests 3-6: attributes
+# Tests 3-9: attributes
 
 is data $c, 'comment contents', 'get data';
-is $c->data('new contents'), 'comment contents', 'set data';
-is $c->data(), 'new contents', 'get data after setting';
+is nodeValue $c, 'comment contents', 'get nodeValue';
+is $c->data('new content'), 'comment contents', 'set data';
+is $c->data(), 'new content', 'get data after setting';
+is $c->nodeValue('new contents'), 'new content', 'set nodeValue';
+is $c->nodeValue, 'new contents', 'get nodeValue after setting';
 
 is $c->length, 12, 'length';
 
 # -------------------------#
-# Tests 7-12: substringData
+# Tests 10-15: substringData
 
 is $c->substringData(3,4), ' con', 'substringData';
 is $c->substringData(3,27866), ' contents',
@@ -47,13 +50,13 @@ cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
     'substringData throws a index size error when offset > length';
 
 # -------------------------#
-# Tests 13-14: appendData
+# Tests 16-17: appendData
 
 is_deeply [appendData $c '++'],[], 'appendData returns nothing';
 is data $c, 'new contents++', 'result of appendData';
 
 # -------------------------#
-# Tests 15-20: insertData
+# Tests 18-23: insertData
 
 is_deeply [insertData $c 0, '++'],[], 'insertData returns nothing';
 is data $c, '++new contents++', 'result of insertData';
@@ -69,7 +72,7 @@ cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
     'insertData throws a index size error when offset > length';
 
 # -------------------------#
-# Tests 21-6: deleteData
+# Tests 24-9: deleteData
 
 is_deeply [deleteData $c 2, 4],[], 'deleteData returns nothing';
 is data $c, '++contents++', 'result of insertData';
@@ -85,7 +88,7 @@ cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
     'deleteData throws a index size error when offset > length';
 
 # -------------------------#
-# Tests 27-32: replaceData
+# Tests 30-5: replaceData
 
 is_deeply [replaceData $c 2, 1, 'C'],[], 'replaceData returns nothing';
 is data $c, '++Contents++', 'result of replaceData';
