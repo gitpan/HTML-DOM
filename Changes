@@ -1,6 +1,12 @@
 Revision history for HTML::DOM
 
-0.003   9 July, 2007
+0.004   22 July, 2007
+        Fixed infinite recursion triggered by element handlers calling
+        $dom_tree->write($html)  when  $html contains elements handled
+        by the same handler. E.g.,
+        <script>document.write('<script>...<\/script>')</script>
+
+0.003   15 July, 2007
       - HTML::DOM::Text now has its nodeValue method, which I forgot
         about before. (Actually, I moved HTML::DOM::Comment's
         nodeValue to HTML::DOM::CharacterData.)

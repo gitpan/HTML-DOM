@@ -13,7 +13,7 @@ use HTML::DOM::Exception 'NOT_SUPPORTED_ERR';
 use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.003';
+our $VERSION = '0.004';
 our @ISA = 'HTML::DOM::Node';
 
 require         HTML::DOM::Comment;
@@ -32,7 +32,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.003 (alpha)
+Version 0.004 (alpha)
 
 B<WARNING:> This module is still at an experimental stage. Only a few
 features have been implemented so far. The API is subject to change without
@@ -108,8 +108,11 @@ sub new {
 		element_class => 'HTML::DOM::Element',
 		'tweak_~text' => sub {
 			my ($text, $parent) = @_;
-			$parent->splice_content(-1,1,$parent->
-				ownerDocument->createTextNode($text));
+			# $parent->ownerDocument will be undef if $parent
+			# is the doc.
+			$parent->splice_content(  -1,1,
+				($parent->ownerDocument || $parent)
+				 ->createTextNode($text)  );
 		 },
 	 )
 	   ->ignore_ignorable_whitespace(0); # stop eof()'s cleanup
@@ -192,9 +195,15 @@ sub elem_handler {
 		                     # H:TB:text, won't concatenate two
 		                   # text portions if the  first  one
 		                  # is a node.
-		$p->parse($$self{_HTML_DOM_write_buffer});
+
+		# We have to clear the write buffalo before calling parse,
+		# because if the  buffalo  contains  $elem_name  elements,
+		# parse will (indirectly) call this very routine while the
+		# buffalo is still full, so we will end up passing the same
+		# value to parse yet again....  (This is  what  we  usually
+		# call infinite recursion, I think. :-)
+		$p->parse(delete $$self{_HTML_DOM_write_buffer});
 		$p->eof;
-		delete $$self{_HTML_DOM_write_buffer};
 	}
 }
 

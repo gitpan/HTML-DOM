@@ -1,11 +1,8 @@
 #!/usr/bin/perl -T
 
-# ~~~ This needs to test the creation of text node objects (i.e., the
-# automatic objection [?] of simple text strings into objects).
-
 use strict; use warnings;
 
-use Test::More tests => 21;
+use Test::More tests => 22;
 
 
 # -------------------------#
@@ -158,5 +155,33 @@ is_deeply traverse $doc, [
     ],
   },
 ], 'parse_file';
+
+
+# -------------------------#
+# Test 22: another elem_handler test with nested <script> elems
+#          This was causing infinite recursion before version 0.004.
+
+{
+	my $counter; my $doc = new HTML::DOM;
+	$doc->elem_handler(script => sub {
+		++$counter == 3 and die; # avoid infinite recursion
+		(my $data = $_[1]->firstChild->data) =~ s/\\\//\//g;
+		$doc->write($data);
+		$@ and die;
+	});
+
+	eval {
+	$doc->parse(<<'	-----');
+		<script>
+			<script>stuff<\/script>
+		</script>
+	-----
+	$doc->eof;
+	};
+
+	is $counter,2,  'nested <script> elems';
+}
+
+
 
 

@@ -14,7 +14,7 @@ require HTML::DOM::Node;
 require HTML::DOM::NodeList::Magic;
 
 our @ISA = qw'HTML::DOM::Node';
-our $VERSION = '0.003';
+our $VERSION = '0.004';
 
 
 {

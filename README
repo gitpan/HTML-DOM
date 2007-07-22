@@ -1,4 +1,4 @@
-HTML::DOM, version 0.003
+HTML::DOM, version 0.004
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -9,7 +9,8 @@ level-2 DOM event interfaces.
 
 CHANGES IN THIS RELEASE
 
-as_text and as_HTML now work. See the Changes file for more.
+Fixed a bug that caused infinite recursion. See the Changes file for
+more detail.
 
 
 TO DO
