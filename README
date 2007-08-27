@@ -1,21 +1,27 @@
-HTML::DOM, version 0.004
+HTML::DOM, version 0.005
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
 This is an alpha release.  So far, most of the level-1 core DOM is
-implemented,  a couple of HTML-specific methods,  and some of  the
-level-2 DOM event interfaces.
+implemented, some of the level-1 HTML and level-2 event interfaces.
 
 
 CHANGES IN THIS RELEASE
 
-Fixed a bug that caused infinite recursion. See the Changes file for
-more detail.
+The HTMLDocument interface (Level 1) has been completed, and several
+other interfaces have been added (see the Changes file for the list).
+What this means is that:
+- the 'write' method now works after the tree has been built
+  (replaces it),
+- the 'open' and 'close' methods have been implemented, too,
+- cookies are now supported
+- and many element attributes can now be accessed through corresponding
+  methods, in addition to the generic get/setAttribute methods.
 
 
 TO DO
 
-- Add Level 1 HTML support
+- Finish Level 1 HTML support
 - Add Level 2 Core support
 - Add Level 2 HTML support
 - Finish Level 2 Events support
@@ -44,9 +50,13 @@ Or you can use the following:
 
 DEPENDENCIES
 
-This module requires Perl 5.6.0 or later (only tested with 5.8.7 and
-5.8.8)  and HTML::TreeBuilder and HTML::Element  (both part  of  the
-HTML::Tree distribution) (tested with 3.23).
+This module requires perl 5.6.0 or later (only tested with 5.8.7 and
+5.8.8) and the following Perl modules:
+
+- HTML::TreeBuilder and HTML::Element (both part of the HTML::Tree
+  distribution) (tested with 3.23)
+- URI
+- HTTP::Headers::Util is required for writing cookies.
 
 Later it will require other modules (including some CSS modules).
 

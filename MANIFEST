@@ -1,6 +1,7 @@
 Changes
 lib/HTML/DOM/Attr.pm
 lib/HTML/DOM/CharacterData.pm
+lib/HTML/DOM/Collection.pm
 lib/HTML/DOM/Comment.pm
 lib/HTML/DOM/DocumentFragment.pm
 lib/HTML/DOM/Element.pm
@@ -18,13 +19,16 @@ MANIFEST
 README
 t/attr.t
 t/char-data.t
+t/collection.t
 t/comment.t
 t/document.t
 t/element.t
 t/event-basics.t
 t/exception.t
 t/fragment.t
+t/html-document.t
 t/html-dom.t
+t/html-element.t
 t/implementation.t
 t/named-node-map.t
 t/node-list.t

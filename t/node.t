@@ -366,3 +366,12 @@ is_deeply [parentNode $clone], [], 'deep clones are parentless';
 }
 
 
+
+diag "TO DO: Write tests for problems caused by implicit owner attributes";
+
+# I need to test that the node detached by removeChild and replaceChild
+# retains its ownerDocument. The owner is sometimes not set within the node
+# itself (i.e., when H:TB created it), but inherited from the root. When it
+# is detached, the node has to have its very own reference to the owner.
+
+

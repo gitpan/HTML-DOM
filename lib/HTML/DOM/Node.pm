@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.004';
+our $VERSION = '0.005';
 
 
 use strict;
@@ -164,11 +164,12 @@ sub attributes {} # null for most nodes; overridden by Element
 
 sub ownerDocument {
 	my $self = shift;
-	# ~~~ this '||' thing is inefficient. It ought to cache the
-	#     ownerDocument (and weaken it) whenever it is not set alreay.
 	$$self{_HTML_DOM_Node_owner} || do {
 		my $root = $self->root;
-		$$root{_HTML_DOM_Node_owner} || $root
+		$$self{_HTML_DOM_Node_owner} = 
+			$$root{_HTML_DOM_Node_owner} || $root;
+		weaken $$self{_HTML_DOM_Node_owner};
+		$$self{_HTML_DOM_Node_owner}
 	};
 }
 
@@ -269,6 +270,11 @@ sub replaceChild {
 
 	$doc->_modified;
 
+	# If the owner is not set explicitly inside the node, it will lose
+	# its owner.  The ownerDocument method  sets  it  if  it  is  not
+	# already set.
+	$old_node->ownerDocument;
+
 	$old_node->replace_with(
 		$new_node->isa('HTML::DOM::DocumentFragment')
 		? $new_node->childNodes
@@ -286,6 +292,11 @@ sub removeChild {
 	$self == $child->parent or
 		die new HTML::DOM::Exception NOT_FOUND_ERR,
 		'removeChild\'s argument is not a child of this node';
+
+	# If the owner is not set explicitly inside the node, it will lose
+	# its owner.  The ownerDocument method  sets  it  if  it  is  not
+	# already set.
+	$child->ownerDocument;
 
 	$child->detach;
 

@@ -1,5 +1,16 @@
 Revision history for HTML::DOM
 
+And the rest of the HTMLDocument interface.
+
+0.005   26 August, 2007
+        The HTMLCollection interface has now been implemented, and so
+        have the attribute  methods  of  the  HTMLDocument  interface
+        (Level 1). The HTMLHtmlElement, HTMLHeadElement,
+        HTMLLinkElement, HTMLTitleElement, HTMLMetaElement,
+        HTMLBaseElement, HTMLIsIndexElement, HTMLStyleElement and
+        HTMLBodyElement interfaces (again, Level 1) have also been
+        implemented.
+
 0.004   22 July, 2007
         Fixed infinite recursion triggered by element handlers calling
         $dom_tree->write($html)  when  $html contains elements handled

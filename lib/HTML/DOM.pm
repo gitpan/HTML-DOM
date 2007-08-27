@@ -12,10 +12,12 @@ use warnings;
 use HTML::DOM::Exception 'NOT_SUPPORTED_ERR';
 use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
+use URI;
 
-our $VERSION = '0.004';
+our $VERSION = '0.005';
 our @ISA = 'HTML::DOM::Node';
 
+require    HTML::DOM::Collection;
 require         HTML::DOM::Comment;
 require HTML::DOM::DocumentFragment;
 require            HTML::DOM::Event;
@@ -32,7 +34,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.004 (alpha)
+Version 0.005 (alpha)
 
 B<WARNING:> This module is still at an experimental stage. Only a few
 features have been implemented so far. The API is subject to change without
@@ -68,9 +70,40 @@ as the document class.
 
 =over 4
 
-=item $tree = new HTML::DOM
+=item $tree = new HTML::DOM %options;
 
-This class method constructs and returns a new HTML::DOM object.
+This class method constructs and returns a new HTML::DOM object. The
+C<%options>, which are all optional, are as follows:
+
+=over 4
+
+=item url
+
+The value that the C<URL> method will return. This value is also used by
+the C<domain> method. 
+
+=item referrer
+
+The value that the C<referrer> method will return
+
+=item response
+
+An HTTP::Response object. This will be used for information needed for 
+writing cookies. It is expected to have a reference to a request object
+(accessible via its C<request> method--see L<HTTP::Response>). Passing a 
+parameter to the 'cookie' method will be a no-op 
+without this.
+
+=item cookie_jar
+
+An HTTP::Cookies object. As with C<response>, if you omit this, arguments 
+passed to the 
+C<cookie> method will be ignored.
+
+=back
+
+If C<referrer> and C<url> are omitted, they can be inferred from 
+C<response>.
 
 =cut
 
@@ -85,6 +118,9 @@ This class method constructs and returns a new HTML::DOM object.
 	# I have to override this so it doesn't delete _HTML_DOM_* attri-
 	# butes and so that it blesses the object into the right  class.
 	# Stolen from HTML::TreeBuilder and modified.
+	# ~~~ Wait a minute! I *can* call SUPER:: if I record the hash
+	#     elems first and put them back in afterwards. Yes, let's do
+	#     that.
 	sub elementify {
 	  # Rebless this object down into the normal element class.
 	  my $self = $_[0];
@@ -120,7 +156,24 @@ sub new {
 	$tb->unbroken_text(1); # necessary, con-  # script handler's view 
 	                     # sidering what        # of the tree
 	                   # _tweak_~text does
-	$self->push_content($tb);	
+	my %opts = @_;
+	$self->{_HTML_DOM_url} = $opts{url}; # might be undef
+	$self->{_HTML_DOM_referrer} = $opts{referrer}; # might be undef
+	if($opts{response}) {
+		$self->{_HTML_DOM_response} = $opts{response};
+		if(!defined $self->{_HTML_DOM_url}) {{
+			$self->{_HTML_DOM_url} =
+				($opts{response}->request || last)
+				 ->url;
+		}}
+		if(!defined $self->{_HTML_DOM_referrer}) {{
+			$self->{_HTML_DOM_referrer} =
+				($opts{response}->request || last)
+				 ->header('Referer')
+		}}
+	}
+	$self->{_HTML_DOM_jar} = $opts{cookie_jar}; # might be undef
+	$self->push_content($tb);
 }
 
 =item $tree = new_from_file HTML::DOM
@@ -171,7 +224,8 @@ sub elem_handler {
 	my $doc_elem = ($self->content_list)[0];
 	weaken $doc_elem;
 	$doc_elem->{"_tweak_$elem_name"} = sub {
-		&$sub($self, $_[0]);
+		{ local $$self{_HTML_DOM_buffered} = 1;
+		  &$sub($self, $_[0]); }
 		return unless exists $$self{_HTML_DOM_write_buffer};
 
 		# These handlers delegate the handling to methods of
@@ -218,9 +272,13 @@ sub elem_handler {
 These three methods simply
 call HTML::TreeBuilder's methods with the same name (q.v., and see also
 HTML::Element), but note that
-C<parse_file> and C<eof> may only be called once for each HTML::DOM object
-(since it deletes its parser when it no longer needs it). Similarly,
-C<parse> may not be called after C<eof>.
+C<parse_file> may only be called once for each HTML::DOM object
+(since it deletes its parser when it no longer needs it), unless you reset
+the object by calling the C<open> method. Similarly,
+C<parse> may not be called after C<eof> (again, unless you call C<open>
+first, which is what C<write> does automatically, so I don't know why I
+even bother keeping the C<parse> method at all; maybe I should do away
+with it).
 
 =cut
 
@@ -234,9 +292,13 @@ sub parse {
 		->parse(@_);
 }
 sub eof {
+	eval { # make it a no-op if there's no parser
 	(my $a = (shift->content_list)[0])
 		->eof(@_);
 	 $a	->elementify;
+	};
+	return # nothing; # so that close (an alias to this) is stan-
+	                  # dards-compliant
 }
 
 
@@ -254,20 +316,14 @@ See L</EVENT HANDLING>, below.
 
 =over 4
 
-=item etc. etc. etc.
-
-=item createEvent
-
-This currently ignores its args. Later the arg passed to it will determine
-into which class the newly-created event object is blessed.
-
-=back
-
 =cut
 
 
-
 #-------------- DOM STUFF (CORE) ---------------- #
+
+=item etc. etc. etc.
+
+=cut
 
 sub doctype {} # always null
 
@@ -346,20 +402,358 @@ sub getElementsByTagName {
 
 #-------------- DOM STUFF (HTML) ---------------- #
 
-sub write { # ~~~ this currently only works properly when the tree is
-            #     still growing
-	no warnings 'uninitialized';
-	$_[0]{_HTML_DOM_write_buffer} .= $_[1];
-	return # ~~~ check what this is supposed to return
+=item alinkColor
+
+=item background
+
+=item bgColor
+
+=item fgColor
+
+=item linkColor
+
+=item vlinkColor
+
+These six methods return (optionally set) the corresponding attributes of 
+the body element. Note that most of the names do not map directly to the 
+names of
+the attributes. C<fgColor> refers to the C<text> attribute. Those that end
+with 'linkColor' refer to the attributes of the same name but without the
+'Color' on the end.
+
+B<These don't work yet, and won't work until HTML::DOM::Element::Body is
+implemented.>
+
+=cut
+
+sub alinkColor { shift->body->aLink     (@_) }
+sub background { shift->body->background(@_) }
+sub    bgColor { shift->body->bgColor   (@_) }
+sub    fgColor { shift->body->text      (@_) }
+sub  linkColor { shift->body->link      (@_) }
+sub vlinkColor { shift->body->vLink     (@_) }
+
+=item title
+
+Returns (or optionally sets) the title of the page.
+
+=item referrer
+
+Returns the page's referrer.
+
+=item domain
+
+Returns the domain name portion of the document's URL.
+
+=item URL
+
+Returns the document's URL.
+
+=item body
+
+Returns the body element, or the outermost frame set if the document has
+frames. You can set the body by passing an element as an argument, in which
+case the old body element is returned. In this case you should call
+C<delete> on the return value to remove circular references, unless you
+plan to use it still. E.g.,
+
+  $doc->body($new_body)->delete;
+
+=item images
+
+=item applets
+
+=item links
+
+=item forms
+
+=item anchors
+
+These five methods return a list of the appropriate elements in list
+context, or an L<HTML::DOM::Collection> object in scalar context. In this
+latter case, the object will update automatically when the document is
+modified.
+
+B<TO DO:> I need to make these methods cache the HTML collection objects
+that they create. Once I've done this, I can make list context use those
+objects, as well as scalar context.
+
+=item cookie
+
+This returns a string containing the document's cookies (the format may
+still change). If you pass an 
+argument, it
+will set a cookie as well. Both Netscape-style and RFC2965-style cookie
+headers are supported.
+
+=cut
+
+sub title {
+	my $doc = shift;
+	return $doc->find('title')->firstChild->data(@_);
+}
+
+sub referrer {
+	my $referrer = shift->{_HTML_DOM_referrer};
+	defined $referrer ? $referrer : ();
+}
+
+sub domain { no strict;
+	my $doc = shift;
+	host {ref $doc->{_HTML_DOM_url} ? $doc->{_HTML_DOM_url}
+	  : ($doc->{_HTML_DOM_url} = URI->new($doc->{_HTML_DOM_url}))};
+}
+
+sub URL {
+	my $url = shift->{_HTML_DOM_url};
+	"$url";
 }
 
 sub body { # ~~~ this needs to return the outermost frameset element if
             #     there is one (if the frameset is always the second child
             #     of <html>, then it already does).
-	($_[0]->documentElement->content_list)[1];
+	if(@_>1) {
+		my $doc_elem = $_[0]->documentElement;
+		# I'm using the replaceChild rather than replace_with,
+		# despite the former's convoluted syntax, since the former
+		# has the appropriate error-checking code (or will).
+		$doc_elem->replaceChild($_[1],($doc_elem->content_list)[1])
+	}
+	else {
+		($_[0]->documentElement->content_list)[1];
+	}
 }
 
+sub images {
+	my $self = shift;
+	if (wantarray) {
+		return grep tag $_ eq 'img', $self->descendants;
+	}
+	else {
+		my $collection = HTML::DOM::Collection->new(
+		my $list = HTML::DOM::NodeList::Magic->new(
+		    sub { grep tag $_ eq 'img', $self->descendants }
+		));
+		$self-> _register_magic_node_list($list);
+		$collection;
+	}
+}
+
+sub applets {
+	my $self = shift;
+	if (wantarray) {
+		return grep $_->tag =~ /^(?:objec|apple)t\z/,
+			$self->descendants;
+	}
+	else {
+		my $collection = HTML::DOM::Collection->new(
+		my $list = HTML::DOM::NodeList::Magic->new(
+		    sub { grep $_->tag =~ /^(?:objec|apple)t\z/,
+		        $self->descendants }
+		));
+		$self-> _register_magic_node_list($list);
+		$collection;
+	}
+}
+
+sub links {
+	my $self = shift;
+	if (wantarray) {
+		return grep {
+			my $tag = tag $_;
+			$tag eq 'area' || $tag eq 'a'
+				&& defined $_->attr('href')
+		} $self->descendants;
+	}
+	else {
+		my $collection = HTML::DOM::Collection->new(
+		my $list = HTML::DOM::NodeList::Magic->new(
+		    sub { grep {
+		        my $tag = tag $_;
+		        $tag eq 'area' || $tag eq 'a'
+		            && defined $_->attr('href')
+		    } $self->descendants }
+		));
+		$self-> _register_magic_node_list($list);
+		$collection;
+	}
+}
+
+sub forms {
+	my $self = shift;
+	if (wantarray) {
+		return grep tag $_ eq 'form', $self->descendants;
+	}
+	else {
+		my $collection = HTML::DOM::Collection->new(
+		my $list = HTML::DOM::NodeList::Magic->new(
+		    sub { grep tag $_ eq 'form', $self->descendants }
+		));
+		$self-> _register_magic_node_list($list);
+		$collection;
+	}
+}
+
+sub anchors {
+	my $self = shift;
+	if (wantarray) {
+		return grep tag $_ eq 'a' && defined $_->attr('name'),
+			$self->descendants;
+	}
+	else {
+		my $collection = HTML::DOM::Collection->new(
+		my $list = HTML::DOM::NodeList::Magic->new(
+		    sub { grep tag $_ eq 'a' && defined $_->attr('name'),
+		        $self->descendants }
+		));
+		$self-> _register_magic_node_list($list);
+		$collection;
+	}
+}
+
+
+sub cookie {
+  my $self = shift;
+  return '' unless defined (my $jar = $self->{_HTML_DOM_jar});
+  my $return;
+  if (defined wantarray) {
+    # Yes, this is nuts (getting HTTP::Cookies to join the cookies, and
+    # splitting them, filtering them, and joining them again[!]),  but
+    # &HTTP::Cookies::add_cookie_header is long and complicated, and I
+    # don't want to replicate it here.
+    no warnings 'uninitialized';
+    $return = join ';', grep !/\$/, 
+      $jar->add_cookie_header(
+        $self->{_HTML_DOM_response}->request->clone
+      )-> header ('Cookie')
+      # Pieces of this regexp were stolen from HTTP::Headers::Util:
+      =~ /\G\s* # initial whitespace
+          (
+            [^\s=;,]+ # name
+            \s*=\s*   # =
+            (?:
+              \"(?:[^\"\\]*(?:\\.[^\"\\]*)*)\" # quoted value
+                |
+              [^;,\s]*  # unquoted value
+            )
+          )
+          \s*;?
+         /xg;
+  }
+  if (@_) {
+    return unless defined $self->{_HTML_DOM_response};
+    require HTTP::Headers::Util;
+    (undef,undef, my%split) =
+	@{(HTTP::Headers::Util::split_header_words($_[0]))[0]};
+    my $rfc;
+    for(keys %split){
+      # I *hope* this always works! (NS cookies should have no version.)
+      ++ $rfc, last if lc $_ eq 'version';
+    }
+    (my $clone = $self->{_HTML_DOM_response}->clone)
+     ->remove_header(qw/ Set-Cookie Set-Cookie2 /);
+    $clone->header('Set-Cookie' . 2 x!! $rfc => $_[0]);
+    $jar->extract_cookies($clone);
+  }
+  $return||'';
+}
+
+=item open
+
+Resets the document to the state it was in immediately after calling
+C<new>. If you have a subclass that has its own attributes inside the
+object, they will be wiped out.
+
+=item close
+
+An alias to C<eof> (flushes any HTML code that might be buffered after
+calling C<write>/C<parse>, and makes the next C<write> call C<open>)
+
+=item write
+
+When this is called from an an element handler (see
+C<elem_handler>, above), the value passed to it
+will be inserted into the HTML code after the current element when the
+element handler returns.
+
+Otherwise it appends the HTML code to the current document (via C<parse>), 
+unless C<eof>
+has been called, in which case it calls C<open> before calling C<parse>.
+
+=item writeln
+
+Just like C<write> except that it appends "\n" to its argument. (Rather
+pointless, if you ask me. :-)
+
+=cut
+
+sub open {
+	(my $self = shift)->delete_content; # remove circular references
+	%$self = (%{ref($self)->new},
+		_HTML_DOM_url => $$self{_HTML_DOM_url},
+		_HTML_DOM_referrer => $$self{_HTML_DOM_referrer},
+		_HTML_DOM_response => $$self{_HTML_DOM_response},
+		_HTML_DOM_jar => $$self{_HTML_DOM_jar}
+	);
+	return # nothing;
+}
+
+sub write {
+	my $self = shift;
+	if($$self{_HTML_DOM_buffered}) {
+		$$self{_HTML_DOM_write_buffer} .= shift;
+	}
+	else {
+		eval {($self->content_list)[0]->isa('HTML::TreeBuilder')}
+			or $self->open;
+		$self->parse(shift);
+	}
+	return # nothing;
+}
+
+sub writeln { $_[0]->write("$_[1]\n") }
+
+*close = \&eof;
+
+=item getElementById
+
+=item getElementsByName
+
+These two do what their names imply. The latter will return a list in list
+context, or a node list object in scalar context. Calling it in list
+context is probably more efficient.
+
+=cut
+
+sub getElementById {
+	shift->look_down(id => shift) || ();
+}
+
+sub getElementsByName {
+	my($self,$name) = @_;
+	if (wantarray) {
+		return $self->look_down(name => $name);
+	}
+	else {
+		my $list = HTML::DOM::NodeList::Magic->new(
+			  sub { $self->look_down(name => $name); }
+		);
+		$self-> _register_magic_node_list($list);
+		$list;
+	}
+}
+
+
 # ---------- DocumentEvent interface -------------- #
+
+=item createEvent
+
+This currently ignores its args. Later the arg passed to it will determine
+into which class the newly-created event object is blessed.
+
+=back
+
+=cut
 
 sub createEvent { HTML::DOM::Event::class_for($_[1] || '')->new }
 
@@ -383,7 +777,7 @@ method or an object with C<&{}> overloading. HTML::DOM does not implement
 any classes that provide a C<handleEvent> method, but will support any
 object that has one.
 
-To specify the default actions associated with an events, provide a
+To specify the default actions associated with an event, provide a
 subroutine via the C<default_event_handler> method. The first argument will
 be the event object. For instance:
 
@@ -484,33 +878,85 @@ __END__
 =head1 CLASSES AND DOM INTERFACES
 
 Here are the inheritance hierarchy of HTML::DOM's various classes and the
-DOM interfaces those classes implement:
+DOM interfaces those classes implement. The Classes in the left column all
+begin with 'HTML::', which is omitted for brevity. Items in brackets have
+not yet been implemented.
 
-  Class Hierarchy                      Interfaces
-  ---------------                      ----------
+  Class Inheritance Hierarchy             Interfaces
+  ---------------------------             ----------
   
-  HTML::DOM::Exception                 DOMException, EventException
-  HTML::DOM::Implementation            DOMImplementation
-  HTML::Element
-      HTML::DOM::Node                  Node, EventTarget
-          HTML::DOM::DocumentFragment  DocumentFragment
-          HTML::DOM                    Document, DocumentEvent
-          HTML::DOM::CharacterData     CharacterData
-              HTML::DOM::Text          Text
-              HTML::DOM::Comment       Comment
-          HTML::DOM::Element           Element
-  HTML::DOM::NodeList                  NodeList
-  HTML::DOM::NodeList::Magic           NodeList
-  HTML::DOM::NamedNodeMap              NamedNodeMap
-  HTML::DOM::Attr                      Node, Attr
-  HTML::DOM::Event                     Event
+  DOM::Exception                          DOMException, EventException
+  DOM::Implementation                     DOMImplementation
+  Element
+      DOM::Node                           Node, EventTarget
+          DOM::DocumentFragment           DocumentFragment
+          DOM                             Document, HTMLDocument,
+                                            DocumentEvent
+          DOM::CharacterData              CharacterData
+              DOM::Text                   Text
+              DOM::Comment                Comment
+          DOM::Element                    Element, HTMLElement
+              DOM::Element::HTML          HTMLHtmlElement
+              DOM::Element::Head          HTMLHeadElement
+              DOM::Element::Link          HTMLLinkElement
+              DOM::Element::Title         HTMLTitleElement
+              DOM::Element::Meta          HTMLMetaElemen
+              DOM::Element::Base          HTMLBaseElement
+              DOM::Element::IsIndex       HTMLIsIndexElement
+              DOM::Element::Style         HTMLStyleElement
+              DOM::Element::Body          HTMLBodyElement
+             [DOM::Element::Form          HTMLFormElement]
+             [DOM::Element::Select        HTMLSelectElement]
+             [DOM::Element::OptGroup      HTMLOptGroupElement]
+             [DOM::Element::Option        HTMLOptionElement]
+             [DOM::Element::Input         HTMLInputElement]
+             [DOM::Element::TextArea      HTMLTextAreaElement]
+             [DOM::Element::Button        HTMLButtonElement]
+             [DOM::Element::Label         HTMLLabelElement]
+             [DOM::Element::FieldSet      HTMLFieldSetElement]
+             [DOM::Element::Legend        HTMLLegendElement]
+             [DOM::Element::UL            HTMLUListElement]
+             [DOM::Element::OL            HTMLOListElement]
+             [DOM::Element::DL            HTMLDListElement]
+             [DOM::Element::Dir           HTMLDirectoryElement]
+             [DOM::Element::Menu          HTMLMenuElement]
+             [DOM::Element::LI            HTMLLIElement]
+             [DOM::Element::Div           HTMLDivElement]
+             [DOM::Element::P             HTMLParagraphElement]
+             [DOM::Element::Heading       HTMLHeadingElement]
+             [DOM::Element::Quote         HTMLQuoteElement]
+             [DOM::Element::Pre           HTMLPreElement]
+             [DOM::Element::Br            HTMLBRElement]
+             [DOM::Element::BaseFont      HTMLBaseFontElement]
+             [DOM::Element::Font          HTMLFontElement]
+             [DOM::Element::HR            HTMLHRElement]
+             [DOM::Element::Mod           HTMLModElement]
+             [DOM::Element::A             HTMLAnchorElement]
+             [DOM::Element::Img           HTMLImageElement]
+             [DOM::Element::Object        HTMLObjectElement]
+             [DOM::Element::Param         HTMLParamElement]
+             [DOM::Element::Applet        HTMLAppletElement]
+             [DOM::Element::Map           HTMLMapElement]
+             [DOM::Element::Area          HTMLAreaElement]
+             [DOM::Element::Script        HTMLScriptElement]
+             [DOM::Element::Table         HTMLTableElement]
+             [DOM::Element::Caption       HTMLTableCaptionElement]
+             [DOM::Element::TableColumn   HTMLTableColElement]
+             [DOM::Element::TableSection  HTMLTableSectionElement]
+             [DOM::Element::TR            HTMLTableRowElement]
+             [DOM::Element::TableCell     HTMLTableCellElement]
+             [DOM::Element::FrameSet      HTMLFrameSetElement]
+             [DOM::Element::Frame         HTMLFrameElement]
+             [DOM::Element::IFrame        HTMLIFrameElement]
+  DOM::NodeList                           NodeList
+  DOM::NodeList::Magic                    NodeList
+  DOM::NamedNodeMap                       NamedNodeMap
+  DOM::Attr                               Node, Attr
+  DOM::Collection                         HTMLCollection
+  DOM::Event                              Event
 
-Later, HTML::DOM::Element will have subclasses for the various different
-element types.
-
-Although HTML::DOM::Node inherits from HTML::Element, methods of
-HTML::Element that make a distinction between text and elements either will
-not work or will work slightly differently.
+Although HTML::DOM::Node inherits from HTML::Element, the interface is not
+entirely compatible, so don't rely on any HTML::Element methods.
 
 The EventListener interface is not implemented by HTML::DOM, but is 
 supported.
@@ -564,11 +1010,15 @@ Definitely perl 5.6.0 or later (only tested with 5.8.7 and 5.8.8)
 HTML::TreeBuilder and HTML::Element (both part of the HTML::Tree
 distribution) (tested with 3.23)
 
-=head1 BUGS
+URI.pm (tested with 1.35)
 
-The C<write> method currently only works when the tree is in the process 
-of being
-built.
+HTTP::Headers::Util is required if you pass an argument to the C<cookie>
+method after passing an HTTP::Response and a cookie jar to the constructor 
+(in which case you most certainly already have 
+HTTP::Headers::Util :-). 
+(tested with 1.13)
+
+=head1 BUGS
 
 I really don't know what will happen if a element handler goes and deletes
 parent elements of the element for which the handler is called.
@@ -578,6 +1028,11 @@ altogether.
 
 C<hasFeature> returns true for 'HTML' and '1.0', even though the Level-1
 HTML interfaces are not fully implemented yet.
+
+HTML::DOM::Element's C<normalize> method does not currently work properly.
+
+HTML::DOM::Node's C<cloneNode> method does not currently work properly with
+elements.
 
 B<To report bugs,> please e-mail the author.
 
@@ -597,7 +1052,8 @@ it under the same terms as perl.
 
 L<HTML::DOM::Exception>, L<HTML::DOM::Node>, L<HTML::DOM::Event>
 
-L<HTML::Tree>, L<HTML::TreeBuilder>, L<HTML::Element>, L<HTML::Parser>
+L<HTML::Tree>, L<HTML::TreeBuilder>, L<HTML::Element>, L<HTML::Parser>,
+L<LWP>, L<WWW::Mechanize>, L<HTTP::Cookies>
 
 The DOM Level 1 specification at S<L<http://www.w3.org/TR/REC-DOM-Level-1>>
 

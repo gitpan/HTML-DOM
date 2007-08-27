@@ -11,8 +11,10 @@ WriteMakefile(
     PREREQ_PM => {
         'HTML::TreeBuilder' => 0,
         'HTML::Element' => 0,
+        'HTTP::Headers::Util' => 0,
         'Scalar::Util' => 0,
         'Test::More'   => 0,
+         URI           => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'HTML-DOM-*' },
