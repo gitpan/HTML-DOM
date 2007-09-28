@@ -1,11 +1,23 @@
 #!/usr/bin/perl -T
 
-# This script tests the HTMLElement interface and those interfaces that are
-# derived from it.
+# This script tests the HTMLElement interface and most of the interfaces
+# that are derived from it.
 
 use strict; use warnings;
 
-use Test::More tests => 107;
+use Test::More tests => 140+337;
+
+
+sub test_attr {
+	my ($obj, $attr, $val, $new_val) = @_;
+	my $attr_name = (ref($obj) =~ /[^:]+\z/g)[0] . "'s $attr";
+
+	# I get the attribute first before setting it, because at one point
+	# I had it setting it to undef with no arg.
+	is $obj->$attr,          $val,     "get $attr_name";
+	is $obj->$attr($new_val),$val, "set/get $attr_name";
+	is $obj->$attr,$new_val,     ,     "get $attr_name again";
+}
 
 
 # -------------------------#
@@ -20,7 +32,7 @@ my $doc = new HTML::DOM;
 isa_ok $doc, 'HTML::DOM';
 
 # -------------------------#
-# Tests 3-40: Element types that just use the HTMLElement interface
+# Tests 3-45: Element types that just use the HTMLElement interface
 
 for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
          samp kbd var cite acronym abbr dd dt noframes noscript
@@ -37,20 +49,17 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$elem->attr(dir => 'left');
 	$elem->attr(class => 'ssalc');
 
-	is $elem->id       ('eyeD'), 'di',           'set/get id';
-	is $elem->id       ,'eyeD',                ,     'get id';
-	is $elem->title    ('titulus'),     'eltit', 'set/get titl';
-	is $elem->title    ,'titulus',             ,     'get titl';
-	is $elem->lang     ('el'),             'en', 'set/get lang';
-	is $elem->lang     ,'el',                  ,     'get lang';
-	is $elem->dir      ('right'),        'left', 'set/get dir';
-	is $elem->dir      ,'right',               ,     'get dir';
+	test_attr $elem, qw/ id        di    eyeD /;
+	test_attr $elem, qw/ title     eltit titulus /;
+	test_attr $elem, qw/ lang      en    el /;
+	test_attr $elem, qw/ dir       left  right /;
+	is $elem->className,'ssalc',               ,     'get className';
 	is $elem->className('taxis'),       'ssalc', 'set/get className';
-	is $elem->className,'taxis',               ,     'get className';
+	is $elem->className,'taxis',               , 'get className again';
 }
 
 # -------------------------#
-# Tests 41-3: HTMLHtmlElement
+# Tests 46-9: HTMLHtmlElement
 
 {
 	is ref(
@@ -60,12 +69,11 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	;
 	$elem->attr(version => 'noisrev');
 
-	is $elem->version       ('ekdosis'), 'noisrev',  'set/get version';
-	is $elem->version       ,'ekdosis',           ,      'get version';
+	test_attr $elem, qw/ version noisrev ekdosis /;
 }
 
 # -------------------------#
-# Tests 44-6: HTMLHeadElement
+# Tests 50-3: HTMLHeadElement
 
 {
 	is ref(
@@ -75,12 +83,11 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	;
 	$elem->attr(profile => 'eliforp');
 
-	is $elem->profile       ('prolific'), 'eliforp', 'set/get profile';
-	is $elem->profile       ,'prolific',           ,     'get profile';
+	test_attr $elem, qw/ profile eliforp prolific /;
 }
 
 # -------------------------#
-# Tests 47-65: HTMLLinkElement
+# Tests 54-81: HTMLLinkElement
 
 {
 	is ref(
@@ -97,28 +104,21 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$elem->attr(target   => 'tegrat');
 	$elem->attr(type     => 'application/pdf');
 
-	ok!$elem->disabled       (1),                 , 'set/get disabled';
-	ok $elem->disabled                            ,     'get disabled';
-	is $elem->charset        ('utf-32be'), 'utf-8', 'set/get charset';
-	is $elem->charset        ,'utf-32be',         ,     'get charset';
-	is $elem->href  ('/stylesheet.css'), '/styles.css', 'set/get href';
-	is $elem->href  ,'/stylesheet.css',               ,     'get href';
-	is $elem->hreflang       ('fr'), 'ru', 'set/get hreflang';
-	is $elem->hreflang       ,'fr',      ,     'get hreflang';
-	is $elem->media('avian-carrier'), 'radio', 'set/get media';
-	is $elem->media,'avian-carrier',         ,     'get media';
-	is $elem->rel  ('lure'),            'ler', 'set/get rel';
-	is $elem->rel  ,'lure',                  ,     'get rel';
-	is $elem->rev  ('ekd'),             'ver', 'set/get rev';
-	is $elem->rev  ,'ekd',                   ,     'get rev';
-	is $elem->target     ('guitar'), 'tegrat', 'set/get target';
-	is $elem->target     ,'guitar',          ,     'get target';
-	is $elem->type('text/richtext'), 'application/pdf', 'set/get type';
-	is $elem->type,'text/richtext',                   ,     'get type';
+	ok!$elem->disabled                      ,     'get disabled';
+	ok!$elem->disabled       (1),           , 'set/get disabled';
+	ok $elem->disabled                      ,     'get disabled again';
+	test_attr $elem, qw/ charset  utf-8           utf-32be        /;
+	test_attr $elem, qw\ href     /styles.css     /stylesheet.css \;
+	test_attr $elem, qw/ hreflang ru              fr              /;
+	test_attr $elem, qw\ media    radio           avian-carrier   \;
+	test_attr $elem, qw/ rel      ler             lure            /;
+	test_attr $elem, qw\ rev      ver             ekd             \;
+	test_attr $elem, qw/ target   tegrat          guitar          /;
+	test_attr $elem, qw\ type     application/pdf text/richtext   \;
 }
 
 # -------------------------#
-# Tests 66-8: HTMLTitleElement
+# Tests 82-5: HTMLTitleElement
 
 {
 	is ref(
@@ -127,12 +127,11 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 		"class for title";
 	;
 
-	is $elem->text       ('tittle'), '', 'set/get text';
-	is $elem->text       ,'tittle',    ,     'get text';
+	test_attr $elem, 'text', '', 'tittle';
 }
 
 # -------------------------#
-# Tests 69-77: HTMLMetaElement
+# Tests 86-98: HTMLMetaElement
 
 {
 	is ref(
@@ -145,20 +144,16 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$elem->attr( name        => 'Fred');
 	$elem->attr( scheme      => 'devious');
 
-	is $elem->content('no-cache'), 'text/html; charset=utf-8',
-		'set/get content';
-	is $elem->content,'no-cache',                            ,
-		    'get content';
+	test_attr $elem, 'content', 'text/html; charset=utf-8', 'no-cache';
+	is $elem->httpEquiv,'Content-Type',          ,     'get httpEquiv';
 	is $elem->httpEquiv('Pragma'), 'Content-Type', 'set/get httpEquiv';
-	is $elem->httpEquiv,'Pragma',                ,     'get httpEquiv';
-	is $elem->name     ('George'),         'Fred', 'set/get name';
-	is $elem->name     ,'George',                ,     'get name';
-	is $elem->scheme   ('divisive'),    'devious', 'set/get scheme';
-	is $elem->scheme   ,'divisive',              ,     'get scheme';
+	is $elem->httpEquiv,'Pragma',                'get httpEquiv again';
+	test_attr $elem, qw` name    Fred             George             `;
+	test_attr $elem, qw` scheme  devious          divisive           `;
 }
 
 # -------------------------#
-# Tests 78-82: HTMLBaseElement
+# Tests 99-105: HTMLBaseElement
 
 {
 	is ref(
@@ -169,14 +164,12 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$elem->attr(href     => '/styles.css');
 	$elem->attr(target   => 'tegrat');
 
-	is $elem->href  ('/stylesheet.css'), '/styles.css', 'set/get href';
-	is $elem->href  ,'/stylesheet.css',               ,     'get href';
-	is $elem->target     ('guitar'), 'tegrat', 'set/get target';
-	is $elem->target     ,'guitar',          ,     'get target';
+	test_attr $elem, qw~ href   /styles.css /stylesheet.css  ~;
+	test_attr $elem, qw~ target tegrat      guitar           ~;
 }
 
 # -------------------------#
-# Tests 83-7: HTMLIsIndexElement
+# Tests 106-11: HTMLIsIndexElement
 
 {
 	is ref(
@@ -192,12 +185,11 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$form->firstChild->appendChild($elem);
 	is $elem->form, $form, 'IsIndex form';
 
-	is $elem->prompt    ('01504'), 'Yayayyayayaayay', 'set/get prompt';
-	is $elem->prompt    ,'01504',                   ,     'get prompt';
+	test_attr $elem, qw @ prompt Yayayyayayaayay     01504           @;
 }
 
 # -------------------------#
-# Tests 88-94: HTMLStyleElement
+# Tests 112-21: HTMLStyleElement
 
 {
 	is ref(
@@ -208,16 +200,15 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$elem->attr(media    => 'radio');
 	$elem->attr(type     => 'application/pdf');
 
-	ok!$elem->disabled       (1),                 , 'set/get disabled';
-	ok $elem->disabled                            ,     'get disabled';
-	is $elem->media('avian-carrier'), 'radio', 'set/get media';
-	is $elem->media,'avian-carrier',         ,     'get media';
-	is $elem->type('text/richtext'), 'application/pdf', 'set/get type';
-	is $elem->type,'text/richtext',                   ,     'get type';
+	ok!$elem->disabled                           ,      'get disabled';
+	ok!$elem->disabled       (1),                ,  'set/get disabled';
+	ok $elem->disabled                           ,'get disabled again';
+	test_attr $elem, qw! media radio           avian-carrier         !;
+	test_attr $elem, qw! type  application/pdf text/richtext         !;
 }
 
 # -------------------------#
-# Tests 95-107: HTMLBodyElement
+# Tests 122-40: HTMLBodyElement
 
 {
 	is ref(
@@ -232,18 +223,14 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$elem->attr(text      => 'blue');
 	$elem->attr(vLink     => 'dingo');
 
-	is $elem->aLink     ('kokkino'),       'red', 'set/get aLink';
-	is $elem->aLink     ,'kokkino',             ,     'get aLink';
-	is $elem->background('portokali'),  'orange', 'set/get background';
-	is $elem->background,'portokali',           ,     'get background';
-	is $elem->bgColor   ('kitrino'),    'yellow', 'set/get bgColor';
-	is $elem->bgColor   ,'kitrino',             ,     'get bgColor';
-	is $elem->link      ('prasino'),     'green', 'set/get link';
-	is $elem->link      ,'prasino',             ,     'get link';
-	is $elem->text      ('mple'),         'blue', 'set/get text';
-	is $elem->text      ,'mple',                ,     'get text';
-	is $elem->vLink     ('eidos skylou'),'dingo', 'set/get vLink ';
-	is $elem->vLink     ,'eidos skylou',        ,     'get vLink ';
+	test_attr $elem, qw 2 aLink      red     kokkino           2;
+	test_attr $elem, qw 3 background orange  portokali         3;
+	test_attr $elem, qw 4 bgColor    yellow  kitrino           4;
+	test_attr $elem, qw 5 link       green   prasino           5;
+	test_attr $elem, qw 6 text       blue    mple              6;
+	test_attr $elem, qw 7 vLink      dingo   eidos_skylou      7;
 }
 
+
+SKIP: { skip "not written yet", 337 }
 

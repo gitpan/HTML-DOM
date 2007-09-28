@@ -24,7 +24,7 @@ $doc->elem_handler(script => sub {
 	$@ and die;
 });
 
-$doc->parse(<<'-----');
+$doc->write(<<'-----');
 
 <body><p>Para 1
 <p>Para 2
@@ -40,7 +40,7 @@ $doc->write('<p>Para ' . ($doc->body->childNodes->length+1))
 
 -----
 
-$doc->eof;
+$doc->close;
 
 {
 	local $[ = 1;
@@ -171,12 +171,12 @@ is_deeply traverse $doc, [
 	});
 
 	eval {
-	$doc->parse(<<'	-----');
+	$doc->write(<<'	-----');
 		<script>
 			<script>stuff<\/script>
 		</script>
 	-----
-	$doc->eof;
+	$doc->close;
 	};
 
 	is $counter,2,  'nested <script> elems';

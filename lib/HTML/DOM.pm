@@ -5,7 +5,7 @@ package HTML::DOM;
 # something to be done still (except in this sentence).
 
 
-require 5.006; # ~~~ What does it actually need?
+require 5.008003;
 use strict;
 use warnings;
 
@@ -14,7 +14,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.005';
+our $VERSION = '0.006';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -34,7 +34,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.005 (alpha)
+Version 0.006 (alpha)
 
 B<WARNING:> This module is still at an experimental stage. Only a few
 features have been implemented so far. The API is subject to change without
@@ -66,7 +66,7 @@ as the document class.
 
 =head1 METHODS
 
-=head2 Non-DOM Methods
+=head2 Construction and Parsing
 
 =over 4
 
@@ -120,7 +120,7 @@ C<response>.
 	# Stolen from HTML::TreeBuilder and modified.
 	# ~~~ Wait a minute! I *can* call SUPER:: if I record the hash
 	#     elems first and put them back in afterwards. Yes, let's do
-	#     that.
+	#     that, but later.
 	sub elementify {
 	  # Rebless this object down into the normal element class.
 	  my $self = $_[0];
@@ -205,7 +205,7 @@ or security into account):
       eval($elem->firstChild->data);
   });
 
-  $tree->parse(
+  $tree->write(
       '<p>The time is
            <script type="application/x-perl">
                 $document->write(scalar localtime)
@@ -213,9 +213,11 @@ or security into account):
            precisely.
        </p>'
   );
-  $tree->eof;
+  $tree->close;
 
   print $tree->documentElement->as_text, "\n";
+
+  B<BUG:> The 'open' method currently undoes what this method does.
 
 =cut
 
@@ -250,7 +252,7 @@ sub elem_handler {
 		                   # text portions if the  first  one
 		                  # is a node.
 
-		# We have to clear the write buffalo before calling parse,
+		# We have to clear the write buffalo before calling write,
 		# because if the  buffalo  contains  $elem_name  elements,
 		# parse will (indirectly) call this very routine while the
 		# buffalo is still full, so we will end up passing the same
@@ -265,20 +267,39 @@ sub elem_handler {
 
 =item $tree->parse_file($file)
 
-=item $tree->parse(...)
+This simply
+calls HTML::TreeBuilder's method of the same name (q.v., and see also
+HTML::Element). It takes a file name or handle and parses the content,
+(effectively) calling C<close> afterwards.
 
-=item $tree->eof()
+=item $tree->write(...) (DOM method)
 
-These three methods simply
-call HTML::TreeBuilder's methods with the same name (q.v., and see also
-HTML::Element), but note that
-C<parse_file> may only be called once for each HTML::DOM object
-(since it deletes its parser when it no longer needs it), unless you reset
-the object by calling the C<open> method. Similarly,
-C<parse> may not be called after C<eof> (again, unless you call C<open>
-first, which is what C<write> does automatically, so I don't know why I
-even bother keeping the C<parse> method at all; maybe I should do away
-with it).
+This parses the HTML code passed to it, adding it to the end of 
+the
+document. Like L<HTML::TreeBuilder>'s
+C<parse> method, it can take a coderef.
+
+When it is called from an an element handler (see
+C<elem_handler>, above), the value passed to it
+will be inserted into the HTML code after the current element when the
+element handler returns. (In this case a coderef won't do--maybe that will
+be added later.)
+
+If the C<close> method has been called, C<write> will call C<open> before
+parsing the HTML code passed to it.
+
+=item $tree->writeln(...) (DOM method)
+
+Just like C<write> except that it appends "\n" to its argument and does
+not work with code refs. (Rather
+pointless, if you ask me. :-)
+
+=item $tree->close() (DOM method)
+
+Call this method to signal to the parser that the end of the HTML code has
+been reached. It will then parse any residual HTML that happens to be
+buffered. It also makes the next C<write> call C<open>.
+
 
 =cut
 
@@ -287,30 +308,60 @@ sub parse_file {
 		->parse_file(@_);
 	 $a	->elementify;
 }
-sub parse {
-	(my $a = (shift->content_list)[0])
-		->parse(@_);
+
+sub write {
+	local $^W; # ~~~ TEMPORARY FIX ONLY!!!
+	# (I need to get to the bottom of the dozens of varning messags
+	#  that TB spews out.)
+	my $self = shift;
+	if($$self{_HTML_DOM_buffered}) {
+		$$self{_HTML_DOM_write_buffer} .= shift;
+	}
+	else {
+		eval {($self->content_list)[0]->isa('HTML::TreeBuilder')}
+			or $self->open;
+		($self->content_list)[0]->parse(shift);
+	}
+	return # nothing;
 }
-sub eof {
+
+sub writeln { $_[0]->write("$_[1]\n") }
+
+sub close {
+	local $^W; # ~~~ TEMPORARY FIX ONLY!!!
+	# (I need to get to the bottom of the dozens of varning messags
+	#  that TB spews out.)
 	eval { # make it a no-op if there's no parser
 	(my $a = (shift->content_list)[0])
 		->eof(@_);
 	 $a	->elementify;
 	};
-	return # nothing; # so that close (an alias to this) is stan-
-	                  # dards-compliant
+	return # nothing;
+}
+
+=item $tree->open
+
+Deletes the HTML tree, reseting it so that it has just an <html> element,
+and a parser hungry for HTML code.
+
+=cut
+
+sub open {
+	(my $self = shift)->delete_content; # remove circular references
+	$self->{_content} = ref($self)->new->{_content};
+
+	# The ownerDocument method of items in the tree stops working
+	# without this, since the root's parent is currently the temporary
+	# doc created by ref($self)->new, above:
+	($self->content_list)[0]->parent($self);
+
+	return # nothing;
 }
 
 
-=item $tree->event_attr_handler
-
-=item $tree->default_event_handler
-
-See L</EVENT HANDLING>, below.
-
 =back
 
-=head2 DOM Methods
+=head2 Other DOM Methods
 
 (This section needs to be written.)
 
@@ -420,9 +471,6 @@ names of
 the attributes. C<fgColor> refers to the C<text> attribute. Those that end
 with 'linkColor' refer to the attributes of the same name but without the
 'Color' on the end.
-
-B<These don't work yet, and won't work until HTML::DOM::Element::Body is
-implemented.>
 
 =cut
 
@@ -658,63 +706,6 @@ sub cookie {
   $return||'';
 }
 
-=item open
-
-Resets the document to the state it was in immediately after calling
-C<new>. If you have a subclass that has its own attributes inside the
-object, they will be wiped out.
-
-=item close
-
-An alias to C<eof> (flushes any HTML code that might be buffered after
-calling C<write>/C<parse>, and makes the next C<write> call C<open>)
-
-=item write
-
-When this is called from an an element handler (see
-C<elem_handler>, above), the value passed to it
-will be inserted into the HTML code after the current element when the
-element handler returns.
-
-Otherwise it appends the HTML code to the current document (via C<parse>), 
-unless C<eof>
-has been called, in which case it calls C<open> before calling C<parse>.
-
-=item writeln
-
-Just like C<write> except that it appends "\n" to its argument. (Rather
-pointless, if you ask me. :-)
-
-=cut
-
-sub open {
-	(my $self = shift)->delete_content; # remove circular references
-	%$self = (%{ref($self)->new},
-		_HTML_DOM_url => $$self{_HTML_DOM_url},
-		_HTML_DOM_referrer => $$self{_HTML_DOM_referrer},
-		_HTML_DOM_response => $$self{_HTML_DOM_response},
-		_HTML_DOM_jar => $$self{_HTML_DOM_jar}
-	);
-	return # nothing;
-}
-
-sub write {
-	my $self = shift;
-	if($$self{_HTML_DOM_buffered}) {
-		$$self{_HTML_DOM_write_buffer} .= shift;
-	}
-	else {
-		eval {($self->content_list)[0]->isa('HTML::TreeBuilder')}
-			or $self->open;
-		$self->parse(shift);
-	}
-	return # nothing;
-}
-
-sub writeln { $_[0]->write("$_[1]\n") }
-
-*close = \&eof;
-
 =item getElementById
 
 =item getElementsByName
@@ -763,6 +754,36 @@ sub ownerDocument {} # empty list
 sub nodeName { '#document' }
 { no warnings 'once'; *nodeType = \& DOCUMENT_NODE; }
 
+=head2 Other (Non-DOM) Methods
+
+=over 4
+
+=item $tree->event_attr_handler
+
+=item $tree->default_event_handler
+
+See L</EVENT HANDLING>, below.
+
+=item $tree->base
+
+Returns the base URL of the page; either from a <base href=...> tag or the
+URL passed to C<new>.
+
+=back
+
+=cut
+
+# ~~~ this methosd tsill needs tstest
+
+sub base { # ~~~ is this specky?
+	my $doc = shift;
+	if(my $base_elem = $doc->look_down(_tag => 'base')){
+		return $base_elem->attr('href');
+	}
+	else {
+		$doc->URL
+	}
+}
 
 =head1 EVENT HANDLING
 
@@ -778,11 +799,11 @@ any classes that provide a C<handleEvent> method, but will support any
 object that has one.
 
 To specify the default actions associated with an event, provide a
-subroutine via the C<default_event_handler> method. The first argument will
+subroutine via the C<default_event_handler> method. The sole argument will
 be the event object. For instance:
 
   $dom_tree->default_event_handler(sub {
-         my($self, $event) = @_;
+         my $event = shift;
          my $type = $event->type;
          my $tag = (my $target = $event->target)->nodeName;
          if ($type eq 'click' && $tag eq 'A') {
@@ -905,40 +926,40 @@ not yet been implemented.
               DOM::Element::IsIndex       HTMLIsIndexElement
               DOM::Element::Style         HTMLStyleElement
               DOM::Element::Body          HTMLBodyElement
-             [DOM::Element::Form          HTMLFormElement]
-             [DOM::Element::Select        HTMLSelectElement]
-             [DOM::Element::OptGroup      HTMLOptGroupElement]
-             [DOM::Element::Option        HTMLOptionElement]
-             [DOM::Element::Input         HTMLInputElement]
-             [DOM::Element::TextArea      HTMLTextAreaElement]
-             [DOM::Element::Button        HTMLButtonElement]
-             [DOM::Element::Label         HTMLLabelElement]
-             [DOM::Element::FieldSet      HTMLFieldSetElement]
-             [DOM::Element::Legend        HTMLLegendElement]
-             [DOM::Element::UL            HTMLUListElement]
-             [DOM::Element::OL            HTMLOListElement]
-             [DOM::Element::DL            HTMLDListElement]
-             [DOM::Element::Dir           HTMLDirectoryElement]
-             [DOM::Element::Menu          HTMLMenuElement]
-             [DOM::Element::LI            HTMLLIElement]
-             [DOM::Element::Div           HTMLDivElement]
-             [DOM::Element::P             HTMLParagraphElement]
-             [DOM::Element::Heading       HTMLHeadingElement]
-             [DOM::Element::Quote         HTMLQuoteElement]
-             [DOM::Element::Pre           HTMLPreElement]
-             [DOM::Element::Br            HTMLBRElement]
-             [DOM::Element::BaseFont      HTMLBaseFontElement]
-             [DOM::Element::Font          HTMLFontElement]
-             [DOM::Element::HR            HTMLHRElement]
-             [DOM::Element::Mod           HTMLModElement]
-             [DOM::Element::A             HTMLAnchorElement]
-             [DOM::Element::Img           HTMLImageElement]
-             [DOM::Element::Object        HTMLObjectElement]
-             [DOM::Element::Param         HTMLParamElement]
-             [DOM::Element::Applet        HTMLAppletElement]
-             [DOM::Element::Map           HTMLMapElement]
-             [DOM::Element::Area          HTMLAreaElement]
-             [DOM::Element::Script        HTMLScriptElement]
+              DOM::Element::Form          HTMLFormElement
+              DOM::Element::Select        HTMLSelectElement
+              DOM::Element::OptGroup      HTMLOptGroupElement
+              DOM::Element::Option        HTMLOptionElement
+              DOM::Element::Input         HTMLInputElement
+              DOM::Element::TextArea      HTMLTextAreaElement
+              DOM::Element::Button        HTMLButtonElement
+              DOM::Element::Label         HTMLLabelElement
+              DOM::Element::FieldSet      HTMLFieldSetElement
+              DOM::Element::Legend        HTMLLegendElement
+              DOM::Element::UL            HTMLUListElement
+              DOM::Element::OL            HTMLOListElement
+              DOM::Element::DL            HTMLDListElement
+              DOM::Element::Dir           HTMLDirectoryElement
+              DOM::Element::Menu          HTMLMenuElement
+              DOM::Element::LI            HTMLLIElement
+              DOM::Element::Div           HTMLDivElement
+              DOM::Element::P             HTMLParagraphElement
+              DOM::Element::Heading       HTMLHeadingElement
+              DOM::Element::Quote         HTMLQuoteElement
+              DOM::Element::Pre           HTMLPreElement
+              DOM::Element::Br            HTMLBRElement
+              DOM::Element::BaseFont      HTMLBaseFontElement
+              DOM::Element::Font          HTMLFontElement
+              DOM::Element::HR            HTMLHRElement
+              DOM::Element::Mod           HTMLModElement
+              DOM::Element::A             HTMLAnchorElement
+              DOM::Element::Img           HTMLImageElement
+              DOM::Element::Object        HTMLObjectElement
+              DOM::Element::Param         HTMLParamElement
+              DOM::Element::Applet        HTMLAppletElement
+              DOM::Element::Map           HTMLMapElement
+              DOM::Element::Area          HTMLAreaElement
+              DOM::Element::Script        HTMLScriptElement
              [DOM::Element::Table         HTMLTableElement]
              [DOM::Element::Caption       HTMLTableCaptionElement]
              [DOM::Element::TableColumn   HTMLTableColElement]
@@ -949,6 +970,7 @@ not yet been implemented.
              [DOM::Element::Frame         HTMLFrameElement]
              [DOM::Element::IFrame        HTMLIFrameElement]
   DOM::NodeList                           NodeList
+      DOM::NodeList::Radio
   DOM::NodeList::Magic                    NodeList
   DOM::NamedNodeMap                       NamedNodeMap
   DOM::Attr                               Node, Attr
@@ -1005,7 +1027,7 @@ C<length> methods.
 
 =head1 PREREQUISITES
 
-Definitely perl 5.6.0 or later (only tested with 5.8.7 and 5.8.8)
+perl 5.8.3 or later (only tested with 5.8.7 and 5.8.8)
 
 HTML::TreeBuilder and HTML::Element (both part of the HTML::Tree
 distribution) (tested with 3.23)
@@ -1018,21 +1040,67 @@ method after passing an HTTP::Response and a cookie jar to the constructor
 HTTP::Headers::Util :-). 
 (tested with 1.13)
 
+HTML::Form 1.054 or later if any of the methods provided for
+WWW::Mechanize compatibility are called.
+
+Scalar::Util 1.08 or later
+
 =head1 BUGS
+
+(See also BUGS in 
+L<HTML::DOM::Collection::Options/BUGS|HTML::DOM::Collection::Options> and
+L<HTML::DOM::Element::Option/BUGS|HTML::DOM::Element::Option>.)
+
+=over 4
+
+=item -
 
 I really don't know what will happen if a element handler goes and deletes
 parent elements of the element for which the handler is called.
 
+=item -
+
 Exceptions thrown within event listeners (handlers) are currently ignored
 altogether.
+
+=item -
 
 C<hasFeature> returns true for 'HTML' and '1.0', even though the Level-1
 HTML interfaces are not fully implemented yet.
 
+=item -
+
 HTML::DOM::Element's C<normalize> method does not currently work properly.
+
+=item -
 
 HTML::DOM::Node's C<cloneNode> method does not currently work properly with
 elements.
+
+=item -
+
+The values of attributes whose data type is a value list in the HTML DTD
+are currently not normalised when accessed through the Level 0 interface, 
+though they should be.
+
+=item -
+
+The values of boolean attributes 
+are currently not normalised when accessed through the Level 0 interface, 
+though they should be.
+
+=item -
+
+Certain HTML attributes are supposed to have default values if they are
+not in specified in the document. This is not implemented yet, except for
+a few cases here and there.
+
+=item -
+
+The C<open> method currently delete's any of the HTML::DOM object's
+references to subroutines that were passed to C<elem_handler>.
+
+=back
 
 B<To report bugs,> please e-mail the author.
 
@@ -1053,7 +1121,9 @@ it under the same terms as perl.
 L<HTML::DOM::Exception>, L<HTML::DOM::Node>, L<HTML::DOM::Event>
 
 L<HTML::Tree>, L<HTML::TreeBuilder>, L<HTML::Element>, L<HTML::Parser>,
-L<LWP>, L<WWW::Mechanize>, L<HTTP::Cookies>
+L<LWP>, L<WWW::Mechanize>, L<HTTP::Cookies>, 
+L<WWW::Mechanize::Plugin::JavaScript> (coming to CPAN soon, hopefully),
+L<HTML::Form>
 
 The DOM Level 1 specification at S<L<http://www.w3.org/TR/REC-DOM-Level-1>>
 

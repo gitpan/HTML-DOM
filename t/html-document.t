@@ -5,7 +5,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 59;
+use Test::More tests => 60;
 
 
 # -------------------------#
@@ -20,7 +20,7 @@ my $doc = new HTML::DOM referrer => 'the other page',
                         url      => 'http://name:pwd@localhost:12345/1234';
 isa_ok $doc, 'HTML::DOM';
 
-$doc->parse('
+$doc->write('
 	<title>Titlos</title>
 	<body id=soma>
 		<div><form id=form1><img id=eikona1></form>
@@ -38,7 +38,7 @@ $doc->parse('
 			<a href="about:blank" id=link3></a>
 		</p>
 ');
-$doc->eof;
+$doc->close;
 
 # -------------------------#
 # Tests 3-11: simple attributes (not HTMLCollections or cookie)
@@ -181,7 +181,7 @@ SKIP: {
 }
 
 # -------------------------#
-# Tests 33-45: open, close, unbuffaloed write
+# Tests 33-46: open, close, unbuffaloed write
 
 # Buffaloed write is tested in html-dom.t together with
 # elem_handler with which it is closely tied.
@@ -216,6 +216,9 @@ SKIP: {
 		'I nearly forgot--the referrer as well, of course.';
 	ok $doc->documentElement->isa('HTML::TreeBuilder'),
 		'Ah, I see we have our tree builder back again!';
+	is $doc->documentElement->parent, $doc,
+		'the HTML elem\'s parent is the document';
+		# that one wasn't working in 0.005
 	
 	# Let's write something, close it, write again, and close again and
 	# see whether the first write's HTML code was clobbered.
@@ -234,7 +237,7 @@ SKIP: {
 }
 
 # -------------------------#
-# Tests 46-7: ^getElements?By
+# Tests 47-8: ^getElements?By
 
 $doc->write('<p name=para>para 1</p><p name=para>para 2</p><p id=p>3');
 $doc->close;
@@ -245,7 +248,7 @@ is_deeply [map data{firstChild $_}, getElementsByName $doc 'para'],
 is $doc->getElementById('p')->firstChild->data, 3, 'getElementById';
 
 # -------------------------#
-# Tests 48-59: weird attributes (fgColor et al.)
+# Tests 49-60: weird attributes (fgColor et al.)
 
 $doc->write('<body alink=red background=white.gif bgcolor=white
                    text=black link=blue vlink=fuschia>');

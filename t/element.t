@@ -123,7 +123,7 @@ is $elem->getAttribute('href'), '', 'result of removeAttributeNode';
 # Tests 29-34: getElementsByTagName
 
 {
-	$doc->parse('
+	$doc->write('
 		<div><!--sontoeutntont-->oentoeutn</div>
 		<form>
 			<div id=one>
@@ -137,7 +137,7 @@ is $elem->getAttribute('href'), '', 'result of removeAttributeNode';
 			</div>
 		</form>
 	');
-	$doc ->eof;
+	$doc ->close;
 
 	my($elem) = $doc->getElementsByTagName('form');
 	my($div_list, $node_list);

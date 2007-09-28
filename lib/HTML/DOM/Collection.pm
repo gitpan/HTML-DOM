@@ -5,7 +5,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.005';
+our $VERSION = '0.006';
 
 # Internals: \[$nodelist, $tie]
 
@@ -122,12 +122,12 @@ HTML::DOM::Collection - A Perl implementation of the HTMLCollection interface
 
   use HTML::DOM;
   $doc = HTML::DOM->new;
-  $doc->parse('<html> ..... </html>');
-  $doc->eof;
+  $doc->write('<html> ..... </html>');
+  $doc->close;
   
   $images = $doc->images; # returns an HTML::DOM::Collection
     
-  $images->[0];    # first images
+  $images->[0];    # first image
   $images->{logo}; # image named 'logo'
   $images->item(0);
   $images->namedItem('logo');
@@ -176,6 +176,6 @@ C<$name> will be returned. You can also write C<< $collection->{$name} >>.
 
 L<HTML::DOM>
 
-L<HTML::DOM::NodeList>
+L<HTML::DOM::NodeList> (manpage not written yet)
 
-L<HTML::DOM::NodeList::Magic>
+L<HTML::DOM::NodeList::Magic> (manpage not written yet)

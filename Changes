@@ -1,6 +1,51 @@
 Revision history for HTML::DOM
 
-And the rest of the HTMLDocument interface.
+0.006   27 September, 2007
+      - The following interfaces have been implemented:
+            HTMLFormElement
+            HTMLSelectElement
+            HTMLOptGroupElement
+            HTMLOptionElement
+            HTMLInputElement
+            HTMLTextAreaElement
+            HTMLButtonElement
+            HTMLLabelElement
+            HTMLFieldSetElement
+            HTMLLegendElement
+            HTMLUListElement
+            HTMLOListElement
+            HTMLDListElement
+            HTMLDirectoryElement
+            HTMLMenuElement
+            HTMLLIElement
+            HTMLDivElement
+            HTMLParagraphElement
+            HTMLHeadingElement
+            HTMLQuoteElement
+            HTMLPreElement
+            HTMLBRElement
+            HTMLBaseFontElement
+            HTMLFontElement
+            HTMLHRElement
+            HTMLModElement
+            HTMLAnchorElement
+            HTMLImageElement
+            HTMLObjectElement
+            HTMLParamElement
+            HTMLAppletElement
+            HTMLMapElement
+            HTMLAreaElement
+            HTMLScriptElement
+      - Some methods have also been added for compatibility with 
+        WWW::Mechanize.
+      - The 'open' method no longer stops the ownerDocument method
+        from working properly.
+      - Furthermore,  'open' is no longer anywhere near as powerful as
+        it was; it used to obliterate the coderefs that were passed to
+        event_attr_handler and default_event_handler.
+      - &HTML::DOM::base has been added.
+      - The parse and eof methods have been deleted, since write and
+        close do the same thing.
 
 0.005   26 August, 2007
         The HTMLCollection interface has now been implemented, and so

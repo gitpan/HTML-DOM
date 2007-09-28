@@ -93,7 +93,7 @@ cmp_ok $@, '==', HTML::DOM::Exception::NOT_SUPPORTED_ERR,
 # Tests 28-33: getElementsByTagName
 
 {
-	$doc->parse('
+	$doc->write('
 		<div id=one>
 			<div id=two>
 				<div id=three>
@@ -104,7 +104,7 @@ cmp_ok $@, '==', HTML::DOM::Exception::NOT_SUPPORTED_ERR,
 			</div>
 		</div>
 	');
-	$doc ->eof;
+	$doc ->close;
 
 	my($div_list, $node_list);
 
