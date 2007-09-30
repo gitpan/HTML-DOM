@@ -1,4 +1,4 @@
-HTML::DOM, version 0.006
+HTML::DOM, version 0.007
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -8,15 +8,9 @@ are implemented, and some of the level-2 event interfaces.
 
 CHANGES IN THIS RELEASE
 
-- More DOM element interfaces have been added (see the Changes file
-  for the list), including support for forms.
-- The form classes also provide extra methods for compatibility with 
-  WWW::Mechanize.
-- The non-DOM 'base' method has been added to HTML::DOM.
-- The 'open' method is now no longer so destructive, and can actu-
-  ally be used.
-- The parse and eof methods have been deleted, since write and close
-  serve the same purpose.
+This is an emergency bug-fix release. The previous release stopped
+form elements from parsing properly and made the rest of the  tree
+occur within the form element.
 
 
 TO DO

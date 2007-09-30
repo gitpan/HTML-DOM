@@ -14,7 +14,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.006';
+our $VERSION = '0.007';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -34,7 +34,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.006 (alpha)
+Version 0.007 (alpha)
 
 B<WARNING:> This module is still at an experimental stage. Only a few
 features have been implemented so far. The API is subject to change without
@@ -310,7 +310,6 @@ sub parse_file {
 }
 
 sub write {
-	local $^W; # ~~~ TEMPORARY FIX ONLY!!!
 	# (I need to get to the bottom of the dozens of varning messags
 	#  that TB spews out.)
 	my $self = shift;
@@ -328,7 +327,6 @@ sub write {
 sub writeln { $_[0]->write("$_[1]\n") }
 
 sub close {
-	local $^W; # ~~~ TEMPORARY FIX ONLY!!!
 	# (I need to get to the bottom of the dozens of varning messags
 	#  that TB spews out.)
 	eval { # make it a no-op if there's no parser
@@ -554,7 +552,7 @@ sub domain { no strict;
 
 sub URL {
 	my $url = shift->{_HTML_DOM_url};
-	"$url";
+	defined $url ? "$url" : undef;
 }
 
 sub body { # ~~~ this needs to return the outermost frameset element if

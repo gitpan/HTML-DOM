@@ -1,5 +1,13 @@
 Revision history for HTML::DOM
 
+0.007   29 September, 2007
+        Two bug fixes:
+        * The URL method no longer warns if there is no URL.
+        * The previous release broke parsing of forms. (The rest of
+          the document would be within the form element.) Now it
+          should work.
+
+
 0.006   27 September, 2007
       - The following interfaces have been implemented:
             HTMLFormElement
