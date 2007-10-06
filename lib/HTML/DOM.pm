@@ -5,7 +5,7 @@ package HTML::DOM;
 # something to be done still (except in this sentence).
 
 
-require 5.008003;
+use 5.008003;
 use strict;
 use warnings;
 
@@ -14,7 +14,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -34,7 +34,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.007 (alpha)
+Version 0.008 (alpha)
 
 B<WARNING:> This module is still at an experimental stage. Only a few
 features have been implemented so far. The API is subject to change without
@@ -899,7 +899,8 @@ __END__
 Here are the inheritance hierarchy of HTML::DOM's various classes and the
 DOM interfaces those classes implement. The Classes in the left column all
 begin with 'HTML::', which is omitted for brevity. Items in brackets have
-not yet been implemented.
+not yet been implemented. (See also L<HTML::DOM::Interface> for a
+machine-readable list of standard methods.)
 
   Class Inheritance Hierarchy             Interfaces
   ---------------------------             ----------
@@ -919,7 +920,7 @@ not yet been implemented.
               DOM::Element::Head          HTMLHeadElement
               DOM::Element::Link          HTMLLinkElement
               DOM::Element::Title         HTMLTitleElement
-              DOM::Element::Meta          HTMLMetaElemen
+              DOM::Element::Meta          HTMLMetaElement
               DOM::Element::Base          HTMLBaseElement
               DOM::Element::IsIndex       HTMLIsIndexElement
               DOM::Element::Style         HTMLStyleElement
@@ -1116,7 +1117,8 @@ it under the same terms as perl.
 
 =head1 SEE ALSO
 
-L<HTML::DOM::Exception>, L<HTML::DOM::Node>, L<HTML::DOM::Event>
+L<HTML::DOM::Exception>, L<HTML::DOM::Node>, L<HTML::DOM::Event>,
+L<HTML::DOM::Interface>
 
 L<HTML::Tree>, L<HTML::TreeBuilder>, L<HTML::Element>, L<HTML::Parser>,
 L<LWP>, L<WWW::Mechanize>, L<HTTP::Cookies>, 

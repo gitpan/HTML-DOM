@@ -13,7 +13,7 @@ require HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 #require HTML::DOM::Collection::Elements;
 
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 our @ISA = qw'HTML::DOM::Element HTML::Form';
 
 use overload fallback => 1,
@@ -127,7 +127,8 @@ sub click  # 22/Sep/7: stolen from HTML::Form and modified (particularly
 
 sub find_input
 {
-    package HTML::Form; # so caller tricks work
+    package
+	HTML::Form; # so caller tricks work
     my($self, $name, $type, $no) = @_;
     if (wantarray) {
 	my @res;
@@ -162,7 +163,8 @@ sub find_input
 
 sub make_request
 {
-    package HTML::Form; # so caller tricks work
+    package
+	HTML::Form; # so caller tricks work
     my $self = shift;
     my $method  = uc $self->method;
     my $uri     = $self->action;
@@ -187,7 +189,8 @@ sub make_request
 
 sub form
 {
-    package HTML::Form; # so caller tricks work
+    package
+	HTML::Form; # so caller tricks work
     my $self = shift;
     map { $_->form_name_value($self) } $self->inputs;
 }
@@ -201,7 +204,7 @@ package HTML::DOM::NodeList::Radio; # solely for HTML::Form compatibility
 use Carp 'croak';
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 our @ISA = qw'HTML::DOM::NodeList HTML::Form::Input';
 
 sub type { 'radio' }
@@ -265,7 +268,8 @@ sub AUTOLOAD { # so we don't have to load it unnecessarily
 sub form_name_value
 # ~~~ to be deleted when my patch to HTML::Form is applied
 {
-    package HTML::Form::Input;
+    package
+	HTML::Form::Input;
     my $self = shift;
     my $name = $self->name;
     return unless defined $name && length $name;
@@ -283,7 +287,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 
 require HTML::DOM::Collection;
 our @ISA = 'HTML::DOM::Collection';
@@ -457,7 +461,7 @@ L<HTML::Form>
 # ------- HTMLSelectElement interface ---------- #
 
 package HTML::DOM::Element::Select;
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 our @ISA = 'HTML::DOM::Element';
 
 sub type      { shift->attr('type') }
@@ -523,7 +527,7 @@ package HTML::DOM::Collection::Options;
 use strict;
 use warnings;
 
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 
 use Carp 'croak';
 
@@ -583,7 +587,8 @@ sub disabled {
 sub form_name_value
 # ~~~ to be deleted when my patch to HTML::Form is applied
 {
-    package HTML::Form::Input;
+    package
+	HTML::Form::Input;
     my $self = shift;
     my $name = $self->name;
     return unless defined $name && length $name;
@@ -597,7 +602,7 @@ sub form_name_value
 # ------- HTMLOptGroupElement interface ---------- #
 
 package HTML::DOM::Element::OptGroup;
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 our @ISA = 'HTML::DOM::Element';
 
 sub label  { shift->attr( label => @_) }
@@ -607,7 +612,7 @@ sub label  { shift->attr( label => @_) }
 # ------- HTMLOptionElement interface ---------- #
 
 package HTML::DOM::Element::Option;
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
 
 use Carp 'croak';
@@ -715,7 +720,8 @@ sub name {
 sub form_name_value
 # ~~~ to be deleted when my patch to HTML::Form is applied
 {
-    package HTML::Form::Input;
+    package
+	HTML::Form::Input;
     my $self = shift;
     my $name = $self->name;
     return unless defined $name && length $name;
@@ -729,7 +735,7 @@ sub form_name_value
 # ------- HTMLInputElement interface ---------- #
 
 package HTML::DOM::Element::Input;
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
@@ -840,7 +846,8 @@ sub form_name_value
 sub HTML_Form_Input_form_name_value
 # ~~~ to be deleted when my patch to HTML::Form is applied
 {
-    package HTML::Form::Input;
+    package
+	HTML::Form::Input;
     my $self = shift;
     my $name = $self->name;
     return unless defined $name && length $name;
@@ -852,7 +859,8 @@ sub HTML_Form_Input_form_name_value
 
 sub HTML_Form_FileInput_form_name_value {
 # ~~~ hame sere
-    package HTML::Form::ListInput;
+    package
+	HTML::Form::ListInput;
     my($self, $form) = @_;
     return $self-> HTML_Form_Input_form_name_value($form)
 	if uc $form->method ne "POST" ||
@@ -913,7 +921,7 @@ sub content {
 # ------- HTMLTextAreaElement interface ---------- #
 
 package HTML::DOM::Element::TextArea;
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
 
 sub defaultValue { # same as HTML::DOM::Element::Title::text
@@ -953,7 +961,8 @@ sub value        {
 sub form_name_value
 # ~~~ to be deleted when my patch to HTML::Form is applied
 {
-    package HTML::Form::Input;
+    package
+	HTML::Form::Input;
     my $self = shift;
     my $name = $self->name;
     return unless defined $name && length $name;
@@ -967,7 +976,7 @@ sub form_name_value
 # ------- HTMLButtonElement interface ---------- #
 
 package HTML::DOM::Element::Button;
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -975,13 +984,14 @@ our @ISA = qw'HTML::DOM::Element';
 *disabled = \&HTML::DOM::Element::Select::disabled;
 *name = \&HTML::DOM::Element::Form::name;
 *tabIndex = \&HTML::DOM::Element::Select::tabIndex;
-#*type = \&HTML::DOM::Element::Select::type;
+*type = \&HTML::DOM::Element::Select::type;
+sub value      { shift->attr( value       => @_) }
 
 
 # ------- HTMLLabelElement interface ---------- #
 
 package HTML::DOM::Element::Label;
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -991,7 +1001,7 @@ sub htmlFor { shift->attr( htmlFor       => @_) }
 # ------- HTMLFieldSetElement interface ---------- #
 
 package HTML::DOM::Element::FieldSet;
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -999,7 +1009,7 @@ our @ISA = qw'HTML::DOM::Element';
 # ------- HTMLLegendElement interface ---------- #
 
 package HTML::DOM::Element::Legend;
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;

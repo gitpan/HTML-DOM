@@ -1,4 +1,4 @@
-HTML::DOM, version 0.007
+HTML::DOM, version 0.008
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -8,9 +8,12 @@ are implemented, and some of the level-2 event interfaces.
 
 CHANGES IN THIS RELEASE
 
-This is an emergency bug-fix release. The previous release stopped
-form elements from parsing properly and made the rest of the  tree
-occur within the form element.
+- There is a new HTML::DOM::Interface module, which lists the sup-
+  ported interface methods in a machine-readable format  (a hash).
+- Added type and value methods to HTML::DOM::Element::Button
+- Added the charset, coords and tabIndex methods to
+  HTML::DOM::Element::A
+- HTML::DOM's createElement method now throws an HTML::DOM::Exception.
 
 
 TO DO

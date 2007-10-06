@@ -1,4 +1,7 @@
 Changes
+idl/1-core1.idl
+idl/2-html1.idl
+idl/3-events2.idl
 lib/HTML/DOM/Attr.pm
 lib/HTML/DOM/CharacterData.pm
 lib/HTML/DOM/Collection/Elements.pod
@@ -52,6 +55,7 @@ lib/HTML/DOM/Element/UL.pod
 lib/HTML/DOM/Element.pm
 lib/HTML/DOM/Event.pm
 lib/HTML/DOM/Exception.pm
+lib/HTML/DOM/Interface.pm
 lib/HTML/DOM/Implementation.pm
 lib/HTML/DOM/NamedNodeMap.pm
 lib/HTML/DOM/Node.pm
@@ -74,6 +78,7 @@ t/exception.t
 t/form-element.t
 t/fragment.t
 t/html-document.t
+t/html-dom-interface.t
 t/html-dom.t
 t/html-element.t
 t/html-form.t

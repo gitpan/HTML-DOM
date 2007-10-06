@@ -1,5 +1,13 @@
 Revision history for HTML::DOM
 
+0.008   5 October, 2007
+        * New HTML::DOM::Interface module
+        * Added type and value methods to HTML::DOM::Element::Button
+        * Added the charset, coords and tabIndex methods to 
+          HTML::DOM::Element::A.
+        * HTML::DOM's createElement method now throws an 
+          HTML::DOM::Exception.
+
 0.007   29 September, 2007
         Two bug fixes:
         * The URL method no longer warns if there is no URL.
