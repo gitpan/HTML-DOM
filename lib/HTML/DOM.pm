@@ -5,7 +5,8 @@ package HTML::DOM;
 # something to be done still (except in this sentence).
 
 
-use 5.008003;
+use 5.006; # It actually requires 5.8.3, but it won't if Exporter is ever
+           # put on CPAN.
 use strict;
 use warnings;
 
@@ -14,7 +15,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -34,7 +35,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.008 (alpha)
+Version 0.009 (alpha)
 
 B<WARNING:> This module is still at an experimental stage. Only a few
 features have been implemented so far. The API is subject to change without
@@ -110,8 +111,13 @@ C<response>.
 {	# The only purpose of this extra package is to make the TB inherit
 	# from HTML::DOM::Element as well as HTML::Element
 	# ~~~ If H:D:E has to override H:E methods, I'll have to change
-	#     the order of @ISA, and make sure that 'new', below, calls
-	#     HTML::DOM::TreeBuilder->HTML::TreeBuilder::new.
+	#     the order of @ISA. Hmm, I've overridden as_text and
+	#     as_HTML. If I reverse @ISA, then HTML::TreeBuilder's over-
+	#     rides (are there any?) will not work. Maybe I should avoid
+	#     multiple inheritance altogether, and have the TB object sep-
+	#     arate from the doc elem. Then I'd have to delegate
+	#     HTML::Parser signals from one object to the other. If I can
+	#     get this to work, I can also use it for innerHTML.
 	package HTML::DOM::TreeBuilder;
 	our @ISA = qw'HTML::TreeBuilder HTML::DOM::Element';
 
@@ -136,26 +142,55 @@ C<response>.
 	  bless $self, HTML::DOM::Element::class_for(tag $self);
 	}
 
+	sub new {
+		# Note: We can't put the document into a variable and then
+		# refer  to  it  in  the  closures  below,  because  the
+		# TreeBuilder may be copied to another HTML::DOM object.
+
+		(my $tb = SUPER::new{shift}
+			element_class => 'HTML::DOM::Element',
+			'tweak_~text' => sub {
+				my ($text, $parent) = @_;
+				# $parent->ownerDocument will be undef if
+				# $parent is the doc.
+				$parent->splice_content(  -1,1,
+					($parent->ownerDocument || $parent)
+					 ->createTextNode($text)  );
+			 },
+			'tweak_*' => sub {
+				my($elem, $tag, $doc_elem) = @_;
+				$tag =~ /^~/ and return;
+				defined(my $event_attr_handler =
+				  $doc_elem->parent->event_attr_handler)
+				  or return;
+				for($elem->all_attr_names) {
+					if(/^on(.*)/is) {
+						my $l =
+						&$event_attr_handler(
+							$elem,
+							my $name = lc $1,
+							$elem->attr($_)
+						);
+						defined $l and
+						$elem->_add_attr_event (
+							$name, $l
+						);
+					}
+				}
+			 },
+		 )
+		   ->ignore_ignorable_whitespace(0); # stop eof()'s cleanup
+		                                       # from changing the
+		$tb->unbroken_text(1); # necessary, con-  # script han-
+		                     # sidering what        # dler's view
+		                   # _tweak_~text does       # of the tree
+		$tb;
+	}
 } # end of special TreeBuilder package
 
 sub new {
 	my $self = shift->SUPER::new('~doc');
-	(my $tb = new HTML::DOM::TreeBuilder
-		element_class => 'HTML::DOM::Element',
-		'tweak_~text' => sub {
-			my ($text, $parent) = @_;
-			# $parent->ownerDocument will be undef if $parent
-			# is the doc.
-			$parent->splice_content(  -1,1,
-				($parent->ownerDocument || $parent)
-				 ->createTextNode($text)  );
-		 },
-	 )
-	   ->ignore_ignorable_whitespace(0); # stop eof()'s cleanup
-	                                       # from changing the
-	$tb->unbroken_text(1); # necessary, con-  # script handler's view 
-	                     # sidering what        # of the tree
-	                   # _tweak_~text does
+
 	my %opts = @_;
 	$self->{_HTML_DOM_url} = $opts{url}; # might be undef
 	$self->{_HTML_DOM_referrer} = $opts{referrer}; # might be undef
@@ -173,7 +208,8 @@ sub new {
 		}}
 	}
 	$self->{_HTML_DOM_jar} = $opts{cookie_jar}; # might be undef
-	$self->push_content($tb);
+	$self->push_content(new HTML::DOM::TreeBuilder);
+	$self;
 }
 
 =item $tree = new_from_file HTML::DOM
@@ -225,7 +261,9 @@ sub elem_handler {
 	my ($self,$elem_name,$sub) = @_;
 	my $doc_elem = ($self->content_list)[0];
 	weaken $doc_elem;
+	$self->{_HTML_DOM_elem_handlers}{$elem_name} =
 	$doc_elem->{"_tweak_$elem_name"} = sub {
+		$doc_elem->{'_tweak_*'}->(@_);
 		{ local $$self{_HTML_DOM_buffered} = 1;
 		  &$sub($self, $_[0]); }
 		return unless exists $$self{_HTML_DOM_write_buffer};
@@ -310,8 +348,6 @@ sub parse_file {
 }
 
 sub write {
-	# (I need to get to the bottom of the dozens of varning messags
-	#  that TB spews out.)
 	my $self = shift;
 	if($$self{_HTML_DOM_buffered}) {
 		$$self{_HTML_DOM_write_buffer} .= shift;
@@ -327,8 +363,6 @@ sub write {
 sub writeln { $_[0]->write("$_[1]\n") }
 
 sub close {
-	# (I need to get to the bottom of the dozens of varning messags
-	#  that TB spews out.)
 	eval { # make it a no-op if there's no parser
 	(my $a = (shift->content_list)[0])
 		->eof(@_);
@@ -346,12 +380,18 @@ and a parser hungry for HTML code.
 
 sub open {
 	(my $self = shift)->delete_content; # remove circular references
-	$self->{_content} = ref($self)->new->{_content};
+	$self->{_content} = [new HTML::DOM::TreeBuilder];
 
 	# The ownerDocument method of items in the tree stops working
-	# without this, since the root's parent is currently the temporary
-	# doc created by ref($self)->new, above:
+	# without this, since the root currently has no parent:
 	($self->content_list)[0]->parent($self);
+
+# ~~~ finish this and write tests for it
+#	return unless $self->{_HTML_DOM_elem_handlers};
+#	for(keys %{$self->{_HTML_DOM_elem_handlers}}) {
+#		$self->{_content}{"tweak_$_"} =
+#			$self->{_HTML_DOM_elem_handlers}{$_}
+#	}
 
 	return # nothing;
 }
@@ -760,6 +800,8 @@ sub nodeName { '#document' }
 
 =item $tree->default_event_handler
 
+=item $tree->error_handler
+
 See L</EVENT HANDLING>, below.
 
 =item $tree->base
@@ -850,6 +892,9 @@ The event attribute handler will be called whenever an element attribute
 whose name
 begins with 'on' (case-tolerant) is modified.
 
+Use C<error_handler> to assign a coderef that will be called whenever an
+event listener raises an error. The error will be contained in C<$@>.
+
 =cut
 
 # ---------- NON-DOM EVENT METHODS -------------- #
@@ -864,8 +909,11 @@ sub default_event_handler {
 	$_[0]->{_HTML_DOM_default_event_handler} = $_[1] if @_ > 1;
 	$old;
 }
-
-
+sub error_handler {
+	my $old = $_[0]->{_HTML_DOM_error_handler};
+	$_[0]->{_HTML_DOM_error_handler} = $_[1] if @_ > 1;
+	$old;
+}
 
 
 # ---------- NODE LIST HELPER METHODS -------------- #
@@ -974,6 +1022,8 @@ machine-readable list of standard methods.)
   DOM::NamedNodeMap                       NamedNodeMap
   DOM::Attr                               Node, Attr
   DOM::Collection                         HTMLCollection
+      DOM::Collection::Elements
+      DOM::Collection::Options
   DOM::Event                              Event
 
 Although HTML::DOM::Node inherits from HTML::Element, the interface is not
@@ -1026,7 +1076,7 @@ C<length> methods.
 
 =head1 PREREQUISITES
 
-perl 5.8.3 or later (only tested with 5.8.7 and 5.8.8)
+perl 5.8.3 or later
 
 HTML::TreeBuilder and HTML::Element (both part of the HTML::Tree
 distribution) (tested with 3.23)
@@ -1056,11 +1106,6 @@ L<HTML::DOM::Element::Option/BUGS|HTML::DOM::Element::Option>.)
 
 I really don't know what will happen if a element handler goes and deletes
 parent elements of the element for which the handler is called.
-
-=item -
-
-Exceptions thrown within event listeners (handlers) are currently ignored
-altogether.
 
 =item -
 
@@ -1099,6 +1144,11 @@ a few cases here and there.
 The C<open> method currently delete's any of the HTML::DOM object's
 references to subroutines that were passed to C<elem_handler>.
 
+=item -
+
+The C<removeChild> method of an HTML::DOM object currently throws a
+'Can't call method "_modified" on an undefined value' error.
+
 =back
 
 B<To report bugs,> please e-mail the author.
@@ -1122,7 +1172,7 @@ L<HTML::DOM::Interface>
 
 L<HTML::Tree>, L<HTML::TreeBuilder>, L<HTML::Element>, L<HTML::Parser>,
 L<LWP>, L<WWW::Mechanize>, L<HTTP::Cookies>, 
-L<WWW::Mechanize::Plugin::JavaScript> (coming to CPAN soon, hopefully),
+L<WWW::Mechanize::Plugin::JavaScript>,
 L<HTML::Form>
 
 The DOM Level 1 specification at S<L<http://www.w3.org/TR/REC-DOM-Level-1>>

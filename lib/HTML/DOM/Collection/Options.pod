@@ -22,14 +22,11 @@ HTML::DOM::Collection::Options - A subclass of HTML::DOM::Collection for 'option
   
   $options->[0]; # first option
   $options->item(0); # same
-
-  $options->
-
-  $elements->{r}; # an array of buttons named 'r'
-  $elements->namedItem('r'); # same
-  () = $elements->namedItem('r'); # list, not array
   
-  $elements->length; # same as $#$elements
+  $options->[0] = undef; # deletes it
+  delete $options->[0]; # likewise
+  
+  $options->length; # same as scalar @$options
 
 =head1 DESCRIPTION
 
@@ -48,6 +45,16 @@ the syntax:
   $elements = HTML::DOM::Collection::Options->new($nodelist)
 
 $nodelist should be a node list (L<HTML::DOM::NodeList>) object.
+
+=head1 ARRAY INTERFACE
+
+You can use an options collection as an array reference. You can even
+modify it this way. If you assign C<undef> to an array element or delete
+it, it will be removed completely, so C<< $options->[0] = undef >> will
+cause $options->[0]
+
+Don't rely on array manipulation functions, such as C<shift>, C<push>,
+C<splice>, etc. Also, don't rely on list assignments.
 
 =head1 METHODS
 

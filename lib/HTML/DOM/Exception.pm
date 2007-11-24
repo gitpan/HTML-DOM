@@ -17,9 +17,9 @@ use constant {
 	UNSPECIFIED_EVENT_TYPE_ERR => 0,
 };
 
-use Exporter 'import';
+use Exporter 5.57 'import';
 
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 our @EXPORT_OK = qw'
 	INDEX_SIZE_ERR             
 	DOMSTRING_SIZE_ERR         

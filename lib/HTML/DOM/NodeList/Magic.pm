@@ -6,7 +6,7 @@ use overload fallback => 1, '@{}' => \&_get_tie;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 
 # Innards: {
 #	get => sub { ... }, # sub that gets the list
@@ -58,6 +58,31 @@ sub FETCH     { $_[0]->item($_[1]) }
 sub FETCHSIZE { $_[0]->length }
 sub EXISTS    { $_[0]->item($_[1]) } # nodes are true, undef is false
 sub DDS_freeze { my $self = shift; delete $$self{tie}; $self }
+
+# These are here solely to make HTML::DOM::Collection::Options work:
+sub STORE {
+	my($self,$indx,$val) = @_;
+	if(defined $val) {
+		if(my $deletee = $self->item($indx)) {
+			$deletee->replace_with($val)->delete;
+		}
+		else {
+			$self->item($self->length-1)->parentElement
+				->appendChild($val);
+		}
+	}
+	else {
+		(my $thing = $self->item($indx))->ownerDocument;
+		$self->item($indx)->detach
+	}
+	$self->_you_are_stale;
+}
+sub DELETE {
+	for(shift) {
+		$_->item(shift)->detach;
+		$_->_you_are_stale;
+	}
+}
 
 1;
 

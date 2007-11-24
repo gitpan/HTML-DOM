@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 
 
 use strict;
@@ -22,7 +22,7 @@ use constant {
 };
 
 use Carp 'croak';
-use Exporter 'import';
+use Exporter 5.57 'import';
 use HTML::DOM::Event;
 use HTML::DOM::Exception qw'NO_MODIFICATION_ALLOWED_ERR NOT_FOUND_ERR
                                HIERARCHY_REQUEST_ERR WRONG_DOCUMENT_ERR
@@ -166,6 +166,10 @@ sub ownerDocument {
 	my $self = shift;
 	$$self{_HTML_DOM_Node_owner} || do {
 		my $root = $self->root;
+		# ~~~ I’m not sure this logic is right. I need to revisit
+		#     this. Do we ever have a case in which ->root returns
+		#     the wrong value? If so, can we guarantee that the
+		#     ‘root’ has its _HTML_DOM_Node_owner attribute set?
 		$$self{_HTML_DOM_Node_owner} = 
 			$$root{_HTML_DOM_Node_owner} || $root;
 		weaken $$self{_HTML_DOM_Node_owner};
@@ -445,11 +449,7 @@ sub dispatchEvent { # This is where all the work is.
 	# 3. 'Bubble-blowing' phase: Trigger events on the target's ances-
 	#     tors in reverse order (top last).
 
-	# ~~~ according to DOM2-Events section 1.2.1, exceptions thrown
-	# inside an EventListener do not stop propagation of the event. It
-	# simply continues processing additional EventListeners as usual.
-	# I need some way of dealing with exceptions other than simply
-	# ignoring them.
+	my $eh = ($target->ownerDocument || $target)->error_handler;
 
 	$event->_set_target($target);
 
@@ -460,8 +460,9 @@ sub dispatchEvent { # This is where all the work is.
 		$event-> _set_currentTarget($_);
 		eval {
 			defined blessed $_ && $_->can('handleEvent') ?
-				$_->handleEvent($event) : &$_($event)
-		} for($_->get_event_listeners($name, 1));
+				$_->handleEvent($event) : &$_($event);
+			1
+		} or $eh and &$eh() for($_->get_event_listeners($name, 1));
 		return !cancelled $event if $event->propagation_stopped;
 	}
 
@@ -469,8 +470,9 @@ sub dispatchEvent { # This is where all the work is.
 	$event->_set_currentTarget($target);
 	eval {
 		defined blessed $_ && $_->can('handleEvent') ?
-			$_->handleEvent($event) : &$_($event)
-	} for($target->get_event_listeners($name));
+			$_->handleEvent($event) : &$_($event);
+		1
+	} or $eh and &$eh() for $target->get_event_listeners($name);
 	return !cancelled $event if $event->propagation_stopped
 	                         or!$event->bubbles;
 
@@ -479,8 +481,9 @@ sub dispatchEvent { # This is where all the work is.
 		$event-> _set_currentTarget($_);
 		eval {
 			defined blessed $_ && $_->can('handleEvent') ?
-				$_->handleEvent($event) : &$_($event)
-		} for($_->get_event_listeners($name));
+				$_->handleEvent($event) : &$_($event);
+			1
+		} or $eh and &$eh() for($_->get_event_listeners($name));
 		return !cancelled $event if $event->propagation_stopped;
 	}
 	return !cancelled $event;

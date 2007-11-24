@@ -16,6 +16,7 @@ WriteMakefile(
         'Test::More'          => 0,
          URI                  => 0,
     },
-    dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
+    dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz',
+                             TAR => 'COPYFILE_DISABLE=1 tar' },
     clean               => { FILES => 'HTML-DOM-*' },
 );

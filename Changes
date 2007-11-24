@@ -1,5 +1,37 @@
 Revision history for HTML::DOM
 
+0.009   23 November, 2007
+        Changes/new features:
+        *  You can do something with errors produced by event handlers
+           by passing a coderef to the new event_handler method.  That
+           coderef will be called for each error. (Before, such errors
+           were ignored.)
+        *  HTML::DOM::Interface has been modified, such that
+          'Document' is no longer a separate interface--since there is
+           no corresponding HTML::DOM module--,  but all  its  members
+           are  now under HTMLDocument,  which inherits directly  from
+           Node. Likewise, 'Element' has been merged into HTMLElement.
+        *  HTML::DOM::Element::Select now has 'add' and
+          'remove' methods.
+        * 'Select' elements can now be used as array refs, so you can
+           write $select->[0] instead of $select->options->[0].
+        *  You can now assign undef to such an array element to delete
+           it,  so  '$select->[0] = undef'  does  the  same  thing  as
+          'shift @$select'. 'delete $select->[0]' also works.
+        Bug fixes:
+        * $form->action now works when the document has no base url
+          (used to die)
+        * HTML::DOM::Element::Select's type method now works.
+        * HTML::DOM::Element::Select's  selectedIndex  method  and
+          HTML::DOM::Element::Option's selected method should work
+          reliably now.
+        * HTML::DOM::Collection::Options is now listed by
+          HTML::DOM::Interface.
+        * HTML::DOM::Element::Input's click method now returns an
+          empty list.
+        * HTML::DOM's event_attr_handler is now actually useful. (It
+          used to be ignored most of the time.)
+
 0.008   5 October, 2007
         * New HTML::DOM::Interface module
         * Added type and value methods to HTML::DOM::Element::Button
@@ -14,7 +46,6 @@ Revision history for HTML::DOM
         * The previous release broke parsing of forms. (The rest of
           the document would be within the form element.) Now it
           should work.
-
 
 0.006   27 September, 2007
       - The following interfaces have been implemented:

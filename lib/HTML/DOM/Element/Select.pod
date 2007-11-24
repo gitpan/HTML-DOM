@@ -22,11 +22,24 @@ HTML::DOM::Element::Select - A Perl class for representing 'select' elements in 
   $elem->tagName;
   # etc.
 
+  $elem->[0]; # first option
+  $elem->[1] = $doc->createElement('option');
+  $elem->[0] = undef; # deletes it
+  delete $elem->[0]; # same
+
 =head1 DESCRIPTION
 
 This class implements 'select' elements in an HTML::DOM tree. It 
 implements the HTMLSelectElement DOM interface and inherits from 
 L<HTML::DOM::Element> (q.v.).
+
+=head1 ARRAY INTERFACE
+
+You can use a 'select' element as an array reference, to access the
+individual elements of its options array. C<< @$elem >> actually does
+exactly the
+same thing as C<< @{$elem->options} >>. See 
+L<HTML::DOM::Collection::Options> for more info on using the array.
 
 =head1 METHODS
 
@@ -112,6 +125,8 @@ Same as C<< $elem->checked(1) >>.
 =head1 SEE ALSO
 
 L<HTML::DOM>
+
+L<HTML::DOM::Collection::Options>
 
 L<HTML::DOM::Element>
 

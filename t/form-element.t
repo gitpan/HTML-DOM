@@ -13,12 +13,16 @@
 #    HTMLLegendElement
 
 use strict; use warnings;
+our $tests;
+BEGIN { ++$INC{'tests.pm'} }
+sub tests'VERSION { $tests += pop };
+use Test::More;
+plan tests => $tests;
+use Scalar::Util 'refaddr';
+use HTML::DOM;
 
-use Test::More skip_all => "not written yet";
-
-#use Test::More tests => 963;
-
-exit;
+# Each call to test_attr runs 3 tests.
+# Each call to test_event runs 2 tests.
 
 sub test_attr {
 	my ($obj, $attr, $val, $new_val) = @_;
@@ -31,218 +35,151 @@ sub test_attr {
 	is $obj->$attr,$new_val,     ,     "get $attr_name again";
 }
 
-
-# -------------------------#
-# Test 1: load the module
-
-BEGIN { use_ok 'HTML::DOM'; }
-
-# -------------------------#
-# Test 2: document constructor
-
-my $doc = new HTML::DOM;
-isa_ok $doc, 'HTML::DOM';
-
-# -------------------------#
-# Tests 3-45: Element types that just use the HTMLElement interface
-
-for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
-         samp kbd var cite acronym abbr dd dt noframes noscript
-         address center /) {
-	is ref $doc->createElement($_), 'HTML::DOM::Element',
-		"class for $_";
-}
-
+my $doc;
 {
-	my $elem = $doc->createElement('sub');
-	$elem->attr(id => 'di');
-	$elem->attr(title => 'eltit');
-	$elem->attr(lang => 'en');
-	$elem->attr(dir => 'left');
-	$elem->attr(class => 'ssalc');
-
-	test_attr $elem, qw/ id        di    eyeD /;
-	test_attr $elem, qw/ title     eltit titulus /;
-	test_attr $elem, qw/ lang      en    el /;
-	test_attr $elem, qw/ dir       left  right /;
-	is $elem->className,'ssalc',               ,     'get className';
-	is $elem->className('taxis'),       'ssalc', 'set/get className';
-	is $elem->className,'taxis',               , 'get className again';
+	my ($evt,$targ);
+	($doc = new HTML::DOM)
+	 ->default_event_handler(sub{
+		($evt,$targ) = ($_[0]->type, shift->target);
+	});
+	
+	sub test_event {
+		my($obj, $event) = @_;
+		($evt,$targ) = ();
+		$obj->$event;
+		my $class = (ref($obj) =~ /[^:]+\z/g)[0];
+		is $evt, $event, "$class\'s $event method";
+		is refaddr $targ, refaddr $obj, 
+			"$class\'s $event event is on target"
+	}
 }
+	
+my $form;
 
 # -------------------------#
-# Tests 46-9: HTMLHtmlElement
+use tests 28; # HTMLFormElement
 
 {
 	is ref(
-		my $elem = $doc->createElement('html'),
-	), 'HTML::DOM::Element::HTML',
-		"class for html";
+		$form = $doc->createElement('form'),
+	), 'HTML::DOM::Element::Form',
+		"class for form";
 	;
-	$elem->attr(version => 'noisrev');
+	$form->attr(name => 'Fred');
+	$form->attr('accept-charset' => 'utf-8');
+	$form->attr(action => 'http:///');
+	$form->attr(enctype => '');
+	$form->attr(method => 'GET');
+	$form->attr(target => 'foo');
+	
+	test_attr $form, qw/ name Fred George /;
+	test_attr $form, qw/ acceptCharset utf-8 iso-8859-1 /;
+	test_attr $form, qw/ action http:\/\/\/ http:\/\/remote.host\/ /;
+	test_attr $form, enctype=>'',q/application\/x-www-form-urlencoded/;
+	test_attr $form, qw/ method GET POST /;
+	test_attr $form, qw/ target foo phoo /;
 
-	test_attr $elem, qw/ version noisrev ekdosis /;
+	my $elements = $form->elements;
+	isa_ok $elements, 'HTML::DOM::Collection::Elements';
+
+	is $elements->length, 0, '$elements->length eq 0';
+	is $form->length, 0, '$form->length eq 0';
+
+	for (1..3) {
+		(my $r = $doc->createElement('input'))
+			->name('foo');
+		$r->type('radio'); 
+		$form->appendChild($r);
+	}
+
+	is $form->length, 3, '$form->length';
+	is $elements->length, 3., '$elements->length';
+
+	test_event $form, 'submit';
+	SKIP: { skip 'unimplemented', 2;test_event $form, 'reset';}
 }
 
 # -------------------------#
-# Tests 50-3: HTMLHeadElement
+use tests 41; # HTMLSelectElement
+
+# ~~~ I need to write tests that make sure that H:D:NodeList::Magic's
+#     STORE and DELETE methods call ->ownerDocument on the detached node.
+#     (See the comment in H:D:Node::replaceChild for what it's for.)
 
 {
 	is ref(
-		my $elem = $doc->createElement('head'),
-	), 'HTML::DOM::Element::Head',
-		"class for head";
-	;
-	$elem->attr(profile => 'eliforp');
+		my $elem = $doc->createElement('select'),
+	), 'HTML::DOM::Element::Select',
+		"class for select";
+	$elem->appendChild(my $opt1 = $doc->createElement('option'));
+	$elem->appendChild(my $opt2 = $doc->createElement('option'));
+	
+	is $elem->[0], $opt1, 'select ->[]';
+	$opt1->attr('selected', 'selected');
+	$opt1->attr('value', 'foo');
+	$opt2->attr('value', 'bar');
+	
+	is $elem->type, 'select-one', 'select ->type';
+	is $elem->value, 'foo', 'select value';
+	test_attr $elem, selectedIndex => 0, 1;
+	is $elem->value, 'bar', 'select value again';
+	is $elem->length, 2, 'select length';
+	
+	$form->appendChild($elem);
+	is $elem->form ,$form, 'select form';
 
-	test_attr $elem, qw/ profile eliforp prolific /;
+	my $opts = options $elem;
+	isa_ok $opts, 'HTML::DOM::Collection::Options';
+	isa_ok tied @$elem, 'HTML::DOM::NodeList::Magic',
+		'tied @$select'; # ~~~ later I’d like to change this to
+		# check whether @$elem and @$opts are the same array, but
+		# since they currently are not (an implementation defici-
+		# ency), I can’t do that yet.
+
+	is $opts->[0], $opt1, 'options ->[]';
+	$opts->[0] = undef;
+	is $opts->[0], $opt2, 'undef assignment to options ->[]';
+
+	ok!$elem->disabled              ,     'select: get disabled';
+	ok!$elem->disabled(1),          , 'select: set/get disabled';
+	ok $elem->disabled              ,     'select: get disabled again';
+	ok!$elem->multiple              ,     'select: get multiple';
+	ok!$elem->multiple(1),          , 'select: set/get multiple';
+	ok $elem->multiple              ,     'select: get multiple again';
+	$elem->name('foo');
+	$elem->size(5);
+	$elem->tabIndex(3);
+	test_attr $elem, qw/ name     foo bar /;
+	test_attr $elem, qw/ size     5   1   /;
+	test_attr $elem, qw/ tabIndex 3   4   /;
+
+	is $elem->add($opt1, $opt2), undef, 'return value of select add';
+	is join('',@$elem), "$opt1$opt2", 'select add';
+	$elem->add(my $opt3 = $doc->createElement('option'), undef);
+
+	is $elem->[2], $opt3, 'select add with null 2nd arg';
+	$elem->remove(1);
+	is $elem->[1], $opt3, 'select remove';
+
+	test_event $elem, 'blur';
+	test_event $elem, 'focus';
+
+	$elem->multiple(1);
+	is $elem->type, 'select-multiple', 'multiple select ->type';
+	$elem->[0]->selected(1);
+	$elem->[1]->selected(1);
+	is $elem->selectedIndex, 0, 'selectedIndex with multiple';
+	$elem->[0]->selected(0);
+	is $elem->selectedIndex, 1, 'selectedIndex with multiple (2)';
+	$elem->[1]->selected(0);
+	is $elem->selectedIndex, -1, 'selectedIndex with multiple (2)';
 }
 
-# -------------------------#
-# Tests 54-81: HTMLLinkElement
+# ~~~ I need a test that makes sure an input element's click method returns
+#     an empty list. (This probably applies to all event methods. Maybe I
+#     should add it to test_event.)
 
-{
-	is ref(
-		my $elem = $doc->createElement('link'),
-	), 'HTML::DOM::Element::Link',
-		"class for link";
-	;
-	$elem->attr(charset  => 'utf-8');
-	$elem->attr(href     => '/styles.css');
-	$elem->attr(hreflang => 'ru');
-	$elem->attr(media    => 'radio');
-	$elem->attr(rel      => 'ler');
-	$elem->attr(rev      => 'ver');
-	$elem->attr(target   => 'tegrat');
-	$elem->attr(type     => 'application/pdf');
-
-	ok!$elem->disabled                      ,     'get disabled';
-	ok!$elem->disabled       (1),           , 'set/get disabled';
-	ok $elem->disabled                      ,     'get disabled again';
-	test_attr $elem, qw/ charset  utf-8           utf-32be        /;
-	test_attr $elem, qw\ href     /styles.css     /stylesheet.css \;
-	test_attr $elem, qw/ hreflang ru              fr              /;
-	test_attr $elem, qw\ media    radio           avian-carrier   \;
-	test_attr $elem, qw/ rel      ler             lure            /;
-	test_attr $elem, qw\ rev      ver             ekd             \;
-	test_attr $elem, qw/ target   tegrat          guitar          /;
-	test_attr $elem, qw\ type     application/pdf text/richtext   \;
-}
-
-# -------------------------#
-# Tests 82-5: HTMLTitleElement
-
-{
-	is ref(
-		my $elem = $doc->createElement('title'),
-	), 'HTML::DOM::Element::Title',
-		"class for title";
-	;
-
-	test_attr $elem, 'text', '', 'tittle';
-}
-
-# -------------------------#
-# Tests 86-98: HTMLMetaElement
-
-{
-	is ref(
-		my $elem = $doc->createElement('meta'),
-	), 'HTML::DOM::Element::Meta',
-		"class for meta";
-	;
-	$elem->attr( content     => 'text/html; charset=utf-8');
-	$elem->attr('http-equiv' => 'Content-Type');
-	$elem->attr( name        => 'Fred');
-	$elem->attr( scheme      => 'devious');
-
-	test_attr $elem, 'content', 'text/html; charset=utf-8', 'no-cache';
-	is $elem->httpEquiv,'Content-Type',          ,     'get httpEquiv';
-	is $elem->httpEquiv('Pragma'), 'Content-Type', 'set/get httpEquiv';
-	is $elem->httpEquiv,'Pragma',                'get httpEquiv again';
-	test_attr $elem, qw` name    Fred             George             `;
-	test_attr $elem, qw` scheme  devious          divisive           `;
-}
-
-# -------------------------#
-# Tests 99-105: HTMLBaseElement
-
-{
-	is ref(
-		my $elem = $doc->createElement('base'),
-	), 'HTML::DOM::Element::Base',
-		"class for base";
-	;
-	$elem->attr(href     => '/styles.css');
-	$elem->attr(target   => 'tegrat');
-
-	test_attr $elem, qw~ href   /styles.css /stylesheet.css  ~;
-	test_attr $elem, qw~ target tegrat      guitar           ~;
-}
-
-# -------------------------#
-# Tests 106-11: HTMLIsIndexElement
-
-{
-	is ref(
-		my $elem = $doc->createElement('isindex'),
-	), 'HTML::DOM::Element::IsIndex',
-		"class for isindex";
-	;
-	$elem->attr(prompt     => 'Yayayyayayaayay');
-
-	is $elem->form, undef, 'IsIndex undef form';
-	(my $form = $doc->createElement('form'))->appendChild(
-		$doc->createElement('div'));
-	$form->firstChild->appendChild($elem);
-	is $elem->form, $form, 'IsIndex form';
-
-	test_attr $elem, qw @ prompt Yayayyayayaayay     01504           @;
-}
-
-# -------------------------#
-# Tests 112-21: HTMLStyleElement
-
-{
-	is ref(
-		my $elem = $doc->createElement('style'),
-	), 'HTML::DOM::Element::Style',
-		"class for style";
-	;
-	$elem->attr(media    => 'radio');
-	$elem->attr(type     => 'application/pdf');
-
-	ok!$elem->disabled                           ,      'get disabled';
-	ok!$elem->disabled       (1),                ,  'set/get disabled';
-	ok $elem->disabled                           ,'get disabled again';
-	test_attr $elem, qw! media radio           avian-carrier         !;
-	test_attr $elem, qw! type  application/pdf text/richtext         !;
-}
-
-# -------------------------#
-# Tests 122-40: HTMLBodyElement
-
-{
-	is ref(
-		my $elem = $doc->createElement('body'),
-	), 'HTML::DOM::Element::Body',
-		"class for body";
-	;
-	$elem->attr(aLink     => 'red');
-	$elem->attr(background=> 'orange');
-	$elem->attr(bgColor   => 'yellow');
-	$elem->attr(link      => 'green');
-	$elem->attr(text      => 'blue');
-	$elem->attr(vLink     => 'dingo');
-
-	test_attr $elem, qw 2 aLink      red     kokkino           2;
-	test_attr $elem, qw 3 background orange  portokali         3;
-	test_attr $elem, qw 4 bgColor    yellow  kitrino           4;
-	test_attr $elem, qw 5 link       green   prasino           5;
-	test_attr $elem, qw 6 text       blue    mple              6;
-	test_attr $elem, qw 7 vLink      dingo   eidos_skylou      7;
-}
-
-
+use tests 337;
 SKIP: { skip "not written yet", 337 }
+
 

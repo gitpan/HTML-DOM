@@ -13,7 +13,7 @@ require HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 #require HTML::DOM::Collection::Elements;
 
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 our @ISA = qw'HTML::DOM::Element HTML::Form';
 
 use overload fallback => 1,
@@ -51,6 +51,8 @@ sub name          { no warnings; shift->attr( name           => @_) . ''  }
 sub acceptCharset { shift->attr('accept-charset' => @_)    }
 sub action        {
 	my $self = shift;
+	(my $base = $self->ownerDocument->base)
+		or return $self->attr('action', @_);
 	(new_abs URI
 		$self->attr('action' => @_),
 		$self->ownerDocument->base)
@@ -68,7 +70,7 @@ sub target        { shift->attr('target'         => @_)    }
 
 sub submit { shift->trigger_event('submit') }
 
-sub reset { $_->reset for shift->elements }
+# ~~~sub reset { $_->_reset for shift->elements }
 
 # ------ HTML::Form compatibility methods ------ #
 
@@ -204,7 +206,7 @@ package HTML::DOM::NodeList::Radio; # solely for HTML::Form compatibility
 use Carp 'croak';
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 our @ISA = qw'HTML::DOM::NodeList HTML::Form::Input';
 
 sub type { 'radio' }
@@ -287,7 +289,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 
 require HTML::DOM::Collection;
 our @ISA = 'HTML::DOM::Collection';
@@ -461,10 +463,13 @@ L<HTML::Form>
 # ------- HTMLSelectElement interface ---------- #
 
 package HTML::DOM::Element::Select;
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 our @ISA = 'HTML::DOM::Element';
 
-sub type      { shift->attr('type') }
+use overload fallback=>1, '@{}' => sub { shift->options };
+	# ~~~ Don't I need %{} as well?
+
+sub type      { 'select-' . qw/one multiple/[!!shift->attr('multiple')] }
 sub selectedIndex   {
 	my $self = shift;
 	my $ret;
@@ -515,8 +520,18 @@ sub multiple  { shift->attr( multiple => @_) }
 sub size      { shift->attr( size => @_) }
 sub tabIndex  { shift->attr( tabindex => @_) }
 
-# ~~~sub add {
-# ~~~sub remove {
+sub add {
+	my ($sel,$opt,$b4) = @_;
+	# ~~~ does the following always work or will an optgroup break it?
+	eval{$sel->insertBefore($opt,$b4)};
+	return;
+}
+sub remove {
+	my $self = shift;
+	# ~~~ and how about this one?
+	eval{$self->removeChild($self->options->item(shift) || return)};
+	return;
+}
 
 sub blur { shift->trigger_event('blur') }
 sub focus { shift->trigger_event('focus') }
@@ -527,7 +542,7 @@ package HTML::DOM::Collection::Options;
 use strict;
 use warnings;
 
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 
 use Carp 'croak';
 
@@ -602,7 +617,7 @@ sub form_name_value
 # ------- HTMLOptGroupElement interface ---------- #
 
 package HTML::DOM::Element::OptGroup;
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 our @ISA = 'HTML::DOM::Element';
 
 sub label  { shift->attr( label => @_) }
@@ -612,7 +627,7 @@ sub label  { shift->attr( label => @_) }
 # ------- HTMLOptionElement interface ---------- #
 
 package HTML::DOM::Element::Option;
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
 
 use Carp 'croak';
@@ -675,7 +690,8 @@ sub selected {
 		               # option if exactly one option must be 
 		               # selected at any given time.
 			$self->{_HTML_DOM_sel} = shift;
-			$_ != $self and $_->selected(0) for $sel->options;
+			$_ != $self and $_->{_HTML_DOM_sel} = 0
+				for $sel->options;
 		}
 	}
 	$ret
@@ -735,7 +751,7 @@ sub form_name_value
 # ------- HTMLInputElement interface ---------- #
 
 package HTML::DOM::Element::Input;
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
@@ -816,6 +832,7 @@ sub click { for(shift){
 	defined or $_ = 1  for $x, $y;
 	local($$_{_HTML_DOM_clicked}) = [$x,$y];
 	$_->trigger_event('click');
+	return;
 }}
 
 sub possible_values {
@@ -921,7 +938,7 @@ sub content {
 # ------- HTMLTextAreaElement interface ---------- #
 
 package HTML::DOM::Element::TextArea;
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
 
 sub defaultValue { # same as HTML::DOM::Element::Title::text
@@ -976,7 +993,7 @@ sub form_name_value
 # ------- HTMLButtonElement interface ---------- #
 
 package HTML::DOM::Element::Button;
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -991,7 +1008,7 @@ sub value      { shift->attr( value       => @_) }
 # ------- HTMLLabelElement interface ---------- #
 
 package HTML::DOM::Element::Label;
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1001,7 +1018,7 @@ sub htmlFor { shift->attr( htmlFor       => @_) }
 # ------- HTMLFieldSetElement interface ---------- #
 
 package HTML::DOM::Element::FieldSet;
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1009,7 +1026,7 @@ our @ISA = qw'HTML::DOM::Element';
 # ------- HTMLLegendElement interface ---------- #
 
 package HTML::DOM::Element::Legend;
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;

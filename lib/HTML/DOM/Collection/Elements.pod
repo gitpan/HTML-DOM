@@ -25,7 +25,7 @@ HTML::DOM::Collection::Elements - A subclass of HTML::DOM::Collection for form e
   $elements->namedItem('r'); # same
   () = $elements->namedItem('r'); # list, not array
   
-  $elements->length; # same as $#$elements
+  $elements->length; # same as scalar @$elements
 
 =head1 DESCRIPTION
 

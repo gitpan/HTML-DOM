@@ -1,6 +1,6 @@
 package HTML::DOM::Event;
 
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 
 
 use strict;
@@ -11,7 +11,7 @@ sub	CAPTURING_PHASE  (){             1,}
 sub	AT_TARGET             (){ 2,}
 	sub BUBBLING_PHASE             (){       3,}	
 
-use Exporter 'import';
+use Exporter 5.57 'import';
 
 our @EXPORT_OK = qw'
 	CAPTURING_PHASE            

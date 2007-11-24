@@ -5,8 +5,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => scalar reverse 47;
-
+use Test::More tests => scalar reverse 78;
 
 # -------------------------#
 # Test 1-2: load the modules
@@ -425,4 +424,79 @@ is $e->type, 'click',
 	'$event->type when an event name is passed to trigger_event';
 is $e->target, $grandchild,
 	'$event->target when an event name is passed to trigger_event';
+
+
+# -------------------------#
+# Tests 75-81: even laster: make sure event_attr_handler is actually used
+
+{
+	$doc->close;
+	my @__;
+	$doc->event_attr_handler(sub {
+		push @__, [@_, my $foo = sub { @__ }];
+		$foo
+	});
+
+	$doc->write('
+		<form onsubmit="die"><input Onclick="print q/foo/"></form>
+	');
+	$doc->close;
+	
+	isa_ok $__[0][0], 'HTML::Element',
+		'1st arg to the event attr handler';
+	is $__[1][1], 'submit',
+		'event name is passed to the event attr handler';
+	is $__[1][2], 'die', 'code is passed to the event attr handler';
+
+	is_deeply [$doc->forms->[0]->get_event_listeners('submit')],
+	   [$__[1][3]],
+	  'coderef returned by event attr handler becomes an eavesdropper';
+	is_deeply [$doc->forms->[0]->elements->[0]
+	              ->get_event_listeners('click')],
+	          [$__[0][3]],
+	          'same when on is spelt On';
+
+	$doc->forms->[0]->setAttribute('onsubmit' => 'live');
+	is $__[2][1], 'submit',
+		'setAttribute triggers the event attr handler';
+	is_deeply [$doc->forms->[0]->get_event_listeners('submit')],
+	   [$__[2][3]],
+	  're-assigning to an event attr can replace an existing listener';
+}
+
+# -------------------------#
+# Tests 82-6: HTML::DOM::error_handler access
+
+{
+	my $coderef = sub{};
+	my $coderef2 = sub{};
+	is scalar $doc-> error_handler($coderef), undef,
+		'1st assignment to error_handler returns undef';
+	is $doc-> error_handler($coderef2), $coderef,
+		'2nd assignment to error_handler returns old sub';
+	is $doc-> error_handler, $coderef2,
+		'2nd assignment did assign the new sub';
+	is $doc-> error_handler, $coderef2,
+	    'simply getting the error_handler doesn\'t change it';
+	$doc-> error_handler(undef);
+	is $doc-> error_handler, undef,
+		'error handlers can be deleted';
+}
+
+# -------------------------#
+# Test 87: use of HTML::DOM::error_handler
+
+{
+	my $e;
+	my $coderef = sub { $e = $@ };
+	$doc->error_handler($coderef);
+	$doc->write('');
+	$doc->close;
+	for($doc->documentElement){
+		$_->addEventListener(foo => sub { die "67\n" });
+		$_->trigger_event('foo');
+	}
+	is $e, "67\n", 'error_handler gets called';
+}
+
 
