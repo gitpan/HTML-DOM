@@ -12,7 +12,7 @@ use Scalar::Util qw'blessed weaken';
 require HTML::DOM::Node;
 
 our @ISA = 'HTML::DOM::Node';
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 
 
 sub   surrogify($);
@@ -128,15 +128,15 @@ sub deleteData16 { # obj, offset, length
 	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
 		'deleteData cannot take a negative substring length')
 		if $len && $len <0;
-	my $text = desurrogify $self->attr('text');
+	my $text = surrogify $self->attr('text');
 	die HTML::DOM::Exception->new(INDEX_SIZE_ERR,
 	    "deleteData: $off is greater than the length of the text")
 		if $off > CORE::length $text;
 	no warnings; # Silence nonsensical warnings
 	undef( defined $len
 		? substr( $text, $off, $len)
-		: substr $text, $off, );	
-	$self->attr(text => surrogify $text);
+		: substr $text, $off, );
+	$self->attr(text => desurrogify $text);
 	return # nothing
 }
 
@@ -224,9 +224,88 @@ sub desurrogify($) { # copied straight from JE::String (with length changed
 sub nodeValue { $_[0]->data(@_[1..$#_]); }
 
 
-1
+1 __END__ 1
 
 
-# ~~~ TO DO : Document that substringData and deleteData don't
-#  require the length arg.
+=head1 NAME
 
+HTML::DOM::CharacterData - A base class shared by HTML::DOM::Text and ::Comment
+
+=head1 DESCRIPTION
+
+This class provides those methods that are shared both by comments and  text
+nodes in an HTML DOM tree.
+
+=head1 METHODS
+
+=head2 Attributes
+
+The following DOM attributes are supported:
+
+=over 4
+
+=item data
+
+The textual data that the node contains.
+
+=item length
+
+The number of characters in C<data>.
+
+=item length16
+
+A standards-compliant version of C<length> that counts UTF-16 bytes instead
+of characters.
+
+=back
+
+=head2 Other Methods
+
+=over 4
+
+=item substringData ( $offset, $length )
+
+Returns a substring of the data. If C<$length> is omitted, all characters
+from C<$offset> to the end of the data are returned.
+
+=item substringData16
+
+A UTF-16 version of C<substringData>.
+
+=item appendData ( $str )
+
+Appends C<$str> to the node's data.
+
+=item insertData ( $offset, $str )
+
+Inserts C<$str> at the given C<$offset>, which is understood to be the
+number of Unicode characters from the beginning of the node's data.
+
+=item insertData16
+
+Like C<insertData>, but C<$offset> is taken to be the number of UTF-16
+(16-bit) bytes.
+
+=item deleteData ( $offset, $length )
+
+Deletes the specified data. If C<$length> is omitted, all characters from
+C<$offset> to the end of the node's data are deleted.
+
+=item deleteData16
+
+A UTF-16 version of the above.
+
+=item replaceData ( $offset, $length, $str )
+
+This replaces the substring specified by C<$offset> and C<$length> with
+C<$str>.
+
+=back
+
+=head1 SEE ALSO
+
+L<HTML::DOM>
+
+L<HTML::Text>
+
+L<HTML::Comment>

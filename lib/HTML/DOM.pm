@@ -5,8 +5,8 @@ package HTML::DOM;
 # something to be done still (except in this sentence).
 
 
-use 5.006; # It actually requires 5.8.3, but it won't if Exporter is ever
-           # put on CPAN.
+use 5.006;
+
 use strict;
 use warnings;
 
@@ -15,7 +15,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -27,6 +27,15 @@ require         HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 require             HTML::DOM::Text;
 require             HTML::TreeBuilder;
+require                  HTML::DOM::View;
+
+use overload fallback => 1,
+'%{}' => sub {
+	my $self = shift;
+	$self->isa(scalar caller) || caller->isa('HTML::TreeBuilder')
+		and return $self;
+	$self->forms;
+};
 
 
 =head1 NAME
@@ -35,10 +44,10 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.009 (alpha)
+Version 0.010 (alpha)
 
-B<WARNING:> This module is still at an experimental stage. Only a few
-features have been implemented so far. The API is subject to change without
+B<WARNING:> This module is still at an experimental stage.  The API is 
+subject to change without
 notice.
 
 =head1 SYNOPSIS
@@ -64,6 +73,21 @@ notice.
 This module implements the HTML Document Object Model by extending the
 HTML::Tree modules. The HTML::DOM class serves both as an HTML parser and
 as the document class.
+
+The following DOM modules are currently supported:
+
+  Feature      Version (aka level)
+  -------      -------------------
+  HTML         1.0
+  Core         2.0
+  Events       2.0 (partially)
+  StyleSheets  2.0 (partially)
+  CSS          2.0 (partially)
+  CSS2         2.0
+  Views        2.0
+
+StyleSheets, CSS and CSS2 are actually provided by C<CSS::DOM>. This list
+corresponds to CSS::DOM version 0.01.
 
 =head1 METHODS
 
@@ -108,46 +132,56 @@ C<response>.
 
 =cut
 
-{	# The only purpose of this extra package is to make the TB inherit
-	# from HTML::DOM::Element as well as HTML::Element
-	# ~~~ If H:D:E has to override H:E methods, I'll have to change
-	#     the order of @ISA. Hmm, I've overridden as_text and
-	#     as_HTML. If I reverse @ISA, then HTML::TreeBuilder's over-
-	#     rides (are there any?) will not work. Maybe I should avoid
-	#     multiple inheritance altogether, and have the TB object sep-
-	#     arate from the doc elem. Then I'd have to delegate
-	#     HTML::Parser signals from one object to the other. If I can
-	#     get this to work, I can also use it for innerHTML.
+{
+	# This HTML::DOM::TreeBuilder package is currently only for the
+	# documentElement. Later it will be used for innerHTML as well.
+
+=begin tangential-comment
+
+Here are some notes on how to implement
+innerHTML:
+
+$elem->innerHTML('stuff')
+
+if $elem is the documentElement, the stuff should be parsed with $elem
+->ownerDocument->write, otherwise:
+
+Create a new HTML::DOM::TreeBuilder
+set its _implicit to false
+set _pos to $elem
+set the _head and _body attributes
+feed stuff to the TB
+
+$document->write will have to be changed to support calls from within
+innerHTML
+$document->close and ->open I think will need to be no-ops when called from
+innerHTML (or from ->write, for that matter). I need to see what
+other browsers do.
+
+The TB object used for innerHTML can probably be cached and re-used.
+
+=end tangential-comment
+
+=cut
+
 	package HTML::DOM::TreeBuilder;
-	our @ISA = qw'HTML::TreeBuilder HTML::DOM::Element';
+	our @ISA = qw' HTML::DOM::Element::HTML HTML::TreeBuilder';
 
 	# I have to override this so it doesn't delete _HTML_DOM_* attri-
 	# butes and so that it blesses the object into the right  class.
-	# Stolen from HTML::TreeBuilder and modified.
-	# ~~~ Wait a minute! I *can* call SUPER:: if I record the hash
-	#     elems first and put them back in afterwards. Yes, let's do
-	#     that, but later.
 	sub elementify {
-	  # Rebless this object down into the normal element class.
-	  my $self = $_[0];
-#	  my $to_class = ($self->{'_element_class'} || 'HTML::Element');
-	  delete @{$self}{ grep {;
-	    length $_ and substr($_,0,1) eq '_'
-	   # The private attributes that we'll retain:
-	    and $_ ne '_tag' and $_ ne '_parent' and $_ ne '_content'
-	    and $_ ne '_implicit' and $_ ne '_pos'
-	    and $_ ne '_element_class' and !/^_HTML_DOM_/
-	  } keys %$self };
-#	  bless $self, $to_class;   # Returns the same object we were fed
+	  my $self = shift;
+	  my %attrs = map /^[a-z_]*\z/ ? () : ($_ => $self->{$_}),
+	    keys %$self;
+          $self->SUPER::elementify;
+	  %$self = (%$self, %attrs);
 	  bless $self, HTML::DOM::Element::class_for(tag $self);
 	}
 
 	sub new {
-		# Note: We can't put the document into a variable and then
-		# refer  to  it  in  the  closures  below,  because  the
-		# TreeBuilder may be copied to another HTML::DOM object.
-
-		(my $tb = SUPER::new{shift}
+		my $tb; # hafta declare it separately so the closures can
+		        # c it
+		($tb = shift->HTML::TreeBuilder::new(
 			element_class => 'HTML::DOM::Element',
 			'tweak_~text' => sub {
 				my ($text, $parent) = @_;
@@ -156,6 +190,9 @@ C<response>.
 				$parent->splice_content(  -1,1,
 					($parent->ownerDocument || $parent)
 					 ->createTextNode($text)  );
+				$parent->content_offset(
+					$$tb{_HTML_DOM_tb_c_offset}
+				);
 			 },
 			'tweak_*' => sub {
 				my($elem, $tag, $doc_elem) = @_;
@@ -178,14 +215,36 @@ C<response>.
 					}
 				}
 			 },
-		 )
+		 ))
 		   ->ignore_ignorable_whitespace(0); # stop eof()'s cleanup
 		                                       # from changing the
 		$tb->unbroken_text(1); # necessary, con-  # script han-
 		                     # sidering what        # dler's view
 		                   # _tweak_~text does       # of the tree
+
+		$tb->handler(text => "text",         # so we can get line
+		    "self, text, is_cdata, offset"); # numbers for scripts
+
+		$tb->{_HTML_DOM_tweakall} = $tb->{'_tweak_*'};
+
+		weaken $tb;
 		$tb;
 	}
+
+	sub text {
+		$_[0]{_HTML_DOM_tb_c_offset} = pop;
+		shift->SUPER::text(@_)
+	}
+
+	sub insert_element {
+		my ($self, $tag) = (shift, @_);
+		if((ref $tag ? $tag->tag : $tag) eq 'tr'
+		   and $self->pos->tag eq 'table') {
+			$self->insert_element('tbody', 1);
+		}
+		$self->SUPER::insert_element(@_);
+	}
+
 } # end of special TreeBuilder package
 
 sub new {
@@ -209,6 +268,7 @@ sub new {
 	}
 	$self->{_HTML_DOM_jar} = $opts{cookie_jar}; # might be undef
 	$self->push_content(new HTML::DOM::TreeBuilder);
+	$self->{_HTML_DOM_view} = new HTML::DOM::View $self;
 	$self;
 }
 
@@ -253,17 +313,23 @@ or security into account):
 
   print $tree->documentElement->as_text, "\n";
 
-  B<BUG:> The 'open' method currently undoes what this method does.
+(Note: L<HTML::DOM::Element>'s
+L<C<content_offset>|HTML::DOM::Element/content_offset> method might come in
+handy for reporting line numbers for script errors.)
+
+B<BUG:> The 'open' method currently undoes what this method does.
 
 =cut
 
 sub elem_handler {
 	my ($self,$elem_name,$sub) = @_;
-	my $doc_elem = ($self->content_list)[0];
-	weaken $doc_elem;
 	$self->{_HTML_DOM_elem_handlers}{$elem_name} =
-	$doc_elem->{"_tweak_$elem_name"} = sub {
-		$doc_elem->{'_tweak_*'}->(@_);
+	($self->content_list)[0]->{"_tweak_$elem_name"} = sub {
+		# I can’t put $doc_elem outside the closure, because
+		# ->open replaces it with another object, and we’d be
+		# referring to the wrong one.
+		my $doc_elem = ($self->content_list)[0];
+		$doc_elem->{_HTML_DOM_tweakall}->(@_);
 		{ local $$self{_HTML_DOM_buffered} = 1;
 		  &$sub($self, $_[0]); }
 		return unless exists $$self{_HTML_DOM_write_buffer};
@@ -298,7 +364,9 @@ sub elem_handler {
 		# call infinite recursion, I think. :-)
 		$p->parse(delete $$self{_HTML_DOM_write_buffer});
 		$p->eof;
-	}
+	};
+	weaken $self;
+	return;
 }
 
 
@@ -386,12 +454,14 @@ sub open {
 	# without this, since the root currently has no parent:
 	($self->content_list)[0]->parent($self);
 
-# ~~~ finish this and write tests for it
-#	return unless $self->{_HTML_DOM_elem_handlers};
-#	for(keys %{$self->{_HTML_DOM_elem_handlers}}) {
-#		$self->{_content}{"tweak_$_"} =
-#			$self->{_HTML_DOM_elem_handlers}{$_}
-#	}
+	return unless $self->{_HTML_DOM_elem_handlers};
+	for(keys %{$self->{_HTML_DOM_elem_handlers}}) {
+#warn "$_: $self->{_HTML_DOM_elem_handlers}{$_}";
+		$self->{_content}[0]{"_tweak_$_"} =
+			$self->{_HTML_DOM_elem_handlers}{$_}
+	}
+#use DDS;
+#Dump $self->{_content}[0]{'_tweak_*'};
 
 	return # nothing;
 }
@@ -401,8 +471,6 @@ sub open {
 
 =head2 Other DOM Methods
 
-(This section needs to be written.)
-
 =over 4
 
 =cut
@@ -410,7 +478,46 @@ sub open {
 
 #-------------- DOM STUFF (CORE) ---------------- #
 
-=item etc. etc. etc.
+=item doctype
+
+Returns nothing
+
+=item implementation
+
+Returns the L<HTML::DOM::Implementation> object.
+
+=item documentElement
+
+Returns the <html> element.
+
+=item createElement ( $tag )
+
+=item createDocumentFragment
+
+=item createTextNode ( $text )
+
+=item createComment ( $text )
+
+=item createAttribute ( $name )
+
+Each of these creates a node of the appropriate type.
+
+=item createProcessingInstruction
+
+=item createEntityReference
+
+These two throw an exception.
+
+=item getElementsByTagName ( $name )
+
+C<$name> can be the name of the tag, or '*', to match all tag names. This
+returns a node list object in scalar context, or a list in list context.
+
+=item importNode ( $node, $deep )
+
+Clones the C<$node>, setting its C<ownerDocument> attribute to the document
+with which this method is called. If C<$deep> is true, the C<$node> will be
+cloned recursively.
 
 =cut
 
@@ -489,6 +596,20 @@ sub getElementsByTagName {
 	}
 }
 
+sub importNode {
+	my ($self, $node, $deep) = @_;
+	die HTML::DOM::Exception->new( NOT_SUPPORTED_ERR,
+		'Documents cannot be imported.' )
+		if $node->nodeType ==DOCUMENT_NODE;
+	(my $clown = $node->cloneNode($deep))
+		->_set_ownerDocument($self);
+	if($clown->can('descendants')) { # otherwise it’s an Attr, so this
+	for($clown->descendants) {       # isn’t necessary
+		delete $_->{_HTML_DOM_owner};
+	}}
+	$clown;
+}
+
 #-------------- DOM STUFF (HTML) ---------------- #
 
 =item alinkColor
@@ -559,6 +680,10 @@ These five methods return a list of the appropriate elements in list
 context, or an L<HTML::DOM::Collection> object in scalar context. In this
 latter case, the object will update automatically when the document is
 modified.
+
+In the case of C<forms> you can access those by using the HTML::DOM object
+itself as a hash. I.e., you can write C<< $doc->{f} >> instead of
+S<< C<< $doc->forms->{f} >> >>.
 
 B<TO DO:> I need to make these methods cache the HTML collection objects
 that they create. Once I've done this, I can make list context use those
@@ -755,17 +880,17 @@ context is probably more efficient.
 =cut
 
 sub getElementById {
-	shift->look_down(id => shift) || ();
+	shift->look_down(id => ''.shift) || ();
 }
 
 sub getElementsByName {
 	my($self,$name) = @_;
 	if (wantarray) {
-		return $self->look_down(name => $name);
+		return $self->look_down(name => "$name");
 	}
 	else {
 		my $list = HTML::DOM::NodeList::Magic->new(
-			  sub { $self->look_down(name => $name); }
+			  sub { $self->look_down(name => "$name"); }
 		);
 		$self-> _register_magic_node_list($list);
 		$list;
@@ -785,6 +910,18 @@ into which class the newly-created event object is blessed.
 =cut
 
 sub createEvent { HTML::DOM::Event::class_for($_[1] || '')->new }
+
+# ---------- DocumentView interface -------------- #
+
+=item defaultView
+
+Returns the L<HTML::DOM::View> object associated with the document.
+
+=back
+
+=cut
+
+sub defaultView { shift->{_HTML_DOM_view} }
 
 # ---------- OVERRIDDEN NODE METHODS -------------- #
 
@@ -825,6 +962,12 @@ sub base { # ~~~ is this specky?
 	}
 }
 
+=head1 HASH ACCESS
+
+You can use an HTML::DOM object as a hash ref to access it's form elements
+by name. So C<< $doc->{yayaya} >> is short for
+S<< C<< $doc->forms->{yayaya} >> >>.
+
 =head1 EVENT HANDLING
 
 HTML::DOM supports both the DOM Level 2 event model and the HTML 4 event
@@ -855,6 +998,12 @@ be the event object. For instance:
 C<default_event_handler> without any arguments will return the currently 
 assigned coderef. With an argument it will return the old one after
 assigning the new one.
+
+Currently no default actions are taken when events are triggered. It is up
+to the default event handler to do that. Later I will allow for multiple
+default event handlers to be assigned to more specific events, and a few
+will be in place to begin with (e.g., for a submit button's 'click' event,
+the form's 'submit' event will be triggered; currently it is not).
 
 HTML::DOM::Node's C<dispatchEvent> method triggers the appropriate event 
 listeners, but does B<not> call any default actions associated with it.
@@ -945,7 +1094,7 @@ __END__
 =head1 CLASSES AND DOM INTERFACES
 
 Here are the inheritance hierarchy of HTML::DOM's various classes and the
-DOM interfaces those classes implement. The Classes in the left column all
+DOM interfaces those classes implement. The classes in the left column all
 begin with 'HTML::', which is omitted for brevity. Items in brackets have
 not yet been implemented. (See also L<HTML::DOM::Interface> for a
 machine-readable list of standard methods.)
@@ -954,24 +1103,27 @@ machine-readable list of standard methods.)
   ---------------------------             ----------
   
   DOM::Exception                          DOMException, EventException
-  DOM::Implementation                     DOMImplementation
+  DOM::Implementation                     DOMImplementation,
+                                           [DOMImplementationCSS]
   Element
       DOM::Node                           Node, EventTarget
           DOM::DocumentFragment           DocumentFragment
           DOM                             Document, HTMLDocument,
-                                            DocumentEvent
+                                            DocumentEvent, DocumentView,
+                                           [DocumentStyle, DocumentCSS]
           DOM::CharacterData              CharacterData
               DOM::Text                   Text
               DOM::Comment                Comment
-          DOM::Element                    Element, HTMLElement
+          DOM::Element                    Element, HTMLElement,
+                                            ElementCSSInlineStyle
               DOM::Element::HTML          HTMLHtmlElement
               DOM::Element::Head          HTMLHeadElement
-              DOM::Element::Link          HTMLLinkElement
+              DOM::Element::Link          HTMLLinkElement, [LinkStyle]
               DOM::Element::Title         HTMLTitleElement
               DOM::Element::Meta          HTMLMetaElement
               DOM::Element::Base          HTMLBaseElement
               DOM::Element::IsIndex       HTMLIsIndexElement
-              DOM::Element::Style         HTMLStyleElement
+              DOM::Element::Style         HTMLStyleElement, [LinkStyle]
               DOM::Element::Body          HTMLBodyElement
               DOM::Element::Form          HTMLFormElement
               DOM::Element::Select        HTMLSelectElement
@@ -1007,15 +1159,15 @@ machine-readable list of standard methods.)
               DOM::Element::Map           HTMLMapElement
               DOM::Element::Area          HTMLAreaElement
               DOM::Element::Script        HTMLScriptElement
-             [DOM::Element::Table         HTMLTableElement]
-             [DOM::Element::Caption       HTMLTableCaptionElement]
-             [DOM::Element::TableColumn   HTMLTableColElement]
-             [DOM::Element::TableSection  HTMLTableSectionElement]
-             [DOM::Element::TR            HTMLTableRowElement]
-             [DOM::Element::TableCell     HTMLTableCellElement]
-             [DOM::Element::FrameSet      HTMLFrameSetElement]
-             [DOM::Element::Frame         HTMLFrameElement]
-             [DOM::Element::IFrame        HTMLIFrameElement]
+              DOM::Element::Table         HTMLTableElement
+              DOM::Element::Caption       HTMLTableCaptionElement
+              DOM::Element::TableColumn   HTMLTableColElement
+              DOM::Element::TableSection  HTMLTableSectionElement
+              DOM::Element::TR            HTMLTableRowElement
+              DOM::Element::TableCell     HTMLTableCellElement
+              DOM::Element::FrameSet      HTMLFrameSetElement
+              DOM::Element::Frame         HTMLFrameElement
+              DOM::Element::IFrame        HTMLIFrameElement
   DOM::NodeList                           NodeList
       DOM::NodeList::Radio
   DOM::NodeList::Magic                    NodeList
@@ -1025,6 +1177,10 @@ machine-readable list of standard methods.)
       DOM::Collection::Elements
       DOM::Collection::Options
   DOM::Event                              Event
+     [DOM::Event::UI                      UIEvent]
+     [DOM::Event::Mouse                   MouseEvent]
+     [DOM::Event::Mutation                MutationEvent]
+  DOM::View                               AbstractView, [ViewCSS]
 
 Although HTML::DOM::Node inherits from HTML::Element, the interface is not
 entirely compatible, so don't rely on any HTML::Element methods.
@@ -1039,7 +1195,8 @@ See L</EVENT HANDLING>, above.
 
 =item *
 
-Node attributes are accessed via methods of the same name. When the method
+Objects' attributes are accessed via methods of the same name. When the
+method
 is invoked, the current value is returned. If an argument is supplied, the
 attribute is set (unless it is read-only) and its old value returned.
 
@@ -1059,13 +1216,13 @@ offsets
 and are standards-compliant in that regard (but the string returned by
 C<substringData> is still a regular Perl string).
 
-=begin for me
+=begin for-me
 
 # ~~~ These need to be documented in the man pages for Comment and Text
 C<length16>, C<substringData16>
 C<insertData16>, C<deleteData16>, C<replaceData16> and C<splitText16>.
 
-=end for me
+=end for-me
 
 =item *
 
@@ -1074,9 +1231,19 @@ object in scalar context, or a simple list in list context. You can use
 the object as an array ref in addition to calling its C<item> and 
 C<length> methods.
 
+=begin for-me
+
+If I implement any methods that make use of the DOMTimeStamp interface, I
+need to document that simple Perl scalars containing the time as returned
+by Perl’s built-in ‘time’ function are used.
+
+=end for-me
+
 =head1 PREREQUISITES
 
-perl 5.8.3 or later
+perl 5.6.0 or later
+
+Exporter 5.57 or later
 
 HTML::TreeBuilder and HTML::Element (both part of the HTML::Tree
 distribution) (tested with 3.23)
@@ -1092,13 +1259,15 @@ HTTP::Headers::Util :-).
 HTML::Form 1.054 or later if any of the methods provided for
 WWW::Mechanize compatibility are called.
 
+CSS::DOM is required if you use any of the style sheet features.
+
 Scalar::Util 1.08 or later
 
 =head1 BUGS
 
 (See also BUGS in 
 L<HTML::DOM::Collection::Options/BUGS|HTML::DOM::Collection::Options> and
-L<HTML::DOM::Element::Option/BUGS|HTML::DOM::Element::Option>.)
+L<HTML::DOM::Element::Option/BUGS|HTML::DOM::Element::Option>)
 
 =over 4
 
@@ -1106,20 +1275,6 @@ L<HTML::DOM::Element::Option/BUGS|HTML::DOM::Element::Option>.)
 
 I really don't know what will happen if a element handler goes and deletes
 parent elements of the element for which the handler is called.
-
-=item -
-
-C<hasFeature> returns true for 'HTML' and '1.0', even though the Level-1
-HTML interfaces are not fully implemented yet.
-
-=item -
-
-HTML::DOM::Element's C<normalize> method does not currently work properly.
-
-=item -
-
-HTML::DOM::Node's C<cloneNode> method does not currently work properly with
-elements.
 
 =item -
 

@@ -1,44 +1,36 @@
-HTML::DOM, version 0.009
+HTML::DOM, version 0.010
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
-This is an alpha release.  So far, most of the level-1 DOM interfaces
-are implemented, and some of the level-2 event interfaces.
+This is an alpha release.  So far,  the level-1 DOM interfaces and the
+level-2 core interfaces have been implemented, and some of the level-2
+event interfaces.
 
 
 CHANGES IN THIS RELEASE
 
-You can do something with errors produced by event handlers by pass-
-ing a coderef to the new event_handler method. That coderef will be
-called for each error. (Before, such errors were ignored.)
-
-HTML::DOM::Interface has been modified,  such that  'Document'  is  no
-longer a  separate  interface  --  since  there  is  no  corresponding
-HTML::DOM module--, but all its members are  now  under  HTMLDocument,
-which inherits directly from Node. Likewise, 'Element' has been merged
-into HTMLElement.
-
-HTML::DOM::Element::Select now has 'add' and 'remove' methods.
-
-'Select' elements can now be used as array refs, so you can write
-$select->[0] instead of $select->options->[0].
-
-You can now assign undef to such an array element to delete it, so
-'$select->[0] = undef'  does the same  thing  as  'shift @$select'.
-'delete $select->[0]' also works.
-
-And a few bug fixes. See the Changes file.
+• HTML::DOM::Node’s trigger_event method now returns nothing. (It used
+  to return the return value of the default event handler.)  As a side
+  effect, this fixes a few bugs.
+• The classes for HTML tables and frames have been added.
+• HTML::DOM::Element now has a content_offset method.
+• HTML::DOM::Element::Form now has its reset method.
+• The DOM Level-2 core interfaces are now supported.
+• I’ve started work on CSS features. So far, elements have a
+ ‘style’ method.
+• You can now access forms by using an HTML::DOM object as a hash ref.
+• A checkbox’s click method now toggles the checkbox’s state.
+• And bug fixes, a long list of which is to be found in the
+  Changes file.
 
 
 TO DO
 
 - Add support to HTML::DOM::Interface for UTF-16 methods.
-- Finish Level 1 HTML support
 - Weaken upward references
-- Add Level 2 Core support
 - Add Level 2 HTML support
 - Finish Level 2 Events support
-- Add Level 2 CSS support
+- Finish Level 2 CSS support
 - etc.
 - Write more complete documentation
 - Write more tests
@@ -63,15 +55,18 @@ Or you can use the following:
 
 DEPENDENCIES
 
-This module requires perl 5.8.3 or later (only tested with 5.8.7 and
-5.8.8) and the following Perl modules:
+This module requires perl 5.6.0 or later and the following
+Perl modules:
 
+- Scalar Util 1.08 or later
+- Exporter 5.57 or later
 - HTML::TreeBuilder and HTML::Element (both part of the HTML::Tree
   distribution) (tested with 3.23)
 - URI (tested with 1.35)
 - HTTP::Headers::Util is required for writing cookies.
 - HTML::Form 1.054 is required if any of the methods provided for
   WWW::Mechanize compatibility are to be used.
+- CSS::DOM
 
 Later it will require other modules (including some CSS modules).
 

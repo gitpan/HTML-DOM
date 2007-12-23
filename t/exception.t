@@ -5,7 +5,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 16;
+use Test::More tests => 21;
 
 
 # -------------------------#
@@ -14,7 +14,7 @@ use Test::More tests => 16;
 BEGIN { use_ok 'HTML::DOM::Exception', ':all'; }
 
 # -------------------------#
-# Tests 2-12: check constants
+# Tests 2-17: check constants
 
 {
 	my $x;
@@ -22,14 +22,16 @@ BEGIN { use_ok 'HTML::DOM::Exception', ':all'; }
 	for (qw/ INDEX_SIZE_ERR DOMSTRING_SIZE_ERR HIERARCHY_REQUEST_ERR
 	        WRONG_DOCUMENT_ERR INVALID_CHARACTER_ERR
 	       NO_DATA_ALLOWED_ERR NO_MODIFICATION_ALLOWED_ERR
-	     NOT_FOUND_ERR NOT_SUPPORTED_ERR INUSE_ATTRIBUTE_ERR /) {
+	     NOT_FOUND_ERR NOT_SUPPORTED_ERR INUSE_ATTRIBUTE_ERR
+	  INVALID_STATE_ERR SYNTAX_ERR INVALID_MODIFICATION_ERR
+	NAMESPACE_ERR INVALID_ACCESS_ERR /) {
 		eval "is $_, " . ++$x . ", '$_'";
 	}
 	is UNSPECIFIED_EVENT_TYPE_ERR, 0, 'UNSPECIFIED_EVENT_TYPE_ERR';
 }
 
 # --------------------------------------- #
-# Tests 13-16: constructor and overloading #
+# Tests 18-21: constructor and overloading #
 
 {
 	my $x = new HTML::DOM::Exception NOT_SUPPORTED_ERR,

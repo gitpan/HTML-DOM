@@ -15,7 +15,7 @@ HTML::DOM::NodeList::Radio - A Perl class for representing lists of radio button
   ');
   $doc->close;
 
-  $radio_list = $doc->forms->[0]{r};
+  $radio_list = $doc->forms->[0]->find_input('r');
   # returns an HTML::DOM::NodeList::Radio object
 
   $radio_list->[0]; # get first button
@@ -28,8 +28,8 @@ HTML::DOM::NodeList::Radio - A Perl class for representing lists of radio button
 =head1 DESCRIPTION
 
 An object of this class represents a list of radio buttons in an HTML::DOM 
-tree. This class inherits from L<HTML::DOM::NodeList> and is provided 
-for compatibility with L<WWW::Mechanize>.
+tree. This class inherits from L<HTML::DOM::NodeList::> and is provided 
+solely for compatibility with L<WWW::Mechanize>.
 
 =head1 METHODS
 
@@ -67,12 +67,12 @@ value of the currently selected button.
 
 =back
 
-=begin for me
+=begin for-me
 
 The C<other_possible_values>, C<value_name>, C<readonly>, C<disabled> and
 C<check> methods do not exist (yet).
 
-=end for me
+=end for-me
 
 =head1 SEE ALSO
 

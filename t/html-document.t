@@ -5,7 +5,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 60;
+use Test::More tests => 66;
 
 
 # -------------------------#
@@ -181,7 +181,7 @@ SKIP: {
 }
 
 # -------------------------#
-# Tests 33-46: open, close, unbuffaloed write
+# Tests 33-47: open, close, unbuffaloed write
 
 # Buffaloed write is tested in html-dom.t together with
 # elem_handler with which it is closely tied.
@@ -192,7 +192,7 @@ SKIP: {
 	my $jar = \'raj';
 	my $doc = new HTML::DOM url=>'lru', referrer => 'rerrefer',
 		response => $response, cookie_jar=>$jar;
-	
+
 	is $doc->write('<p id=para></p>'), undef,
 		'write (parse/unbuffaloed)';
 
@@ -208,9 +208,13 @@ SKIP: {
 
 	is $doc->getElementById('p'), undef,
 		'seems that open() clobbered everything';
-	is $doc->{_HTML_DOM_response}, $response,
+	my($_response, $_jar) = do {
+		package HTML::DOM; # we need this to circumvent %{}
+		@$doc{map "_HTML_DOM_$_", qw/response jar/}  # overloading
+	};
+	is $response, $response,
 		'except the response object';
-	is $doc->{_HTML_DOM_jar}, $jar, 'and the cookie jar';
+	is $jar, $jar, 'and the cookie jar';
 	is $doc->URL, 'lru', 'oh, and the URL, too!';
 	is $doc->referrer, 'rerrefer',
 		'I nearly forgot--the referrer as well, of course.';
@@ -234,21 +238,43 @@ SKIP: {
 	eval{$doc->close;};
 	is $@, '', 'redudant close() throws no errors';
 
+	my $p_handler = sub { ++ $p's };
+	$doc->elem_handler(p => $p_handler);
+	$doc->open; # all the way up to 0.009, this would clobber the
+	            # element handler
+	$doc->write('<p>oenheuo<p>oenuth'); $doc->close;
+	is $p's, 2, 'Our clobbered element handler bug is gone';
+		 
 }
 
 # -------------------------#
-# Tests 47-8: ^getElements?By
+# Tests 48-52: ^getElements?By
 
 $doc->write('<p name=para>para 1</p><p name=para>para 2</p><p id=p>3');
 $doc->close;
 
+{ package oVerload;
+	use overload '""' => sub {${+shift}};
+ }
+
 is_deeply [map data{firstChild $_}, getElementsByName $doc 'para'],
 	['para 1', 'para 2'],
 	'getElementsByName';
+is_deeply [map data{firstChild $_}, getElementsByName $doc
+                                    bless \do{my $v = 'para'}, 'oVerload'],
+	['para 1', 'para 2'],
+	'getElementsByName stringfication';
+is_deeply [map data{firstChild $_}, @{
+               getElementsByName $doc bless \do{my $v = 'para'}, 'oVerload'
+          }],
+	['para 1', 'para 2'],
+	'getElementsByName stringfication in scalar context';
 is $doc->getElementById('p')->firstChild->data, 3, 'getElementById';
+is $doc->getElementById(bless \do{my $v = 'p'}, 'oVerload')->firstChild
+	->data, 3, 'getElementById stringification';
 
 # -------------------------#
-# Tests 49-60: weird attributes (fgColor et al.)
+# Tests 53-64: weird attributes (fgColor et al.)
 
 $doc->write('<body alink=red background=white.gif bgcolor=white
                    text=black link=blue vlink=fuschia>');
@@ -266,5 +292,14 @@ is $doc->linkColor ('yellow'),         'blue', 'set/get linkColor';
 is $doc->linkColor ,'yellow',                , 'get linkColor';
 is $doc->vlinkColor('silver'),      'fuschia', 'set/get vlinkColor';
 is $doc->vlinkColor,'silver',                , 'get vlinkColor';
+
+# -------------------------#
+# Tests 65-6: hashness
+
+$doc->write('<form name=fred></form><form name=alcibiades></form>');
+$doc->close;
+
+is $doc->{fred}, $doc->forms->[0],           'hashness (1)';
+is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 
 

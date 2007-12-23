@@ -1,8 +1,11 @@
 #!/usr/bin/perl -T
 
+# ~~~ I need a test that makes sure HTML::TreeBuilder doesn’t spit out
+#     warnings because of hash deref overloading.
+
 use strict; use warnings;
 
-use Test::More tests => 22;
+use Test::More tests => 23;
 
 
 # -------------------------#
@@ -182,6 +185,18 @@ is_deeply traverse $doc, [
 	is $counter,2,  'nested <script> elems';
 }
 
+# -------------------------#
+# Test 23: Yet another elem_handler test, this time with '*' for the tag.
+#          I broke this in 0.009 and fixed it in 0.010.
 
+{
+	my $counter; my $doc = new HTML::DOM;
+	$doc->elem_handler('*' => sub {
+		++$counter;
+	});
 
+	$doc->write('<p><b><i></i></b></p>');
+
+	is $counter,3,  'elem_handler(*)';
+}
 

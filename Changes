@@ -1,5 +1,60 @@
 Revision history for HTML::DOM
 
+0.010   23 December, 2007
+        New features:
+        • HTML::DOM::Node’s trigger_event method now returns nothing.
+          (It used to return the return value of the  default  event
+          handler.)  As  a  side  effect,  this  fixes  a  few  bugs.
+        • The classes for HTML tables and frames have been added.
+        • HTML::DOM::Element now has a content_offset method.
+        • HTML::DOM::Element::Form now has its reset method.
+        • The DOM Level-2 core interfaces are now supported.
+        • I’ve started work on CSS features. So far, elements have a
+         ‘style’ method.
+        • You can now access forms by using an HTML::DOM object as
+          a hash ref.
+        • A checkbox’s click method now toggles the checkbox’s state.
+        Fixed bugs:
+        • HTML::DOM::Element::Form’s submit method now
+          returns nothing.
+        • HTML::DOM::Element::Select’s blur and focus methods now
+          return nothing.
+        • HTML::DOM::Element::Button’s type method now works.
+        • HTML::DOM::Element::Label’s htmlFor method now works.
+        • Heading elements (h1..h6) are now blessed into the
+          HTML::DOM::Element::Heading class,  so  the  align
+          method works.
+        • HTML::DOM::Element::Object’s useMap method now works.
+        • HTML::DOM::Element::Applet’s codeBase method now works.
+        • tbody elements are now inserted into the tree if a <tr>
+          occurs directly within a <table>.
+        • HTML::DOM::Interface now includes  HTML::DOM::TreeBuilder,
+          which is used for the document’s <html> element while the
+          HTML code is being parsed.
+        • The as_text and as_HTML methods now work on the document’s
+          <html> element during parsing.
+        • The <html> element’s ‘version’ method now works dur-
+          ing parsing.
+        • getElementById and getElementsByTagName now stringify the
+          name or ID  (in order to make  HTML::Element’s  look_down
+          method happy).  These both used to return false negatives
+          when passed objects with string overloading.
+        • HTML::DOM::Element’s normalize method (which has been moved
+          to HTML::DOM::Node) now actually does something.
+        • HTML::DOM::Node’s cloneNode method used not  to  erase  the
+          clone’s parentNode attribute unless the  cloning  was  deep.
+          Nor did it erase the list of child nodes in a shallow clone,
+          so those nodes would have multiple parents.
+        • cloneNode now works with HTML elements (the attributes are
+          now cloned).
+        • HTML::DOM::CharacterData’s deleteData16  method  now  works
+          properly, instead of getting offsets wrong and then convert-
+          ing all the text into UTF-16.
+        • HTML::DOM::Collection’s namedItem method used to return
+          undef for form, img and map elements.
+        • HTML::DOM::Collection::Elements’s namedItem method used to
+          die if there were multiple form fields with the same  name.
+
 0.009   23 November, 2007
         Changes/new features:
         *  You can do something with errors produced by event handlers

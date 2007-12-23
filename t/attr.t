@@ -6,7 +6,7 @@
 use strict; use warnings;
 
 use Scalar::Util 'refaddr';
-use Test::More tests => 53;
+use Test::More tests => 66;
 
 
 # -------------------------#
@@ -182,8 +182,8 @@ ok hasChildNodes $attr, 'hasChildNodes';
 my $clone = cloneNode $attr; # shallow
 
 cmp_ok refaddr $attr, '!=', refaddr $clone, 'cloneNode makes a new object';
-cmp_ok +(childNodes $attr)[0], '==', (childNodes $clone)[0],
-	'shallow clone works';
+cmp_ok +(childNodes $attr)[0], '!=', (childNodes $clone)[0],
+	'shallow clone works ignores its deep arg';
 is_deeply [parentNode $clone], [], 'clones are orphans';
 
 $clone = cloneNode $attr 1; # deep
@@ -195,4 +195,54 @@ cmp_ok +(childNodes $attr)[0], '!=', (childNodes $clone)[0],
 is_deeply [parentNode $clone], [], 'deep clones are parentless';
 
 
+# -------------------------#
+# Tests 54-7: ownerElement
 
+{
+	my $elem = $doc->createElement('a');
+	my $attr = $doc->createAttribute('href');
+	$elem->setAttributeNode($attr);
+	is $attr->ownerElement, $elem,
+		'ownerElement after setAttributeNode';
+
+	my $nother_attr = $doc->createAttribute('href');
+	$elem->setAttributeNode($nother_attr);
+	is +()=$attr->ownerElement, 0,
+		'ownerElement after setAttributeNode replaces it';
+
+	$elem->removeAttributeNode($nother_attr);
+	is $nother_attr->ownerElement, undef,
+		'removeAttributeNode updates ownerElement';
+
+	$elem->setAttribute('target', '_blank');
+	is $elem->getAttributeNode('target')->ownerElement, $elem,
+		'ownerElement of autovivified attr';
+
+}
+
+# -------------------------#
+# Tests 58-61: XML namespace stuff and normal eyes
+
+is +()=$attr->$_, 0, $_ for qw / namespaceURI prefix localName normalize /;
+
+
+# -------------------------#
+# Test 62: hasAttributes
+
+ok !$attr->hasAttributes, 'hasAttrbitues';
+
+# -------------------------#
+# Tests 63-4: booleanness
+
+{
+	my $attr = $doc->createAttribute('foo');
+	ok !"$attr",
+	    'make sure our booleanness test is actually doing something';
+	ok $attr, 'boooleannness';
+}
+
+# -------------------------#
+# Tests 65-6: isSupported
+
+ok $attr->isSupported('hTML', '1.0'), 'isSupported';
+ok!$attr->isSupported('onfun') ,'isn’tSupported';

@@ -14,7 +14,8 @@ sub _list() { 4 } # that nodelists can work efficiently
 
 use overload fallback => 1,
 	'""' => sub { my $val = ${+shift}[_val][0];
-	              ref $val ? $val->data : $val; };
+	              ref $val ? $val->data : $val; },
+	'bool' => \&_elem;
 
 use HTML::DOM::Exception qw'NOT_FOUND_ERR NO_MODIFICATION_ALLOWED_ERR
                             HIERARCHY_REQUEST_ERR WRONG_DOCUMENT_ERR';
@@ -23,7 +24,7 @@ use Scalar::Util qw'weaken blessed';
 
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 
@@ -41,7 +42,7 @@ sub _set_ownerDocument {
 	weaken ($_[0][_doc] = $_[1]);
 }
 
-sub _element {
+sub _element { # This is like ownerElement, except that it lets you set it.
 	if(@_ > 1) {
 		my $old = $_[0][_elem];
 		weaken ($_[0][_elem] = $_[1]);
@@ -88,14 +89,20 @@ sub specified { # ~~~ Do I need to deal with default attribute values
 	!0
 }
 
+sub ownerElement { # ~~~ If the attr is detached, is _element currently
+                   #     erased as it should be?
+	shift->_element || ()
+}
+
 # ------------------ NODE METHODS ------------ #
 
 *nodeName = \&name;
 *nodeValue = \&value;
 *nodeType =\&ATTRIBUTE_NODE;
 
-# These five return null
-*previousSibling = *nextSibling = *attributes = *parentNode = *attributes
+# These all return null
+*previousSibling = *nextSibling = *attributes = *parentNode = *prefix =
+*namespaceURI = *localName = *normalize
  = sub {};
 
 sub childNodes {
@@ -144,19 +151,165 @@ sub replaceChild {
 sub hasChildNodes { 1 }
 
 sub cloneNode {
+	# ~~~ The spec.  is not clear as to what should be done with  an
+	#     Attr’s child node when it is cloned shallowly. I’m here fol-
+	#     lowing the behaviour of Safari and Firefox, which both ignore
+	#     the ‘deep’ option.
 	my($self,$deep) = @_;
 	my $clone = bless [@$self], ref $self;
+	# ~~~ When I start supporting ‘specified,’ I need to set it to true
+	#     here.
 	weaken $$clone[_doc];
-	weaken $$clone[_elem];
-	delete $$clone[_list];
-	$$clone[_val] = [$$clone[_val][0]]; # copy the single-elem array
-	                                    # that ->[_val] contains
-	
-	if($deep) {
-		ref $$clone[_val][0] and $$clone[_val][0] = 
-			$$clone[_val][0]->clone;
-	}
+	delete $$clone[$_] for _elem, _list;
+	$$clone[_val] = ["$$clone[_val][0]"]; # copy the single-elem array
+	                                     # that ->[_val] contains,
+	                                   # flattening it in order effec-
+	                                # tively to clone it.
 	$clone;
 }
 
+sub hasAttributes { !1 }
+
+sub isSupported {
+	my $self = shift;
+	return !1 if lc $_[0] eq 'events';
+	$HTML::DOM::Implementation::it->hasFeature(@_)
+}
+
 1
+
+__END__
+
+=head1 NAME
+
+HTML::DOM::Attr - A Perl class for representing attribute nodes in an HTML DOM tree
+
+=head1 SYNOPSIS
+
+  use HTML::DOM;
+  $doc = HTML::DOM->new;
+  $attr = $doc->createAttribute('href');
+  $attr->nodeValue('http://localhost/');
+  $elem = $doc->createElement('a');
+  $elem->setAttributeNode($attr);
+  
+  $attr->nodeName;  # href
+  $attr->nodeValue; # http://...
+  
+  $attr->firstChild; # a text node
+  
+  $attr->ownerElement; # returns $elem
+
+=head1 DESCRIPTION
+
+This class is used for attribute nodes in an HTML::DOM tree. It implements 
+the Node and 
+Attr DOM interfaces. An attribute node stringifies to its value. As a
+boolean it is true, even if its value is false.
+
+=head1 METHODS
+
+=head2 Attributes
+
+The following DOM attributes are supported:
+
+=over 4
+
+=item nodeName
+
+=item name
+
+These both return the name of the attribute.
+
+=item nodeType
+
+Returns the constant C<HTML::DOM::Node::ATTRIBUTE_NODE>.
+
+=item nodeValue
+
+=item value
+
+These both return the attribute's value.
+
+=item parentNode
+
+=item previousSibling
+
+=item nextSibling
+
+=item attributes
+
+=item namespaceURI
+
+=item prefix
+
+=item localName
+
+All of these simply return an empty list.
+
+=item childNodes
+
+In scalar context, this returns a node list object with one text node in
+it. In list context it returns a list containing just that text node.
+
+=item firstChild
+
+=item lastChild
+
+These both return the attribute's text node.
+
+=item ownerDocument
+
+Returns the document to which the attribute node belongs.
+
+=item ownerElement
+
+Returns the element to which the attribute belongs.
+
+=back
+
+=head2 Other Methods
+
+=over 4
+
+=item insertBefore
+
+=item removeChild
+
+=item appendChild
+
+These three just throw exceptions.
+
+=item replaceChild
+
+If the first argument is a text node and the second is the attribute node's
+own text node, then the latter is replaced with the former. This throws an
+exception otherwise.
+
+=item hasChildNodes
+
+Returns true.
+
+=item cloneNode
+
+Returns a clone of the attribute.
+
+=item normalize
+
+Does nothing.
+
+=item hasAttributes
+
+Returns false.
+
+=item isSupported
+
+Does the same thing as L<HTML::DOM::Implementation>'s
+L<hasFeature|HTML::DOM::Implementation/hasFeature> method.
+
+=back
+
+=head1 SEE ALSO
+
+L<HTML::DOM>
+

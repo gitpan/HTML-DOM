@@ -13,7 +13,7 @@ require HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 #require HTML::DOM::Collection::Elements;
 
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @ISA = qw'HTML::DOM::Element HTML::Form';
 
 use overload fallback => 1,
@@ -70,7 +70,9 @@ sub target        { shift->attr('target'         => @_)    }
 
 sub submit { shift->trigger_event('submit') }
 
-# ~~~sub reset { $_->_reset for shift->elements }
+sub reset { #$_->_reset for shift->elements
+	shift->trigger_event('reset');
+}
 
 # ------ HTML::Form compatibility methods ------ #
 
@@ -206,7 +208,7 @@ package HTML::DOM::NodeList::Radio; # solely for HTML::Form compatibility
 use Carp 'croak';
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @ISA = qw'HTML::DOM::NodeList HTML::Form::Input';
 
 sub type { 'radio' }
@@ -289,7 +291,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 
 require HTML::DOM::Collection;
 our @ISA = 'HTML::DOM::Collection';
@@ -317,23 +319,18 @@ sub namedItem {
 			($elem = $list->item($_))->id eq $name
 			  or
 			$elem->attr('name') eq $name;
-		if(@list > 1) {
-			no strict 'subs'; # it's buggy
-			require(HTML::DOM::NodeList),
-			weaken $list,
-			# ~~~ Perhaps this should cache the new nodelist
-			#     and return the same one each item. (Incident-
-			#     ally, Firefox returns the same one but Safari
-			#     makes a new one each time.)
-			my $ret = HTML::DOM::NodeList->new(sub {
-				grep $_->id eq $name ||
-				     $_->attr('name') eq $name, @$list;
-			});
-			$ret->[0]->type eq 'radio' and
-#				require('HTML::DOM::Element::Form'),
-				bless $ret, 'HTML::DOM::NodeList::Radio';
-			return $ret;
-		}
+	}
+	if(@list > 1) {
+		# ~~~ Perhaps this should cache the new nodelist
+		#     and return the same one each item. (Incident-
+		#     ally, Firefox returns the same one but Safari
+		#     makes a new one each time.)
+		my $ret = HTML::DOM::NodeList::Magic->new(sub {
+			no warnings 'uninitialized';
+			grep $_->id eq $name ||
+			     $_->attr('name') eq $name, @$list;
+		});
+		return $ret;
 	}
 	@list ? $list[0] :()
 }
@@ -423,7 +420,9 @@ L<HTML::DOM::Node/Other Methods>.)
 
 =item reset
 
-(Not yet implemented)
+This triggers the form's 'reset' event. It is up to the default event
+handler actually to reset the form's field's values. (Later, if I get time,
+I plan to make it do this itself.)
 
 =back
 
@@ -463,7 +462,7 @@ L<HTML::Form>
 # ------- HTMLSelectElement interface ---------- #
 
 package HTML::DOM::Element::Select;
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @ISA = 'HTML::DOM::Element';
 
 use overload fallback=>1, '@{}' => sub { shift->options };
@@ -542,7 +541,7 @@ package HTML::DOM::Collection::Options;
 use strict;
 use warnings;
 
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 
 use Carp 'croak';
 
@@ -617,7 +616,7 @@ sub form_name_value
 # ------- HTMLOptGroupElement interface ---------- #
 
 package HTML::DOM::Element::OptGroup;
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @ISA = 'HTML::DOM::Element';
 
 sub label  { shift->attr( label => @_) }
@@ -627,7 +626,7 @@ sub label  { shift->attr( label => @_) }
 # ------- HTMLOptionElement interface ---------- #
 
 package HTML::DOM::Element::Option;
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
 
 use Carp 'croak';
@@ -751,7 +750,7 @@ sub form_name_value
 # ------- HTMLInputElement interface ---------- #
 
 package HTML::DOM::Element::Input;
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
@@ -831,6 +830,7 @@ sub click { for(shift){
 	my(undef,$x,$y) = @_;
 	defined or $_ = 1  for $x, $y;
 	local($$_{_HTML_DOM_clicked}) = [$x,$y];
+	$_->type eq 'checkbox' && $_->checked(!$_->checked);
 	$_->trigger_event('click');
 	return;
 }}
@@ -938,7 +938,7 @@ sub content {
 # ------- HTMLTextAreaElement interface ---------- #
 
 package HTML::DOM::Element::TextArea;
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
 
 sub defaultValue { # same as HTML::DOM::Element::Title::text
@@ -993,7 +993,7 @@ sub form_name_value
 # ------- HTMLButtonElement interface ---------- #
 
 package HTML::DOM::Element::Button;
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1001,24 +1001,24 @@ our @ISA = qw'HTML::DOM::Element';
 *disabled = \&HTML::DOM::Element::Select::disabled;
 *name = \&HTML::DOM::Element::Form::name;
 *tabIndex = \&HTML::DOM::Element::Select::tabIndex;
-*type = \&HTML::DOM::Element::Select::type;
+sub type       { shift->attr('type') }
 sub value      { shift->attr( value       => @_) }
 
 
 # ------- HTMLLabelElement interface ---------- #
 
 package HTML::DOM::Element::Label;
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
 *accessKey = \&HTML::DOM::Element::Input::accessKey;
-sub htmlFor { shift->attr( htmlFor       => @_) }
+sub htmlFor { shift->attr( for       => @_) }
 
 # ------- HTMLFieldSetElement interface ---------- #
 
 package HTML::DOM::Element::FieldSet;
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1026,7 +1026,7 @@ our @ISA = qw'HTML::DOM::Element';
 # ------- HTMLLegendElement interface ---------- #
 
 package HTML::DOM::Element::Legend;
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;

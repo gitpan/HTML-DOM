@@ -5,7 +5,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 
 # Internals: \[$nodelist, $tie]
 
@@ -35,7 +35,7 @@ sub new {
 
 my %NameableElements = map +($_ => 1), qw/
 	a area object param applet input select textarea button frame 
-	iframe meta 
+	iframe meta form img map
 /;
 
 sub namedItem {

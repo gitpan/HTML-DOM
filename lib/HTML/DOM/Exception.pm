@@ -12,6 +12,11 @@ use constant {
 	NOT_FOUND_ERR               => 8,
 	NOT_SUPPORTED_ERR           => 9,
 	INUSE_ATTRIBUTE_ERR         => 10,
+	INVALID_STATE_ERR           => 11,
+	SYNTAX_ERR                  => 12,
+	INVALID_MODIFICATION_ERR    => 13,
+	NAMESPACE_ERR               => 14,
+	INVALID_ACCESS_ERR          => 15,
 
 # EventException:
 	UNSPECIFIED_EVENT_TYPE_ERR => 0,
@@ -19,7 +24,7 @@ use constant {
 
 use Exporter 5.57 'import';
 
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @EXPORT_OK = qw'
 	INDEX_SIZE_ERR             
 	DOMSTRING_SIZE_ERR         
@@ -31,6 +36,11 @@ our @EXPORT_OK = qw'
 	NOT_FOUND_ERR              
 	NOT_SUPPORTED_ERR          
 	INUSE_ATTRIBUTE_ERR
+	INVALID_STATE_ERR       
+	SYNTAX_ERR              
+	INVALID_MODIFICATION_ERR
+	NAMESPACE_ERR           
+	INVALID_ACCESS_ERR      
 
 	UNSPECIFIED_EVENT_TYPE_ERR
 ';
@@ -140,6 +150,29 @@ If the implementation does not support the type of object requested
 =item INUSE_ATTRIBUTE_ERR (10)
 
 If an attempt is made to add an attribute that is already inuse elsewhere
+
+=item INVALID_STATE_ERR (11)
+
+If an attempt is made to use an object that is not, or is no longer, 
+usable
+
+=item SYNTAX_ERR (12)
+
+If an invalid or illegal string is specified
+
+=item INVALID_MODIFICATION_ERR (13)
+
+If an attempt is made to modify the type of the underlying object
+
+=item NAMESPACE_ERR (14)
+
+If an attempt is made to create or change an object in a way which is 
+incorrect with 
+regard to namespaces
+
+=item INVALID_ACCESS_ERR (15)
+
+If a parameter or an operation is not supported by the underlying object
 
 =item UNSPECIFIED_EVENT_TYPE_ERR (0)
 

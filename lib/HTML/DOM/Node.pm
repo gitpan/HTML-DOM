@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 
 
 use strict;
@@ -29,6 +29,7 @@ use HTML::DOM::Exception qw'NO_MODIFICATION_ALLOWED_ERR NOT_FOUND_ERR
                                  UNSPECIFIED_EVENT_TYPE_ERR';
 use Scalar::Util qw'refaddr weaken blessed';
 
+require HTML::DOM::Implementation;
 require HTML::DOM::NodeList;
 require HTML::Element;
 
@@ -110,6 +111,14 @@ subclasses.
 
 =item ownerDocument
 
+=item namespaceURI
+
+=item prefix
+
+=item localName
+
+Those last three always return nothing.
+
 =back
 
 There is also a C<_set_ownerDocument> method, which you probably do not
@@ -182,6 +191,8 @@ sub _set_ownerDocument {
 	weaken $_[0]{_HTML_DOM_Node_owner};
 }
 
+*prefix = *localName = *namespaceURI = *attributes;
+
 
 =head2 Other Methods
 
@@ -200,6 +211,12 @@ See the DOM spec. for descriptions of most of these.
 =item hasChildNodes
 
 =item cloneNode
+
+=item normalize
+
+=item hasAttributes
+
+=item isSupported
 
 =cut
 
@@ -350,8 +367,39 @@ sub cloneNode {
 		# ~~~ Do I need to reweaken any attributes?
 		bless +(my $clone = { %$self }), ref $self;
 		$clone->_set_ownerDocument($self->ownerDocument);
+		delete $clone->{$_} for qw/ _parent _content /;
 		$clone
 	}
+}
+
+sub normalize {
+	my @pile = my $self = shift;
+	while(@pile) {
+		if($pile[0]{_tag} eq '~text') {
+			if($pile[0]{text} eq '') {
+				shift(@pile)->detach, next
+			}
+			_:{while((my $next = $pile[0]->nextSibling||next _)
+			       ->{_tag} eq '~text') {
+				$pile[0]{text}.=$next->{text};
+				$next->detach;
+			}}
+			shift @pile;
+		}
+		else {
+			unshift @pile, @{(shift@pile)->{'_content'}||[]};
+		}
+	}
+	return
+}
+
+sub hasAttributes {
+	(shift->attributes||return 0)->length
+}
+
+sub isSupported {
+	my $self = shift;
+	$HTML::DOM::Implementation::it->hasFeature(@_)
 }
 
 # ----------- EventTarget INTERFACE ------------- #
@@ -511,6 +559,7 @@ sub trigger_event { # non-DOM method
 		($doc || $target->ownerDocument)->default_event_handler
 		|| return
 	}($event);
+	return;
 }
 
 =item as_text
@@ -531,7 +580,6 @@ sub as_HTML{
 	(my $clone = shift->clone)->deobjectify_text;
 	$clone->SUPER::as_HTML;
 }
-
 
 
 =back

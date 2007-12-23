@@ -3,7 +3,7 @@
 use strict; use warnings;
 
 use Scalar::Util 'refaddr';
-use Test::More tests => 45;
+use Test::More tests => 36;
 
 
 # -------------------------#
@@ -176,58 +176,11 @@ is $elem->getAttribute('href'), '', 'result of removeAttributeNode';
 }
 
 # -------------------------#
-# Test 35: normalize
+# Tests 35-6: hasAttribute
 
-SKIP :{
-	skip 'unimplemented', 1;
-	# I'm using an extra element to make sure normalisation is
-	# recursive.
-	$elem->appendChild(my $elem2 = createElement $doc 'b');
-	$elem2->appendChild(
-		$doc->createTextNode('Mary had a little lamb'));
-	$elem2->appendChild(
-		$doc->createTextNode(' and then she had some more.'));
-	normalize $elem;
-	is data{firstChild $elem2},
-		'Mary had a little lamb and then she had some more.',
-		'normalize';
-};
-
-# -------------------------#
-# Tests 36-45: cloneNode
-
-$elem->appendChild($doc->createElement('span'));
-
-my $clone = cloneNode $elem; # shallow
-
-cmp_ok $elem, '!=', $clone, 'cloneNode makes a new object';
-cmp_ok +(childNodes $elem)[0], '==', (childNodes $clone)[0],
-	'shallow clone works';
-is_deeply [parentNode $clone], [], 'clones are orphans';
-
-SKIP :{
-	skip unimplemented => 2;
-	cmp_ok attributes $clone, '!=', attributes $elem,
-		'the attributes map is cloned during a shallow clone';
-	cmp_ok refaddr $clone->getAttributeNode('name'), '!=',
-	       refaddr $elem->getAttributeNode('name'),
-		'the attributes are cloned during a shallow clone';
-};
-
-$clone = cloneNode $elem 1; # deep
-
-cmp_ok $elem, '!=', $clone, 'deep cloneNode makes a new object';
-cmp_ok +(childNodes $elem)[0], '!=', (childNodes $clone)[0],
-	'deep clone works';
-is_deeply [parentNode $clone], [], 'deep clones are parentless';
-
-SKIP :{
-	skip unimplemented => 2;
-	cmp_ok attributes $clone, '!=', attributes $elem,
-		'the attributes map is cloned during a deep clone';
-	cmp_ok refaddr $clone->getAttributeNode('name'), '!=',
-	       refaddr $elem->getAttributeNode('name'),
-		'the attributes are cloned during a deep clone';
-};
-
-
+{
+	my $elem = $doc->createElement('a');
+	$elem->attr('target','_blank');
+	ok $elem->hasAttribute('target'), 'hasAttribute';
+	ok !$elem->hasAttribute('href'), '!hasAttribute';
+}

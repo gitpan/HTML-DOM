@@ -6,22 +6,24 @@
 
 use strict; use warnings;
 
-use Test::More tests => 99/3+2;
+use strict; use warnings;
+our $tests;
+BEGIN { ++$INC{'tests.pm'} }
+sub tests'VERSION { $tests += pop };
+use Test::More;
+plan tests => $tests;
 
+use utf8;
+use HTML::DOM;
 
 # -------------------------#
-# Test 1: load the module
-
-BEGIN { use_ok 'HTML::DOM'; }
-
-# -------------------------#
-# Test 2: constructor
+use tests 1; # constructor
 
 our $c = createComment{new HTML::DOM}'comment contents';
 isa_ok $c, 'HTML::DOM::CharacterData';
 
 # -------------------------#
-# Tests 3-9: attributes
+use tests 8; # attributes
 
 is data $c, 'comment contents', 'get data';
 is nodeValue $c, 'comment contents', 'get nodeValue';
@@ -30,10 +32,14 @@ is $c->data(), 'new content', 'get data after setting';
 is $c->nodeValue('new contents'), 'new content', 'set nodeValue';
 is $c->nodeValue, 'new contents', 'get nodeValue after setting';
 
-is $c->length, 12, 'length';
+$c->data('π𐅽3.14');
+is $c->length, 6, 'length';
+is $c->length16, 7, 'length16';
+
+$c->data('new contents');
 
 # -------------------------#
-# Tests 10-15: substringData
+use tests 6; # substringData
 
 is $c->substringData(3,4), ' con', 'substringData';
 is $c->substringData(3,27866), ' contents',
@@ -50,13 +56,13 @@ cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
     'substringData throws a index size error when offset > length';
 
 # -------------------------#
-# Tests 16-17: appendData
+use tests 2; # appendData
 
 is_deeply [appendData $c '++'],[], 'appendData returns nothing';
 is data $c, 'new contents++', 'result of appendData';
 
 # -------------------------#
-# Tests 18-23: insertData
+use tests 6; # insertData
 
 is_deeply [insertData $c 0, '++'],[], 'insertData returns nothing';
 is data $c, '++new contents++', 'result of insertData';
@@ -72,10 +78,10 @@ cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
     'insertData throws a index size error when offset > length';
 
 # -------------------------#
-# Tests 24-9: deleteData
+use tests 6; # deleteData
 
 is_deeply [deleteData $c 2, 4],[], 'deleteData returns nothing';
-is data $c, '++contents++', 'result of insertData';
+is data $c, '++contents++', 'result of deleteData';
 eval { $c-> deleteData(-9,39383) };
 isa_ok $@, 'HTML::DOM::Exception',
 	'$@ (after deleteData with a negative offset)';
@@ -88,7 +94,7 @@ cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
     'deleteData throws a index size error when offset > length';
 
 # -------------------------#
-# Tests 30-5: replaceData
+use tests 6; # replaceData
 
 is_deeply [replaceData $c 2, 1, 'C'],[], 'replaceData returns nothing';
 is data $c, '++Contents++', 'result of replaceData';
@@ -103,5 +109,71 @@ isa_ok $@, 'HTML::DOM::Exception',
 cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
     'replaceData throws a index size error when offset > length';
 
-diag "TO DO: Write tests for the UTF-16 methods";
+# -------------------------#
+use tests 7; # substringData16
 
+$c->data('π𐅽3.14');
+
+is $c->substringData16(3,3), '3.1', 'substringData16';
+is ord $c->substringData16(2,1), 0xdd7d;
+is $c->substringData16(3,27866), '3.14',
+	'substringData16 when the length arg is too long';
+eval { $c->substringData16(-9,39383) };
+isa_ok $@, 'HTML::DOM::Exception',
+	'$@ (after substringData16 with a negative offset)';
+cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+    'substringData16 with a negative offset throws a index size error';
+eval { $c->substringData16(89,39383) };
+isa_ok $@, 'HTML::DOM::Exception',
+	'$@ (after substringData16 when offset > length)';
+cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+    'substringData16 throws a index size error when offset > length';
+
+# -------------------------#
+use tests 6; # insertData16
+
+is_deeply [insertData16 $c 3, ' '],[], 'insertData16 returns nothing';
+is data $c, 'π𐅽 3.14', 'result of insertData16';
+eval { $c-> insertData16(-9,39383) };
+isa_ok $@, 'HTML::DOM::Exception',
+	'$@ (after insertData16 with a negative offset)';
+cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+    'insertData16 with a negative offset throws a index size error';
+eval { $c-> insertData16(89,39383) };
+isa_ok $@, 'HTML::DOM::Exception',
+	'$@ (after insertData16 when offset > length)';
+cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+    'insertData16 throws a index size error when offset > length';
+
+# -------------------------#
+use tests 6; # deleteData16
+
+is_deeply [deleteData16 $c 3, 1],[], 'deleteData16 returns nothing';
+is data $c, 'π𐅽3.14', 'result of deleteData16';
+eval { $c-> deleteData16(-9,39383) };
+isa_ok $@, 'HTML::DOM::Exception',
+	'$@ (after deleteData16 with a negative offset)';
+cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+    'deleteData16 with a negative offset throws a index size error';
+eval { $c-> deleteData16(89,39383) };
+isa_ok $@, 'HTML::DOM::Exception',
+	'$@ (after deleteData16 when offset > length)';
+cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+    'deleteData16 throws a index size error when offset > length';
+
+# -------------------------#
+use tests 6; # replaceData16
+
+is_deeply [replaceData16 $c 1, 2, ' 𐅽 '],[],
+	'replaceData16 returns nothing';
+is data $c, 'π 𐅽 3.14', 'result of replaceData16';
+eval { $c-> replaceData16(-9,39383) };
+isa_ok $@, 'HTML::DOM::Exception',
+	'$@ (after replaceData16 with a negative offset)';
+cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+    'replaceData16 with a negative offset throws a index size error';
+eval { $c-> replaceData16(89,39383) };
+isa_ok $@, 'HTML::DOM::Exception',
+	'$@ (after replaceData16 when offset > length)';
+cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+    'replaceData16 throws a index size error when offset > length';

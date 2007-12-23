@@ -4,7 +4,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 18;
+use Test::More tests => 32;
 
 
 # -------------------------#
@@ -66,8 +66,26 @@ is +(namedItem $col 'saw')->attr('name'), 'saw',
 	'namedItem afer modification';
 
 # -------------------------#
-# Tests 18: rubbish disposal
+# Tests 13-31: different types of named elements
+
+sub _elem2::id { }
+sub _elem2::attr { $_[0][1] }
+sub _elem2::tag { $_[0][0] }
+
+{
+	my @nameable_elems = qw/ button textarea applet select form frame
+	                         iframe img a input object map param meta/;
+	@array = map bless([$_ => "$_-1"], '_elem2'),@nameable_elems;
+	my $count = 0;
+	is $col->namedItem("$_-1"), $array[$count++],
+		"namedItem can return a" . 'n' x /^[aio]/ . " $_ element"
+		for @nameable_elems;
+}
+
+# -------------------------#
+# Test 32: rubbish disposal
 
 use Scalar::Util 'weaken';
 weaken $col;
 is $col, undef, 'rubbish disposal';
+

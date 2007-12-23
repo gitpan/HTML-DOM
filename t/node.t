@@ -12,7 +12,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => scalar reverse '08';
+use Test::More tests => scalar reverse '201';
 
 
 # -------------------------#
@@ -105,7 +105,7 @@ cmp_ok ownerDocument $frag, '==', $doc, 'ownerDocument';
 
 
 # -------------------------#
-# Tests 36-46: insertBefore
+# Tests 36-47: insertBefore
 
 {
 	$frag->insertBefore(my $elem = $doc->createElement('div'));
@@ -170,10 +170,17 @@ cmp_ok ownerDocument $frag, '==', $doc, 'ownerDocument';
 	cmp_ok $@, '==', HTML::DOM::Exception::NOT_FOUND_ERR,
 		'insertBefore with a 2nd arg that\'s not a child of ' .
 		'this node throws a "not found" error';
+
+	# We need to make sure that $doc->insertBefore doesn’t throw a
+	# wrong doc error, due to $doc’s ownerDocument’s being null.
+	my $dock = new HTML::DOM;
+	ok eval{
+	    $dock->insertBefore($dock->createComment('unoeunoth'),undef); 1
+	}, '$doc->insertBefore doesn’t produce an invalid wrong doc error';
 }
 
 # -------------------------#
-# Tests 47-57: replaceChild
+# Tests 48-60: replaceChild
 
 # insertBefore messed up our frag, so let's make a new one.
 fill_frag($frag = createDocumentFragment $doc);
@@ -242,10 +249,25 @@ fill_frag($frag = createDocumentFragment $doc);
 	cmp_ok $@, '==', HTML::DOM::Exception::NOT_FOUND_ERR,
 		'replaceChild with a 2nd arg that\'s not a child of ' .
 		'this node throws a "not found" error';
+
+	my $dock = new HTML::DOM;
+	ok eval{
+	    $dock->replaceChild(
+		$dock->createElement('html'),$dock->firstChild
+	    ); 1
+	}, '$doc->replaceChild doesn’t produce an invalid wrong doc error';
+
+	$dock->write('<p id=foo><a></a></p>');
+	is $dock->getElementById('foo')->replaceChild(
+		$dock->createElement('b'),
+		$dock->getElementsByTagName('a')->[0]
+	)->ownerDocument, $dock,
+		'implicit ownerDocument is made explicit by replaceChild';
+	
 }
 
 # -------------------------#
-# Tests 58-61: removeChild
+# Tests 61-5: removeChild
 
 # replaceChild messed up our frag, so let's make a new one.
 fill_frag($frag = createDocumentFragment $doc);
@@ -267,10 +289,17 @@ fill_frag($frag = createDocumentFragment $doc);
 	cmp_ok $@, '==', HTML::DOM::Exception::NOT_FOUND_ERR,
 		'removeChild with an arg that\'s not a child of ' .
 		'this node throws a "not found" error';
+
+	(my $dock = new HTML::DOM)->write("<p id=foo><b id=bar></b></p>");
+	is $dock->getElementById('foo')->removeChild(
+		$dock->getElementById('bar')
+	)->ownerDocument, $dock,
+		'implicit ownerDocument is made explicit by removeChild';
+	
 }
 
 # -------------------------#
-# Tests 62-70: appendChild
+# Tests 66-75: appendChild
 
 # removeChild messed up our frag, so let's make a new one.
 fill_frag($frag = createDocumentFragment $doc);
@@ -320,10 +349,16 @@ fill_frag($frag = createDocumentFragment $doc);
 	cmp_ok $@, '==', HTML::DOM::Exception::WRONG_DOCUMENT_ERR,
 	    'appendChild with wrong doc throws the appropriate error';
 
+	my $dock = new HTML::DOM;
+	ok eval{
+	    $dock->appendChild(
+		$dock->createComment('html'),undef
+	    ); 1
+	}, '$doc->appendChild doesn’t produce an invalid wrong doc error';
 }
 
 # -------------------------#
-# Tests 71-2: hasChildNodes
+# Tests 76-7: hasChildNodes
 
 $frag = createDocumentFragment $doc;
 
@@ -332,24 +367,45 @@ $frag->appendChild(createTextNode $doc 'eoteuht');
 ok  hasChildNodes $frag, 'hasChildNodes';
 
 # -------------------------#
-# Tests 73-8: cloneNode
+# Tests 78-88: cloneNode
 
-my $clone = cloneNode $frag; # shallow
+use Scalar::Util 'refaddr';
+{
+	$frag->appendChild(my $clonee = $doc->createElement('div'));
+	$clonee->appendChild(
+		my $childelem = $doc->createElement('p'));
+	$clonee->setAttribute('style' => 'color:black');
+	$childelem->setAttribute('align' => 'left');
+	my $attr = $clonee->getAttributeNode('style');
+	my $childattr = $childelem->getAttributeNode('align');
 
-cmp_ok $frag, '!=', $clone, 'cloneNode makes a new object';
-cmp_ok +(childNodes $frag)[0], '==', (childNodes $clone)[0],
-	'shallow clone works';
-is_deeply [parentNode $clone], [], 'clones are orphans';
+	my $clone = cloneNode $clonee; # shallow
 
-$clone = cloneNode $frag 1; # deep
-
-cmp_ok $frag, '!=', $clone, 'deep cloneNode makes a new object';
-cmp_ok +(childNodes $frag)[0], '!=', (childNodes $clone)[0],
-	'deep clone works';
-is_deeply [parentNode $clone], [], 'deep clones are parentless';
+	cmp_ok $clonee, '!=', $clone, 'cloneNode makes a new object';
+	cmp_ok +()=childNodes $clone, '==', 0,
+		'shallow clone works';
+	is_deeply [parentNode $clone], [], 'clones are orphans';
+	cmp_ok +attributes $clone, '!=', attributes $clonee,
+		'the attributes map is cloned during a shallow clone';
+	cmp_ok refaddr $clone->getAttributeNode('style'), '!=',
+	       refaddr $attr, 'attributes are cloned';
+	
+	$clone = cloneNode $clonee 1; # deep
+	
+	cmp_ok $clonee, '!=', $clone, 'deep cloneNode makes a new object';
+	cmp_ok +(childNodes $clonee)[0], '!=', (childNodes $clone)[0],
+		'deep clone works';
+	is_deeply [parentNode $clone], [], 'deep clones are parentless';
+	cmp_ok +attributes $clone, '!=', attributes $clonee,
+		'the attributes map is cloned during a deep clone';
+	cmp_ok refaddr $clone->getAttributeNode('style'), '!=',
+	       refaddr $attr, 'deep clone clones attributes...';
+	cmp_ok refaddr $clone->firstChild->getAttributeNode('align'), '!=',
+	       refaddr $childattr, '...recursively';
+}
 
 # -------------------------#
-# Tests 79-80: as_text and as_HTML
+# Tests 89-90: as_text and as_HTML
 
 {
 	my $element = $doc->createElement('p');
@@ -366,12 +422,55 @@ is_deeply [parentNode $clone], [], 'deep clones are parentless';
 }
 
 
+# -------------------------#
+# Tests 91-4: normalize
 
-diag "TO DO: Write tests for problems caused by implicit owner attributes";
+{
+	my $element = $doc->createElement('p');
+	$element->appendChild($doc->createTextNode(''));
+	$element->appendChild($doc->createTextNode('This text is '));
+	$element->appendChild($doc->createTextNode('made up of '));
+	$element->appendChild($doc->createTextNode('three adjacent '));
+	$element->appendChild($doc->createTextNode(''));
+	$element->appendChild($doc->createTextNode('text nodes, if I '));
+	$element->appendChild($doc->createTextNode('counted them '));
+	$element->appendChild($doc->createTextNode('correctly.'));
 
-# I need to test that the node detached by removeChild and replaceChild
-# retains its ownerDocument. The owner is sometimes not set within the node
-# itself (i.e., when H:TB created it), but inherited from the root. When it
-# is detached, the node has to have its very own reference to the owner.
+	is +()=$element->normalize, 0, 'ret val of normal eyes';
+	is $element->childNodes->length, 1,
+		'number of text nodes after normal eyes ’ay shone';
+	is $element->firstChild->data, 'This text is made up of three ' . 
+	                              'adjacent text nodes, if I ' .
+	                            'counted them correctly.',
+		'resulting text after normalisation';
 
+	$element->replaceChild($doc->createTextNode(''),
+		$element->firstChild);
+	$element->normalize;
+	
+	ok !$element->hasChildNodes,
+		'normal eyes obliterate lone blank text nodes';
+}
+
+# -------------------------#
+# Tests 95-7: XML namespace stuff
+
+is +()=$frag->$_, 0, $_ for qw / namespaceURI prefix localName /;
+
+# -------------------------#
+# Tests 98-100: hasAttributes
+
+ok !$frag->hasAttributes, 'hasAttributes (non-Element node)';
+{
+	my $elem = $doc->createElement('a');
+	ok !$elem->hasAttributes, 'hasAttributes when an elem has none';
+	$elem->attr('foo','bar');
+	ok $elem->hasAttributes, 'hasAttributes returning true';
+}
+
+# -------------------------#
+# Tests 101-2: isSupported
+
+ok $frag->isSupported('hTML', '1.0'), 'isSupported';
+ok!$frag->isSupported('onfun') ,'isn’tSupported';
 

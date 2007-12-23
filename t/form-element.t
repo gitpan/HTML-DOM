@@ -21,8 +21,7 @@ plan tests => $tests;
 use Scalar::Util 'refaddr';
 use HTML::DOM;
 
-# Each call to test_attr runs 3 tests.
-# Each call to test_event runs 2 tests.
+# Each call to test_attr or test_event runs 3 tests.
 
 sub test_attr {
 	my ($obj, $attr, $val, $new_val) = @_;
@@ -46,8 +45,9 @@ my $doc;
 	sub test_event {
 		my($obj, $event) = @_;
 		($evt,$targ) = ();
-		$obj->$event;
 		my $class = (ref($obj) =~ /[^:]+\z/g)[0];
+		is_deeply [$obj->$event], [],
+			"return value of $class\'s $event method";
 		is $evt, $event, "$class\'s $event method";
 		is refaddr $targ, refaddr $obj, 
 			"$class\'s $event event is on target"
@@ -57,7 +57,7 @@ my $doc;
 my $form;
 
 # -------------------------#
-use tests 28; # HTMLFormElement
+use tests 30; # HTMLFormElement
 
 {
 	is ref(
@@ -96,15 +96,18 @@ use tests 28; # HTMLFormElement
 	is $elements->length, 3., '$elements->length';
 
 	test_event $form, 'submit';
-	SKIP: { skip 'unimplemented', 2;test_event $form, 'reset';}
+	test_event $form, 'reset';
 }
 
 # -------------------------#
-use tests 41; # HTMLSelectElement
+use tests 43; # HTMLSelectElement
 
+SKIP: { skip 'not written yet', 5; # ~~~ just a guess
+use tests 5;
 # ~~~ I need to write tests that make sure that H:D:NodeList::Magic's
 #     STORE and DELETE methods call ->ownerDocument on the detached node.
 #     (See the comment in H:D:Node::replaceChild for what it's for.)
+}
 
 {
 	is ref(
@@ -175,11 +178,317 @@ use tests 41; # HTMLSelectElement
 	is $elem->selectedIndex, -1, 'selectedIndex with multiple (2)';
 }
 
-# ~~~ I need a test that makes sure an input element's click method returns
-#     an empty list. (This probably applies to all event methods. Maybe I
-#     should add it to test_event.)
+# -------------------------#
+use tests 7; # HTMLOptGroupElement
 
-use tests 337;
-SKIP: { skip "not written yet", 337 }
+{
+	is ref(
+		my $elem = $doc->createElement('optgroup'),
+	), 'HTML::DOM::Element::OptGroup',
+		"class for optgroup";
 
+	ok!$elem->disabled            ,     'optgroup: get disabled';
+	ok!$elem->disabled(1),        , 'optgroup: set/get disabled';
+	ok $elem->disabled            ,     'optgroup: get disabled again';
 
+	$elem->attr(label => 'foo');
+	test_attr $elem, qw;label   foo bar;;
+}
+
+# -------------------------#
+use tests 26; # HTMLOptionElement
+
+{
+	is ref(
+		my $elem = $doc->createElement('option'),
+	), 'HTML::DOM::Element::Option',
+		"class for option";
+
+	is_deeply [$elem->form], [], 'option->form when there isn’t one';
+	$form->appendChild(my $sel = $doc->createElement('select'));
+	($form->content_list)[-1]->appendChild($elem);
+	is $elem->form, $form, 'option->form';
+	
+	$elem->attr(selected => 1);
+	ok $elem->defaultSelected,
+		'option->defaultSelected reflects the selected attribute';
+	ok $elem->defaultSelected(0),  'option: set/get defaultSelected';
+	ok!$elem->defaultSelected,     'option: get defaultSelected again';
+	
+	is $elem->text, '', 'option->text when empty';
+	$elem->appendChild($doc->createTextNode(''));
+	is $elem->text, '', 'option->text when blank';
+	$elem->firstChild->data('foo');
+	is $elem->text, 'foo', 'option->text when set to something';
+
+	is $elem->index, 0, 'option->index';
+	($form->content_list)[-1]->unshift_content(
+		$doc->createElement('option'));
+	is $elem->index, 1, 'option->index again';
+
+	ok!$elem->disabled            ,     'option: get disabled';
+	ok!$elem->disabled(1),        , 'option: set/get disabled';
+	ok $elem->disabled            ,     'option: get disabled again';
+
+	$elem->attr(label => 'foo');
+	test_attr $elem, qw;label   foo bar;;
+
+	$elem->defaultSelected(1);
+	ok $elem->selected,
+		'option->selected is taken from the attr by default';
+	ok $elem->selected(0), 'set/get option->selected';
+	ok $elem->selected, 'set option->selected didn’t work';
+	$sel->multiple(1); $elem->selected(0);
+	ok!$elem->selected, 'set option->selected worked';
+	ok $elem->defaultSelected, 'and defaultSelected was unaffected';
+
+	test_attr $elem, value => 'foo', 'bar';; # gets its value from text
+	is $elem->text,'foo', 'text is unaffected when value is set';
+	
+}
+
+# -------------------------#
+use tests 67; # HTMLInputElement
+
+{
+	is ref(
+		my $elem = $doc->createElement('input'),
+	), 'HTML::DOM::Element::Input',
+		"class for input";
+
+	$elem->attr(value => 'foo');
+	test_attr $elem, qw/defaultValue foo bar/;
+
+	ok!$elem->defaultChecked   ,     'input: get defaultChecked';
+	ok!$elem->defaultChecked(1), 'input: set/get defaultChecked';
+	ok $elem->attr('checked')  ,
+		'defaultChecked is linked to the checked attribute';
+	ok $elem->defaultChecked   ,     'input: get defaultChecked again';
+
+	is_deeply [$elem->form], [], 'input->form when there isn’t one';
+	$form->appendChild($elem);
+	is $elem->form, $form, 'input->form';
+	
+	$elem->attr(accept    => 'text/plain,text/richtext');
+	$elem->attr(accesskey => 'F');
+	$elem->attr(align     => 'top');
+	$elem->attr(alt       => '__');
+	no warnings qw)qw);
+	test_attr $elem, qw-accept    text/plain,text/richtext
+	                                                  application/pdf-;
+	test_attr $elem, qw-accessKey F                   G              -;
+	test_attr $elem, qw-align     top                 middle         -;
+	test_attr $elem, qw-alt       __                  KanUreediss?   -;
+
+	$elem->checked(0);
+	ok $elem->defaultChecked,
+		'changing input->checked does not affect defaultChecked';
+	ok!$elem->checked            ,     'input: get checked';
+	ok!$elem->checked(1),        , 'input: set/get checked';
+	ok $elem->checked            ,     'input: get checked again';
+
+	ok!$elem->disabled            ,     'input: get disabled';
+	ok!$elem->disabled(1),        , 'input: set/get disabled';
+	ok $elem->disabled            ,     'input: get disabled again';
+
+	$elem->attr(maxlength  => 783);
+	$elem->attr(name => 'Achaimenides');
+	test_attr $elem, qw-maxLength    783 94-;
+	test_attr $elem, qw-name Achaimenides Gormistas-;
+
+	$elem->attr(readonly => 1);
+	ok $elem->readOnly            ,     'input: get readOnly';
+	ok $elem->readOnly(0),        , 'input: set/get readOnly';
+	ok!$elem->readOnly            ,     'input: get readOnly again';
+
+	$elem->attr(size  => 783);
+	$elem->attr(src => 'arnold.gif');
+	$elem->attr(tabindex => '7');
+	test_attr $elem, qw-size     783        94    -;
+	test_attr $elem, qw-src      arnold.gif fo.pdf-;
+	test_attr $elem, qw-tabIndex 7          8     -;
+
+	$elem->attr(type => 'submit');
+	is $elem->type, 'submit', 'input->type';
+
+	$elem->attr(usemap => 1);
+	ok $elem->useMap            ,     'input: get useMap';
+	ok $elem->useMap(0),        , 'input: set/get useMap';
+	ok!$elem->useMap            ,     'input: get useMap again';
+
+	$elem->attr(value => '$6.00');
+	test_attr $elem, qw-value     $6.00 £6.00-;
+	is $elem->attr('value'), '$6.00',
+		'modifying input->value leaves the value attr alone';
+
+	test_event($elem,$_) for qw/ blur focus select click /;
+}
+
+# -------------------------#
+use tests 44; # HTMLTextAreaElement
+
+{
+	is ref(
+		my $elem = $doc->createElement('textarea'),
+	), 'HTML::DOM::Element::TextArea',
+		"class for textarea";
+
+	is $elem->defaultValue, '', 'textarea->defaultValue when empty';
+	$elem->appendChild($doc->createTextNode(''));
+	is $elem->defaultValue, '', 'textarea->defaultValue when blank';
+	$elem->firstChild->data('foo');
+	test_attr $elem, qw/defaultValue foo bar/;
+	is $elem->firstChild->data, 'bar',
+		'setting textarea->defaultValue modifies its child node';
+
+	is_deeply [$elem->form], [], 'textarea->form when there isn’t one';
+	$form->appendChild($elem);
+	is $elem->form, $form, 'textarea->form';
+	
+	$elem->attr(accesskey => 'F');
+	$elem->attr(cols      => 7   );
+	test_attr $elem, qw-accessKey F                   G              -;
+	test_attr $elem, qw-cols      7                   89             -;
+
+	ok!$elem->disabled            ,     'textarea: get disabled';
+	ok!$elem->disabled(1),        , 'textarea: set/get disabled';
+	ok $elem->disabled            ,     'textarea: get disabled again';
+
+	$elem->attr(name => 'Achaimenides');
+	test_attr $elem, qw-name Achaimenides Gormistas-;
+
+	$elem->attr(readonly => 1);
+	ok $elem->readOnly            ,     'textarea: get readOnly';
+	ok $elem->readOnly(0),        , 'textarea: set/get readOnly';
+	ok!$elem->readOnly            ,     'textarea: get readOnly again';
+
+	$elem->attr(rows  => 783);
+	$elem->attr(tabindex => '7');
+	test_attr $elem, qw-rows     783        94    -;
+	test_attr $elem, qw-tabIndex 7          8     -;
+
+	is $elem->type, 'textarea', 'textarea->type';
+
+	$elem->defaultValue('$6.00');
+	test_attr $elem, qw-value     $6.00 £6.00-;
+	is $elem->defaultValue, '$6.00',
+		'modifying input->value leaves the default value alone';
+
+	test_event($elem,$_) for qw/ blur focus select /;
+}
+
+# -------------------------#
+use tests 19; # HTMLButtonElement
+
+{
+	is ref(
+		my $elem = $doc->createElement('button'),
+	), 'HTML::DOM::Element::Button',
+		"class for button";
+
+	is_deeply [$elem->form], [], 'button->form when there isn’t one';
+	$form->appendChild($elem);
+	is $elem->form, $form, 'button->form';
+	
+	$elem->attr(accesskey => 'F');
+	test_attr $elem, qw-accessKey F                   G              -;
+
+	ok!$elem->disabled            ,     'button: get disabled';
+	ok!$elem->disabled(1),        , 'button: set/get disabled';
+	ok $elem->disabled            ,     'button: get disabled again';
+
+	$elem->attr(name => 'Achaimenides');
+	test_attr $elem, qw-name Achaimenides Gormistas-;
+
+	$elem->attr(tabindex => '7');
+	$elem->attr(value => 'not much');
+	test_attr $elem, qw-tabIndex 7          8     -;
+	test_attr $elem,    value=> 'not much','a lot' ;
+
+	$elem->attr(type => 'button');
+	is $elem->type, 'button', 'button->type';
+}
+
+# -------------------------#
+use tests 9; # HTMLLabelElement
+
+{
+	is ref(
+		my $elem = $doc->createElement('label'),
+	), 'HTML::DOM::Element::Label',
+		"class for label";
+
+	is_deeply [$elem->form], [], 'label->form when there isn’t one';
+	$form->appendChild($elem);
+	is $elem->form, $form, 'label->form';
+	
+	$elem->attr(accesskey => 'F');
+	$elem->attr(for       => 'me');
+	test_attr $elem, qw-accessKey F  G   -;
+	test_attr $elem, qw-htmlFor   me &you-;
+}
+
+# -------------------------#
+use tests 3; # HTMLFieldSetElement
+
+{
+	is ref(
+		my $elem = $doc->createElement('fieldset'),
+	), 'HTML::DOM::Element::FieldSet',
+		"class for fieldset";
+
+	is_deeply [$elem->form], [], 'fieldset->form when there isn’t one';
+	$form->appendChild($elem);
+	is $elem->form, $form, 'fieldset->form';
+}
+
+# -------------------------#
+use tests 9; # HTMLLegendElement
+
+{
+	is ref(
+		my $elem = $doc->createElement('legend'),
+	), 'HTML::DOM::Element::Legend',
+		"class for legend";
+
+	is_deeply [$elem->form], [], 'legend->form when there isn’t one';
+	$form->appendChild($elem);
+	is $elem->form, $form, 'legend->form';
+
+	$elem->attr(accesskey => 'F');
+	$elem->attr(align     => 'left');
+	test_attr $elem, qw-accessKey F    G   -;
+	test_attr $elem, qw-align     left right -;
+}
+
+# -------------------------#
+use tests 7; # HTML::DOM::Collection::Elements
+
+{
+	my $elem = $doc->createElement('form');
+	$elem->appendChild($doc->createElement('input')) for 1..4;
+	$_->type('checkbox'), $_->name('foo') for ($elem->childNodes)[0,1];
+	$_->type('radio'), $_->name('bar') for ($elem->childNodes)[2,3];
+	
+	ok $elem->elements->{foo}->DOES('HTML::DOM::NodeList'),
+		'hdce returns a nodelist for multiple equinominal elems';
+	ok $elem->elements->{bar}->DOES('HTML::DOM::NodeList'),
+		'but let’s check it again, just to be sure';
+	is $elem->elements->{foo}->[0], $elem->childNodes->[0],
+		'contents of hdce’s special node lists (1)';
+	is $elem->elements->{foo}->[1], $elem->childNodes->[1],
+		'contents of hdce’s special node lists (2)';
+	is $elem->elements->{bar}->[0], $elem->childNodes->[2],
+		'contents of hdce’s special node lists (3)';
+	is $elem->elements->{bar}->[1], $elem->childNodes->[3],
+		'contents of hdce’s special node lists (4)';
+	my $foo = $elem->elements->{bar};
+	ok $foo->length,
+		'the nodelist returned by the collection continues to ' .
+		'work when the nodelist is out of scope';
+		# I mistakenly had a misplaced weaken() during development.
+}
+
+# ~~~ I need to write tests for HTML::DOM::Collection::Elements’s namedItem
+#     method. In .009 it dies if there are radio buttons. I don’t think it
+#     works for more than two buttons.
