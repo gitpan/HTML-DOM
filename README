@@ -1,27 +1,24 @@
-HTML::DOM, version 0.010
+HTML::DOM, version 0.011
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
 This is an alpha release.  So far,  the level-1 DOM interfaces and the
 level-2 core interfaces have been implemented, and some of the level-2
-event interfaces.
+event and style sheet interfaces.
 
 
 CHANGES IN THIS RELEASE
 
-• HTML::DOM::Node’s trigger_event method now returns nothing. (It used
-  to return the return value of the default event handler.)  As a side
-  effect, this fixes a few bugs.
-• The classes for HTML tables and frames have been added.
-• HTML::DOM::Element now has a content_offset method.
-• HTML::DOM::Element::Form now has its reset method.
-• The DOM Level-2 core interfaces are now supported.
-• I’ve started work on CSS features. So far, elements have a
- ‘style’ method.
-• You can now access forms by using an HTML::DOM object as a hash ref.
-• A checkbox’s click method now toggles the checkbox’s state.
-• And bug fixes, a long list of which is to be found in the
-  Changes file.
+New features:
+• Link and style elements now have their ‘sheet’ attribute (in other
+  words, the LinkStyle interface has been added).
+• HTML::DOM now has a C<styleSheets> method (the DocumentStyle inter-
+  face has been implemented).
+One bug fix:
+• The so-called ‘content_offset’ bug (RT #34404) has been fixed. It
+  actually had nothing to do with content_offset (which merely exposed
+  the bug), but text after the </html> tag that was inserted in the
+  document, rather than the HTML element.
 
 
 TO DO
@@ -55,7 +52,7 @@ Or you can use the following:
 
 DEPENDENCIES
 
-This module requires perl 5.6.0 or later and the following
+This module requires perl 5.8.0 or later and the following
 Perl modules:
 
 - Scalar Util 1.08 or later
@@ -66,9 +63,7 @@ Perl modules:
 - HTTP::Headers::Util is required for writing cookies.
 - HTML::Form 1.054 is required if any of the methods provided for
   WWW::Mechanize compatibility are to be used.
-- CSS::DOM
-
-Later it will require other modules (including some CSS modules).
+- CSS::DOM 0.02 or later
 
 
 DOCUMENTATION

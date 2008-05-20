@@ -37,6 +37,13 @@ Each of these returns the corresponding HTML attribute. If you pass an
 argument, it will become the new value of the attribute, and the old value
 will be returned.
 
+=item sheet
+
+This returns a L<CSS::DOM> object, corresponding to the contents of the
+element.
+
+=cut
+
 =back
 
 =head1 SEE ALSO

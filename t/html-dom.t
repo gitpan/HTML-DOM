@@ -151,6 +151,9 @@ is_deeply traverse $doc, [
               '#text' => {
                 data => '!',
               },
+              '#text' => {
+                data => ' ', # the line break after </html>
+              },
             ],
           }
         ],

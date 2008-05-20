@@ -1,5 +1,18 @@
 Revision history for HTML::DOM
 
+0.011   19 May, 2008
+        New features:
+        • Link and style elements now have their ‘sheet’ attribute (in
+          other words, the LinkStyle interface has been added).
+        • HTML::DOM now has a C<styleSheets> method (the DocumentStyle
+          interface has been implemented).
+        One bug fix:
+        • The so-called  ‘content_offset’  bug (RT  #34404) has been
+          fixed.  It actually had nothing to do with  content_offset
+          (which merely exposed the bug), but text after the </html>
+          tag that was inserted in the  document,  rather  than  the
+          HTML element.
+
 0.010   23 December, 2007
         New features:
         • HTML::DOM::Node’s trigger_event method now returns nothing.
@@ -58,7 +71,7 @@ Revision history for HTML::DOM
 0.009   23 November, 2007
         Changes/new features:
         *  You can do something with errors produced by event handlers
-           by passing a coderef to the new event_handler method.  That
+           by passing a coderef to the new error_handler method.  That
            coderef will be called for each error. (Before, such errors
            were ignored.)
         *  HTML::DOM::Interface has been modified, such that

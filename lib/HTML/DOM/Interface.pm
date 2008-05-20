@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 
 =head1 NAME
 
@@ -334,7 +334,8 @@ gory details, look at the source code. In fact, here it is:
   		getElementsByName => METHOD | OBJ,
   		createEvent => METHOD | OBJ,
   		defaultView => OBJ | READONLY,
-  #		styleSheets => OBJ | READONLY,
+  		styleSheets => OBJ | READONLY,
+  #		getOverrideStyle => METHOD | OBJ,
   	 },
   	 HTMLElement => {
   		tagName => STR | READONLY,
@@ -388,7 +389,7 @@ gory details, look at the source code. In fact, here it is:
   		rev => STR,
   		target => STR,
   		type => STR,
-  #		sheet => OBJ | READONLY,
+  		sheet => OBJ | READONLY,
   	 },
   	 HTMLTitleElement => {
 		_isa => 'HTMLElement',
@@ -426,6 +427,7 @@ gory details, look at the source code. In fact, here it is:
   		disabled => BOOL,
   		media => STR,
   		type => STR,
+  		sheet => OBJ | READONLY,
   	 },
   	 HTMLBodyElement => {
 		_isa => 'HTMLElement',
@@ -947,6 +949,7 @@ gory details, look at the source code. In fact, here it is:
 		_hash => 0,
 		_array => 0,
   		document => OBJ | READONLY,
+  #		getComputedStyle => METHOD | OBJ,
   	 },
   );
 

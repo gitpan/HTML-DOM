@@ -15,7 +15,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -44,7 +44,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.010 (alpha)
+Version 0.011 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -81,13 +81,13 @@ The following DOM modules are currently supported:
   HTML         1.0
   Core         2.0
   Events       2.0 (partially)
-  StyleSheets  2.0 (partially)
+  StyleSheets  2.0
   CSS          2.0 (partially)
   CSS2         2.0
   Views        2.0
 
 StyleSheets, CSS and CSS2 are actually provided by C<CSS::DOM>. This list
-corresponds to CSS::DOM version 0.01.
+corresponds to CSS::DOM version 0.02.
 
 =head1 METHODS
 
@@ -243,6 +243,19 @@ The TB object used for innerHTML can probably be cached and re-used.
 			$self->insert_element('tbody', 1);
 		}
 		$self->SUPER::insert_element(@_);
+	}
+
+	sub end {
+		# HTML::TreeBuilder expects the <html> element to be the
+		# topmost element, and gets confused when it’s inside the
+		# ~doc. It sets _pos to the doc when it encounters </html>.
+		# This works around that.
+
+		my $self = shift;
+		my $pos = $self->{_pos};
+		$self->SUPER::end(@_);
+		$self->{_pos} = $pos
+			if ($self->{_pos}||return)->{_tag} eq '~doc';
 	}
 
 } # end of special TreeBuilder package
@@ -917,11 +930,34 @@ sub createEvent { HTML::DOM::Event::class_for($_[1] || '')->new }
 
 Returns the L<HTML::DOM::View> object associated with the document.
 
+=cut
+
+sub defaultView { shift->{_HTML_DOM_view} }
+
+# ---------- DocumentStyle interface -------------- #
+
+=item styleSheets
+
+Returns a L<CSS::DOM::StyleSheetList> of the document's style sheets, or a
+simple list in list context.
+
 =back
 
 =cut
 
-sub defaultView { shift->{_HTML_DOM_view} }
+sub styleSheets {
+	my $doc = shift;
+	my $ret = (
+		$doc->{_HTML_DOM_sheets} or
+		$doc->{_HTML_DOM_sheets} = (
+			require CSS::DOM::StyleSheetList,
+			new CSS::DOM::StyleSheetList
+		),
+		$doc->_populate_sheet_list,
+		$doc->{_HTML_DOM_sheets}
+	);
+	wantarray ? @$ret : $ret;
+}
 
 # ---------- OVERRIDDEN NODE METHODS -------------- #
 
@@ -1065,9 +1101,10 @@ sub error_handler {
 }
 
 
-# ---------- NODE LIST HELPER METHODS -------------- #
+# ---------- NODE AND SHEET LIST HELPER METHODS -------------- #
 
 sub _modified { # tells all it's magic nodelists that they're stale
+                # and also rewrites the style sheet list if present
 	my $list = $_[0]{_HTML_DOM_node_lists};
 	my $list_is_stale;
 	for (@$list) {
@@ -1076,6 +1113,15 @@ sub _modified { # tells all it's magic nodelists that they're stale
 	if($list_is_stale) {
 		@$list = grep defined, @$list;
 		weaken $_ for @$list;
+	}
+	
+	$_[0]->_populate_sheet_list
+}
+
+sub _populate_sheet_list { # called both by styleSheets and _modified
+	for($_[0]->{_HTML_DOM_sheets}||return) {
+		@$_ = map sheet $_,
+			$_[0]->look_down(_tag => qr/^(?:link|style)\z/);
 	}
 }
 
@@ -1110,7 +1156,7 @@ machine-readable list of standard methods.)
           DOM::DocumentFragment           DocumentFragment
           DOM                             Document, HTMLDocument,
                                             DocumentEvent, DocumentView,
-                                           [DocumentStyle, DocumentCSS]
+                                            DocumentStyle, [DocumentCSS]
           DOM::CharacterData              CharacterData
               DOM::Text                   Text
               DOM::Comment                Comment
@@ -1118,12 +1164,12 @@ machine-readable list of standard methods.)
                                             ElementCSSInlineStyle
               DOM::Element::HTML          HTMLHtmlElement
               DOM::Element::Head          HTMLHeadElement
-              DOM::Element::Link          HTMLLinkElement, [LinkStyle]
+              DOM::Element::Link          HTMLLinkElement, LinkStyle
               DOM::Element::Title         HTMLTitleElement
               DOM::Element::Meta          HTMLMetaElement
               DOM::Element::Base          HTMLBaseElement
               DOM::Element::IsIndex       HTMLIsIndexElement
-              DOM::Element::Style         HTMLStyleElement, [LinkStyle]
+              DOM::Element::Style         HTMLStyleElement, LinkStyle
               DOM::Element::Body          HTMLBodyElement
               DOM::Element::Form          HTMLFormElement
               DOM::Element::Select        HTMLSelectElement
@@ -1241,7 +1287,7 @@ by Perl’s built-in ‘time’ function are used.
 
 =head1 PREREQUISITES
 
-perl 5.6.0 or later
+perl 5.8.0 or later
 
 Exporter 5.57 or later
 
@@ -1259,7 +1305,9 @@ HTTP::Headers::Util :-).
 HTML::Form 1.054 or later if any of the methods provided for
 WWW::Mechanize compatibility are called.
 
-CSS::DOM is required if you use any of the style sheet features.
+CSS::DOM is required if you use any of the style sheet features. Version
+0.02 or later is required for the C<styleSheets> method to work in scalar
+context.
 
 Scalar::Util 1.08 or later
 

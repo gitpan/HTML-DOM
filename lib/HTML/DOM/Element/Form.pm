@@ -13,7 +13,7 @@ require HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 #require HTML::DOM::Collection::Elements;
 
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = qw'HTML::DOM::Element HTML::Form';
 
 use overload fallback => 1,
@@ -208,7 +208,7 @@ package HTML::DOM::NodeList::Radio; # solely for HTML::Form compatibility
 use Carp 'croak';
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = qw'HTML::DOM::NodeList HTML::Form::Input';
 
 sub type { 'radio' }
@@ -291,7 +291,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 
 require HTML::DOM::Collection;
 our @ISA = 'HTML::DOM::Collection';
@@ -462,7 +462,7 @@ L<HTML::Form>
 # ------- HTMLSelectElement interface ---------- #
 
 package HTML::DOM::Element::Select;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = 'HTML::DOM::Element';
 
 use overload fallback=>1, '@{}' => sub { shift->options };
@@ -541,7 +541,7 @@ package HTML::DOM::Collection::Options;
 use strict;
 use warnings;
 
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 
 use Carp 'croak';
 
@@ -616,7 +616,7 @@ sub form_name_value
 # ------- HTMLOptGroupElement interface ---------- #
 
 package HTML::DOM::Element::OptGroup;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = 'HTML::DOM::Element';
 
 sub label  { shift->attr( label => @_) }
@@ -626,7 +626,7 @@ sub label  { shift->attr( label => @_) }
 # ------- HTMLOptionElement interface ---------- #
 
 package HTML::DOM::Element::Option;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
 
 use Carp 'croak';
@@ -750,7 +750,7 @@ sub form_name_value
 # ------- HTMLInputElement interface ---------- #
 
 package HTML::DOM::Element::Input;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
@@ -938,7 +938,7 @@ sub content {
 # ------- HTMLTextAreaElement interface ---------- #
 
 package HTML::DOM::Element::TextArea;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
 
 sub defaultValue { # same as HTML::DOM::Element::Title::text
@@ -993,7 +993,7 @@ sub form_name_value
 # ------- HTMLButtonElement interface ---------- #
 
 package HTML::DOM::Element::Button;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1008,7 +1008,7 @@ sub value      { shift->attr( value       => @_) }
 # ------- HTMLLabelElement interface ---------- #
 
 package HTML::DOM::Element::Label;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1018,7 +1018,7 @@ sub htmlFor { shift->attr( for       => @_) }
 # ------- HTMLFieldSetElement interface ---------- #
 
 package HTML::DOM::Element::FieldSet;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1026,7 +1026,7 @@ our @ISA = qw'HTML::DOM::Element';
 # ------- HTMLLegendElement interface ---------- #
 
 package HTML::DOM::Element::Legend;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;

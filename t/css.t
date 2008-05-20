@@ -46,3 +46,95 @@ use tests 9; # ElementCSSInlineStyle
 	like $elem->style->cssText, qr/^\s*\z/,
 		'removeAttributeNode erases the css data';
 }
+
+# -------------------------------- #
+use tests 4; # LinkStyle
+
+{
+	(my $elem = $doc->createElement('style'))->appendChild(
+		$doc->createTextNode('a { color: black}')
+	);
+	isa_ok $elem->sheet, 'CSS::DOM', '<style> ->sheet';
+	is +($elem->sheet->cssRules)[0]->selectors, 'a',
+		'contents are there';
+
+	$elem = $doc->createElement('link');
+	is +()=$elem->sheet, 0, 'sheet can return null';
+	$elem->setAttribute('rel' => 'stylesheet');
+	isa_ok $elem->sheet, 'CSS::DOM', '<link> ->sheet';
+}
+
+# -------------------------------- #
+use tests 17; # DocumentStyle
+
+{
+	use Scalar::Util 'refaddr';
+
+	my $doc = new HTML::DOM;
+	$doc->write('
+		<style id=stile>b { font-weight: bold }</style>
+		<link id=foo rel=stylesheet>
+		<link rel=bar>
+	');
+	$doc->close;
+
+	isa_ok my $list = $doc->styleSheets, 'CSS::DOM::StyleSheetList',
+		'retval of styleSheets';
+	is $list->length, 2, 'sheet list doesn\'t include <link rel=bar>';
+	is my @list = $doc->styleSheets, 2, 'styleSheets in list context';
+	
+	is refaddr $list->[0], refaddr $list[0],
+		'both retvals have the same first item';
+	is refaddr $list->[1], refaddr $list[1],
+		'both retvals have the same second item';
+	is refaddr $list[0], refaddr $doc->getElementById('stile')->sheet,
+		'the style elem\'s sheet is in the list';
+	is refaddr $list[1],
+	   refaddr +(my $link = $doc->getElementById('foo'))->sheet,
+		'the link elem\'s sheet is in the list';
+
+
+	# $list should update automatically, since it is a reference to the
+	# doc’s own style sheet list.
+	# @list is static.
+
+	$link->setAttribute(rel => "a nice big\xa0stylesheet\nhere");
+	is refaddr $list->[1], refaddr $list[1],
+	    'setAttribute w/o changing whether rel contains "stylesheet"';
+
+	$link->setAttribute(rel => 'contents');
+	is @$list, 1,
+	    'setAttribute(rel => contents) deletes the style sheet obj';
+
+	$link->setAttribute(rel => 'a stylesheet');
+	is @$list, 2,
+	    'setAttribute adds the style sheet to the list';
+	isn't refaddr $list->[1], refaddr $list[1],
+	    'creating it from scratch';
+
+	@list = @$list;
+
+	(my $attr = $doc->createAttribute('rel'))->nodeValue('stylesheEt');
+	$link->setAttributeNode($attr);
+	is refaddr $list[1], refaddr $list->[1],
+	    'setAttributeNode w/o changing whether rel =~ "stylesheet"';
+
+	(my $attr2 = $doc->createAttribute('rel'))->nodeValue('contents');
+	$link->setAttributeNode($attr2);
+	is @$list, 1,
+	    'setAttributeNode(contents) deletes the style sheet obj';
+
+	$link->setAttributeNode($attr);
+	is @$list, 2,
+	    'setAttributeNode adds the style sheet to the list ...';
+	isn't refaddr $list->[1], refaddr $list[1],
+	    '... creating it from scratch';
+	
+	$link->removeAttribute('rel');
+	is @$list, 1, 'removeAttribute removes the style sheet';
+
+	$link->setAttribute(rel => 'stylesheet');
+	$link->removeAttributeNode($link->getAttributeNode('rel'));
+	is @$list, 1, 'removeAttributeNode removes the style sheet';
+}
+

@@ -8,7 +8,7 @@ require HTML::DOM::Element;
 #require HTML::DOM::NodeList::Magic;
 
 our @ISA = qw'HTML::DOM::Element';
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 
 sub caption {
 	my $old = ((my $self = shift)->content_list)[0];
@@ -316,14 +316,14 @@ L<HTML::DOM::Element::TableCell>
 # ------- HTMLTableCaptionElement interface ---------- #
 
 package HTML::DOM::Element::Caption;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = 'HTML::DOM::Element';
 *align = \&HTML::DOM::Element::Table::align;
 
 # ------- HTMLTableColElement interface ---------- #
 
 package HTML::DOM::Element::TableColumn;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = 'HTML::DOM::Element';
 *align = \&HTML::DOM::Element::Table::align;
 sub ch     { shift->attr('char'   => @_) }
@@ -335,7 +335,7 @@ sub width  { shift->attr('width'  => @_) }
 # ------- HTMLTableSectionElement interface ---------- #
 
 package HTML::DOM::Element::TableSection;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = 'HTML::DOM::Element';
 *align  = \&HTML::DOM::Element::Table::align;
 *ch     = \&HTML::DOM::Element::TableColumn::ch;
@@ -383,7 +383,7 @@ sub insertRow {
 # ------- HTMLTableRowElement interface ---------- #
 
 package HTML::DOM::Element::TR;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = 'HTML::DOM::Element';
 sub rowIndex {
 	my $self = shift;
@@ -464,7 +464,7 @@ sub deleteCell {
 # ------- HTMLTableCellElement interface ---------- #
 
 package HTML::DOM::Element::TableCell;
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 our @ISA = 'HTML::DOM::Element';
 sub cellIndex {
 	my $self = shift;

@@ -49,6 +49,15 @@ Each of these returns the corresponding HTML attribute. If you pass an
 argument, it will become the new value of the attribute, and the old value
 will be returned.
 
+=item sheet
+
+This returns a style sheet (a L<CSS::DOM> object), empty by default (since
+fetching URLs is
+something HTML::DOM doesn't do). You can set the contents of the style
+sheet by passing CSS code to its C<read_string> method.
+
+=cut
+
 =back
 
 =head1 SEE ALSO

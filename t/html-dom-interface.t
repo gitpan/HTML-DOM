@@ -8,7 +8,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 32;
+use Test::More tests => 35;
 
 
 # -------------------------#
@@ -68,3 +68,12 @@ ok exists $HTML::DOM::Interface{AbstractView};
 
 # CSS stuff
 ok exists $HTML::DOM::Interface{HTMLElement}{style}, 'style';
+
+# -------------------------#
+# Tests 33-5: changes made in 0.011
+
+ok exists $HTML::DOM::Interface{HTMLLinkElement}{sheet},
+	'HTMLLinkElement sheet';
+ok exists $HTML::DOM::Interface{HTMLStyleElement}{sheet},
+	'HTMLStyleElement sheet';
+ok exists $HTML::DOM::Interface{HTMLDocument}{styleSheets}, 'styleSheets';
