@@ -8,7 +8,7 @@ require HTML::DOM::Element;
 #require HTML::DOM::NodeList::Magic;
 
 our @ISA = qw'HTML::DOM::Element';
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 sub caption {
 	my $old = ((my $self = shift)->content_list)[0];
@@ -83,13 +83,13 @@ sub tBodies { # ~~~ I need to make this cache the resulting collection obj
 		$collection;
 	}
 }
-sub align       { shift->attr('align'       => @_) }
+sub align       { lc shift->attr('align'       => @_) }
 sub bgColor     { shift->attr('bgcolor'     => @_) }
 sub border      { shift->attr( border       => @_) }
 sub cellPadding { shift->attr('cellpadding' => @_) }
 sub cellSpacing { shift->attr('cellspacing' => @_) }
 sub frame       { shift->attr('frame'       => @_) }
-sub rules       { shift->attr('rules'       => @_) }
+sub rules       { lc shift->attr('rules'       => @_) }
 sub summary     { shift->attr('summary'     => @_) }
 sub width       { shift->attr('width'       => @_) }
 
@@ -316,26 +316,26 @@ L<HTML::DOM::Element::TableCell>
 # ------- HTMLTableCaptionElement interface ---------- #
 
 package HTML::DOM::Element::Caption;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = 'HTML::DOM::Element';
 *align = \&HTML::DOM::Element::Table::align;
 
 # ------- HTMLTableColElement interface ---------- #
 
 package HTML::DOM::Element::TableColumn;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = 'HTML::DOM::Element';
 *align = \&HTML::DOM::Element::Table::align;
 sub ch     { shift->attr('char'   => @_) }
 sub chOff  { shift->attr( charoff => @_) }
 sub span   { shift->attr('span'   => @_) }
-sub vAlign { shift->attr('valign' => @_) }
+sub vAlign { lc shift->attr('valign' => @_) }
 sub width  { shift->attr('width'  => @_) }
 
 # ------- HTMLTableSectionElement interface ---------- #
 
 package HTML::DOM::Element::TableSection;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = 'HTML::DOM::Element';
 *align  = \&HTML::DOM::Element::Table::align;
 *ch     = \&HTML::DOM::Element::TableColumn::ch;
@@ -383,7 +383,7 @@ sub insertRow {
 # ------- HTMLTableRowElement interface ---------- #
 
 package HTML::DOM::Element::TR;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = 'HTML::DOM::Element';
 sub rowIndex {
 	my $self = shift;
@@ -464,7 +464,7 @@ sub deleteCell {
 # ------- HTMLTableCellElement interface ---------- #
 
 package HTML::DOM::Element::TableCell;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = 'HTML::DOM::Element';
 sub cellIndex {
 	my $self = shift;
@@ -488,7 +488,7 @@ sub headers  { shift->attr('headers'  => @_) }
 sub height   { shift->attr('height'   => @_) }
 sub noWrap   { shift->attr('nowrap'   => @_) }
 sub rowSpan  { shift->attr('rowspan'  => @_) }
-sub scope    { shift->attr('scope'    => @_) }
+sub scope    { lc shift->attr('scope'    => @_) }
 *vAlign  = \&HTML::DOM::Element::TableColumn::vAlign;
 *width   = \&HTML::DOM::Element::Table::width;
 

@@ -8,7 +8,7 @@ use HTML::DOM::Node 'COMMENT_NODE';
 require HTML::DOM::CharacterData;
 
 our @ISA = 'HTML::DOM::CharacterData';
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 sub new { # $_[1] contains the text
 	$_[0]->SUPER::new('~comment', text => $_[1]);
@@ -72,6 +72,8 @@ value of C<data> surrounded by S<<< C<< <!-- --> >> >>>.
 
 An overridden version of HTML::Element's method, which returns an empty 
 string.
+
+=back
 
 =head2 Inherited Methods
 

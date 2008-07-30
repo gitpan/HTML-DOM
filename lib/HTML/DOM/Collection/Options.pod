@@ -42,7 +42,9 @@ method
 here is
 the syntax:
 
-  $elements = HTML::DOM::Collection::Options->new($nodelist)
+  $elements = HTML::DOM::Collection::Options->new(
+      $nodelist, $select_elem
+  )
 
 $nodelist should be a node list (L<HTML::DOM::NodeList>) object.
 
@@ -51,7 +53,7 @@ $nodelist should be a node list (L<HTML::DOM::NodeList>) object.
 You can use an options collection as an array reference. You can even
 modify it this way. If you assign C<undef> to an array element or delete
 it, it will be removed completely, so C<< $options->[0] = undef >> will
-cause $options->[0]
+cause $options->[1] to become $options->[0], for example.
 
 Don't rely on array manipulation functions, such as C<shift>, C<push>,
 C<splice>, etc. Also, don't rely on list assignments.
@@ -71,7 +73,7 @@ C<< $elements->[$index] >> for short.
 
 =item $options->namedItem($name)
 
-Returns the item named C<$name>. You can also write C<< $collection->{$name} >>.
+Returns the item named C<$name>. You can also write C<< $elements->{$name} >>.
 
 =back
 
@@ -109,11 +111,6 @@ Returns a list consisting of (0) the name of the 'select' element and (1)
 the value of the selected option.
 
 =back
-
-=head1 BUGS
-
-The C<name> and C<form_name_value> methods currently die if there are no 
-options.
 
 =head1 SEE ALSO
 

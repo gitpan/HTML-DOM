@@ -13,7 +13,7 @@ require HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 #require HTML::DOM::Collection::Elements;
 
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = qw'HTML::DOM::Element HTML::Form';
 
 use overload fallback => 1,
@@ -64,7 +64,7 @@ sub enctype       {
 }
 sub method        {
 	my $ret = shift->attr('method'         => @_);
-	defined $ret ? $ret : 'GET'
+	defined $ret ? lc $ret : 'get'
 }
 sub target        { shift->attr('target'         => @_)    }
 
@@ -93,6 +93,7 @@ sub inputs {
 	for(shift->elements) {
 	  next if (my $tag = tag $_) eq 'button'; # HTML::Form doesn't deal
 	                                          # with <button>s.
+	  no warnings 'uninitialized'; # for 5.11.0
 	  if(lc $_->attr('type') eq 'radio') {
 	    my $name = name $_;
 	    exists $pos{$name} ? push @{$ret[$pos{$name}]}, $_
@@ -165,29 +166,119 @@ sub find_input
     }
 }
 
+
+my $ascii_encodings_re;
+my $encodings_re;
+
+sub _encoding_ok {
+	my ($enc,$xwfu) =@ _;
+	$enc =~ s/^(?:x-?)?mac-?/mac/i;
+	($enc) x (Encode'resolve_alias($enc)||return)
+		=~ ($xwfu ? $ascii_encodings_re : $encodings_re ||=qr/^${\
+			join'|',map quotemeta,
+				encodings Encode 'Byte'
+		}\z/);
+}
+
+sub _apply_charset {
+	my($charsets,$apply_to) = @_; # array refs
+	my ($charset,@ret);
+	for(@$charsets) {
+#use DDS; Dump $_ if @$apply_to == 1;
+		eval {
+			@ret = ();
+			# Can’t use map here, because it could die. (In
+			# perl5.8.x, dying inside a map is a very
+			# bad idea.)
+			for my $applyee(@$apply_to) {
+				push @ret, ref $applyee
+					? $applyee
+					: Encode::encode(
+						$_,$applyee,9
+					); # 1=croak, 8=leave src alone
+			}                                         
+			# Phew, we survived!
+			$charset = $_;
+		} && last;
+	}
+	unless($charset) {
+		# If none of the charsets applied, we just use the first
+		# one in the list (or fall back to utf8, since that’s the
+		# sensible thing to do these days), replacing unknown
+		# chars with ?
+		my $fallback;
+		$charset = $$charsets[0]||(++$fallback,'utf8');
+		@ret = map ref$_ ? $_ : Encode'encode($charset,$_),
+			@$apply_to;
+		$fallback and $charset = 'utf-8';
+	}
+	$charset,\@ret;
+}
+
+# ~~~ This does not take non-ASCII file names into account, but I can’t
+#     really do that yet, since perl itself doesn’t support those properly
+#     yet, either.
 sub make_request
 {
-    package
-	HTML::Form; # so caller tricks work
     my $self = shift;
-    my $method  = uc $self->method;
+    my $method  = $self->method;
     my $uri     = $self->action;
-    my $enctype = lc $self->enctype;
+    my $xwfu = $method eq 'get'
+        || $self->enctype !~ /^multipart\/form-data\z/i;
     my @form    = $self->form;
 
-    if ($method eq "GET") {
+    # Get the charset and encode the form fields, if necessary. The HTML
+    # spec says that the a/x-w-f-u MIME type only accepts ASCII, but we’ll
+    # be more forgiving, for the sake of realism.  But to be compliant with
+    # the spec in cases where it can apply  (e.g.,  a UTF-16 page with just
+    # ASCII in its form data),  we only accept ASCII-based  encodings  for
+    # this enctype.
+    my @charsets;
+    { push @charsets, split ' ', $self->acceptCharset||next}
+    require Encode;
+    @charsets = map _encoding_ok($_, $xwfu),
+                @charsets;
+    unless(@charsets){{
+        # We only revert to the doc charset when accept-charset doesn’t
+        # have any usable encodings (even encodings which will cause char
+        # substitutions are considered usable; it’s non-ASCII with GET that
+        # we don’t want).
+        push @charsets, _encoding_ok(
+            ($self->ownerDocument||next)->charset || next, $xwfu
+        )
+    }}
+
+    if ($method ne "post") {
 	require HTTP::Request;
 	$uri = URI->new($uri, "http");
-	$uri->query_form(@form);
+	$uri->query_form(@{_apply_charset \@charsets, \@form});
 	return HTTP::Request->new(GET => $uri);
     }
-    elsif ($method eq "POST") {
+    else  {
 	require HTTP::Request::Common;
-	return HTTP::Request::Common::POST($uri, \@form,
-					   Content_Type => $enctype);
-    }
-    else {
-	Carp::croak("Unknown method '$method'");
+        if($xwfu) {
+            my($charset,$form) = _apply_charset \@charsets, \@form;
+            return HTTP::Request::Common::POST($uri, $form,
+              Content_Type =>
+                "application/x-www-form-urlencoded; charset=\"$charset\"");
+        }
+        else {
+            my @new_form;
+            while(@form) {
+                my($name,$val) = (shift @form, shift @form);
+#my $origval = $val;
+                (my $charset, $val) = _apply_charset \@charsets, [$val];
+#use DDS; Dump [$origval,$val, ];
+                push @new_form, Encode'encode('MIME-B',$name),
+                    ref $$val[0] ? $$val[0] : [(undef)x2,
+                        Content_Type => "text/plain; charset=\"$charset\"",
+                        Content => @$val,
+                    ];
+            }
+            return HTTP::Request::Common::POST($uri, \@new_form,
+                Content_Type => 'multipart/form-data'
+            );
+        }
     }
 }
 
@@ -208,7 +299,7 @@ package HTML::DOM::NodeList::Radio; # solely for HTML::Form compatibility
 use Carp 'croak';
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = qw'HTML::DOM::NodeList HTML::Form::Input';
 
 sub type { 'radio' }
@@ -291,7 +382,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 require HTML::DOM::Collection;
 our @ISA = 'HTML::DOM::Collection';
@@ -462,7 +553,7 @@ L<HTML::Form>
 # ------- HTMLSelectElement interface ---------- #
 
 package HTML::DOM::Element::Select;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = 'HTML::DOM::Element';
 
 use overload fallback=>1, '@{}' => sub { shift->options };
@@ -500,6 +591,8 @@ sub value   { shift->options->value(@_) }
 sub length { scalar(()= shift->options ) }
 sub form           { (shift->look_up(_tag => 'form'))[0] || () }
 sub options { # ~~~ I need to make this cache the resulting collection obj
+              #     but when I do so I need to weaken references to $self
+              #     and make ::Options do the same.
 	my $self = shift;
 	if (wantarray) {
 		return grep tag $_ eq 'option', $self->descendants;
@@ -508,7 +601,7 @@ sub options { # ~~~ I need to make this cache the resulting collection obj
 		my $collection = HTML::DOM::Collection::Options->new(
 		my $list = HTML::DOM::NodeList::Magic->new(
 		    sub { grep tag $_ eq 'option', $self->descendants }
-		));
+		), $self);
 		$self->ownerDocument-> _register_magic_node_list($list);
 		$collection;
 	}
@@ -541,12 +634,19 @@ package HTML::DOM::Collection::Options;
 use strict;
 use warnings;
 
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 use Carp 'croak';
+use constant::lexical sel => 5; # must not conflict with super
 
 require HTML::DOM::Collection;
 our @ISA = qw'HTML::DOM::Collection HTML::Form::Input';
+
+sub new {
+	my $self = shift->SUPER::new(shift);
+	$$$self[sel] = shift;
+	$self
+}
 
 sub type { 'option' }
 sub possible_values {
@@ -583,7 +683,7 @@ sub value { # ~~~ do case-folding and what-not, as in HTML::Form::ListInput
 }
 
 sub name {
-	shift->item(0)->look_up(_tag => 'select')->name
+	$${+shift}[sel]->name
 }
 
 sub disabled {
@@ -593,6 +693,15 @@ sub disabled {
 		$_->disabled || return 0;
 	}
 	return 1
+}
+
+sub length { # override
+	my $self = shift;
+	die new HTML::DOM::Exception 
+		HTML::DOM::Exception::NOT_SUPPORTED_ERR,
+		"This implementation does not allow length to be set"
+	if @_;
+	$self->SUPER::length;
 }
 
 *AUTOLOAD = \& HTML::DOM::NodeList::Radio::AUTOLOAD;
@@ -616,7 +725,7 @@ sub form_name_value
 # ------- HTMLOptGroupElement interface ---------- #
 
 package HTML::DOM::Element::OptGroup;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = 'HTML::DOM::Element';
 
 sub label  { shift->attr( label => @_) }
@@ -626,7 +735,7 @@ sub label  { shift->attr( label => @_) }
 # ------- HTMLOptionElement interface ---------- #
 
 package HTML::DOM::Element::Option;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
 
 use Carp 'croak';
@@ -635,7 +744,7 @@ use Carp 'croak';
 sub defaultSelected   { shift->attr( selected => @_) }
 
 sub text { 
-	(shift->firstChild or return '')->data
+	shift->as_text
 }
 
 sub index {
@@ -750,7 +859,7 @@ sub form_name_value
 # ------- HTMLInputElement interface ---------- #
 
 package HTML::DOM::Element::Input;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
@@ -760,7 +869,7 @@ sub defaultChecked { shift->attr( checked => @_) }
 *form = \&HTML::DOM::Element::Select::form;
 sub accept         { shift->attr( accept => @_) }
 sub accessKey      { shift->attr( accesskey => @_) }
-sub align          { shift->attr( align => @_) }
+sub align          { lc shift->attr( align => @_) }
 sub alt            { shift->attr( alt => @_) }
 sub checked        {
 	my $self = shift;
@@ -938,7 +1047,7 @@ sub content {
 # ------- HTMLTextAreaElement interface ---------- #
 
 package HTML::DOM::Element::TextArea;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
 
 sub defaultValue { # same as HTML::DOM::Element::Title::text
@@ -993,7 +1102,7 @@ sub form_name_value
 # ------- HTMLButtonElement interface ---------- #
 
 package HTML::DOM::Element::Button;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1001,14 +1110,14 @@ our @ISA = qw'HTML::DOM::Element';
 *disabled = \&HTML::DOM::Element::Select::disabled;
 *name = \&HTML::DOM::Element::Form::name;
 *tabIndex = \&HTML::DOM::Element::Select::tabIndex;
-sub type       { shift->attr('type') }
+sub type       { lc shift->attr('type') }
 sub value      { shift->attr( value       => @_) }
 
 
 # ------- HTMLLabelElement interface ---------- #
 
 package HTML::DOM::Element::Label;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1018,7 +1127,7 @@ sub htmlFor { shift->attr( for       => @_) }
 # ------- HTMLFieldSetElement interface ---------- #
 
 package HTML::DOM::Element::FieldSet;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1026,7 +1135,7 @@ our @ISA = qw'HTML::DOM::Element';
 # ------- HTMLLegendElement interface ---------- #
 
 package HTML::DOM::Element::Legend;
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;

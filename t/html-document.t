@@ -5,7 +5,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 66;
+use Test::More tests => 67;
 
 
 # -------------------------#
@@ -181,7 +181,7 @@ SKIP: {
 }
 
 # -------------------------#
-# Tests 33-47: open, close, unbuffaloed write
+# Tests 33-48: open, close, unbuffaloed write
 
 # Buffaloed write is tested in html-dom.t together with
 # elem_handler with which it is closely tied.
@@ -244,11 +244,19 @@ SKIP: {
 	            # element handler
 	$doc->write('<p>oenheuo<p>oenuth'); $doc->close;
 	is $p's, 2, 'Our clobbered element handler bug is gone';
-		 
+	
+	# Bug in 0.011 (and probably much earlier): close is too good
+	# about suppressing errors and eliminates all of them, even when
+	# it shouldn’t.
+	$doc->open;
+	$doc->elem_handler(p => sub { die });
+	$doc->write('<p>');
+	ok !eval { $doc->close; 1 },
+		'close doesn\'t erroneously suppress errors';
 }
 
 # -------------------------#
-# Tests 48-52: ^getElements?By
+# Tests 49-53: ^getElements?By
 
 $doc->write('<p name=para>para 1</p><p name=para>para 2</p><p id=p>3');
 $doc->close;
@@ -274,7 +282,7 @@ is $doc->getElementById(bless \do{my $v = 'p'}, 'oVerload')->firstChild
 	->data, 3, 'getElementById stringification';
 
 # -------------------------#
-# Tests 53-64: weird attributes (fgColor et al.)
+# Tests 54-65: weird attributes (fgColor et al.)
 
 $doc->write('<body alink=red background=white.gif bgcolor=white
                    text=black link=blue vlink=fuschia>');
@@ -294,7 +302,7 @@ is $doc->vlinkColor('silver'),      'fuschia', 'set/get vlinkColor';
 is $doc->vlinkColor,'silver',                , 'get vlinkColor';
 
 # -------------------------#
-# Tests 65-6: hashness
+# Tests 66-7: hashness
 
 $doc->write('<form name=fred></form><form name=alcibiades></form>');
 $doc->close;

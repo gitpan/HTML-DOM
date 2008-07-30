@@ -23,7 +23,9 @@ L<HTML::DOM::Element> (q.v.).
 =head1 METHODS
 
 In addition to those inherited from HTML::DOM::Element and its 
-superclasses, this class implements the following DOM methods
+superclasses, this class implements the following DOM methods:
+
+=over 4
 
 =item aLink
 

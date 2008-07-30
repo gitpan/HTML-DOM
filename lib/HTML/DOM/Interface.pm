@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 =head1 NAME
 
@@ -46,7 +46,7 @@ HTML::DOM::Interface - A list of HTML::DOM's interface members in machine-readab
   ($HTML::DOM::Interface{HTMLDocument}{referrer} & TYPE) == STR;  # true
   ($HTML::DOM::Interface{HTMLDocument}{title}    & TYPE) == BOOL; # false
   ($HTML::DOM::Interface{HTMLDocument}{cookie}   & TYPE) == NUM;  # false
-  ($HTML::DOM::Interface{HTMLDocument}{forms}    & TYPE) == OBJ;  # false
+  ($HTML::DOM::Interface{HTMLDocument}{forms}    & TYPE) == OBJ;  # true
   
   # and return types of methods:
   ($HTML::DOM::Interface{HTMLDocument}
@@ -157,7 +157,7 @@ gory details, look at the source code. In fact, here it is:
   	'HTML::DOM::Attr' => 'Attr',
   	'HTML::DOM::Collection' => 'HTMLCollection',
   	'HTML::DOM::Collection::Elements' => 'HTMLCollection',
-  	'HTML::DOM::Collection::Options' => 'HTMLCollection',
+  	'HTML::DOM::Collection::Options' => 'HTMLOptionsCollection',
   	'HTML::DOM::Event' => 'Event',
   	'HTML::DOM::View' => 'AbstractView',
   	 DOMException => {
@@ -294,6 +294,13 @@ gory details, look at the source code. In fact, here it is:
   		item => METHOD | OBJ,
   		namedItem => METHOD | OBJ,
   	 },
+  	 HTMLOptionsCollection => {
+		_hash => 0,
+		_array => 0,
+  		length => NUM,
+  		item => METHOD | OBJ,
+  		namedItem => METHOD | OBJ,
+  	 },
   	 HTMLDocument => {
   		doctype => OBJ | READONLY,
 		_hash => 1,
@@ -330,7 +337,6 @@ gory details, look at the source code. In fact, here it is:
   		close => METHOD | VOID,
   		write => METHOD | VOID,
   		writeln => METHOD | VOID,
-  		getElementById => METHOD | OBJ,
   		getElementsByName => METHOD | OBJ,
   		createEvent => METHOD | OBJ,
   		defaultView => OBJ | READONLY,
@@ -462,7 +468,7 @@ gory details, look at the source code. In fact, here it is:
   		type => STR | READONLY,
   		selectedIndex => NUM,
   		value => STR,
-  		length => NUM | READONLY,
+  		length => NUM,
   		form => OBJ | READONLY,
   		options => OBJ | READONLY,
   		disabled => BOOL,
@@ -489,10 +495,10 @@ gory details, look at the source code. In fact, here it is:
   		form => OBJ | READONLY,
   		defaultSelected => BOOL,
   		text => STR | READONLY,
-  		index => NUM,
+  		index => NUM | READONLY,
   		disabled => BOOL,
   		label => STR,
-  		selected => BOOL | READONLY,
+  		selected => BOOL,
   		value => STR,
   	 },
   	 HTMLInputElement => {
@@ -511,10 +517,10 @@ gory details, look at the source code. In fact, here it is:
   		maxLength => NUM,
   		name => STR,
   		readOnly => BOOL,
-  		size => STR,
+  		size => NUM,
   		src => STR,
   		tabIndex => NUM,
-  		type => STR | READONLY,
+  		type => STR,
   		useMap => STR,
   		value => STR,
   		blur => METHOD | VOID,
@@ -657,7 +663,7 @@ gory details, look at the source code. In fact, here it is:
 		_array => 0,
   		color => STR,
   		face => STR,
-  		size => STR,
+  		size => NUM,
   	 },
   	 HTMLFontElement => {
 		_isa => 'HTMLElement',
@@ -706,19 +712,19 @@ gory details, look at the source code. In fact, here it is:
 		_isa => 'HTMLElement',
 		_hash => 0,
 		_array => 0,
-  		lowSrc => STR,
   		name => STR,
   		align => STR,
   		alt => STR,
   		border => STR,
-  		height => STR,
-  		hspace => STR,
+  		height => NUM,
+  		hspace => NUM,
   		isMap => BOOL,
   		longDesc => STR,
   		src => STR,
   		useMap => STR,
-  		vspace => STR,
-  		width => STR,
+  		vspace => NUM,
+  		width => NUM,
+  		lowSrc => STR,
   	 },
   	 HTMLObjectElement => {
 		_isa => 'HTMLElement',
@@ -734,14 +740,15 @@ gory details, look at the source code. In fact, here it is:
   		data => STR,
   		declare => BOOL,
   		height => STR,
-  		hspace => STR,
+  		hspace => NUM,
   		name => STR,
   		standby => STR,
   		tabIndex => NUM,
   		type => STR,
   		useMap => STR,
-  		vspace => STR,
+  		vspace => NUM,
   		width => STR,
+  #		contentDocument => OBJ | READONLY,
   	 },
   	 HTMLParamElement => {
 		_isa => 'HTMLElement',
@@ -762,10 +769,10 @@ gory details, look at the source code. In fact, here it is:
   		code => STR,
   		codeBase => STR,
   		height => STR,
-  		hspace => STR,
+  		hspace => NUM,
   		name => STR,
   		object => STR,
-  		vspace => STR,
+  		vspace => NUM,
   		width => STR,
   	 },
   	 HTMLMapElement => {
@@ -860,9 +867,9 @@ gory details, look at the source code. In fact, here it is:
 		_isa => 'HTMLElement',
 		_hash => 0,
 		_array => 0,
-  		rowIndex => NUM,
-  		sectionRowIndex => NUM,
-  		cells => OBJ,
+  		rowIndex => NUM | READONLY,
+  		sectionRowIndex => NUM | READONLY,
+  		cells => OBJ | READONLY,
   		align => STR,
   		bgColor => STR,
   		ch => STR,
@@ -875,7 +882,7 @@ gory details, look at the source code. In fact, here it is:
 		_isa => 'HTMLElement',
 		_hash => 0,
 		_array => 0,
-  		cellIndex => NUM,
+  		cellIndex => NUM | READONLY,
   		abbr => STR,
   		align => STR,
   		axis => STR,
@@ -910,6 +917,7 @@ gory details, look at the source code. In fact, here it is:
   		noResize => BOOL,
   		scrolling => STR,
   		src => STR,
+  #		contentDocument => OBJ | READONLY,
   	 },
   	 HTMLIFrameElement => {
 		_isa => 'HTMLElement',
@@ -925,6 +933,7 @@ gory details, look at the source code. In fact, here it is:
   		scrolling => STR,
   		src => STR,
   		width => STR,
+  #		contentDocument => OBJ | READONLY,
   	 },
   	 Event => {
 		_hash => 0,

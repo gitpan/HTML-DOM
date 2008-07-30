@@ -5,12 +5,18 @@
 #    HTMLSelectElement
 #    HTMLOptGroupElement
 #    HTMLOptionElement
+#    HTMLOptionsCollection
 #    HTMLInputElement
 #    HTMLTextAreaElement
 #    HTMLButtonElement
 #    HTMLLabelElement
 #    HTMLFieldSetElement
 #    HTMLLegendElement
+
+# Note: Some attributes are supposed to have their values normalised when
+# accessed through the DOM 0 interface. For this reason, some attributes,
+# particularly ‘align’, have weird capitalisations of their values when
+# they are set. This is intentional.
 
 use strict; use warnings;
 our $tests;
@@ -76,7 +82,7 @@ use tests 30; # HTMLFormElement
 	test_attr $form, qw/ acceptCharset utf-8 iso-8859-1 /;
 	test_attr $form, qw/ action http:\/\/\/ http:\/\/remote.host\/ /;
 	test_attr $form, enctype=>'',q/application\/x-www-form-urlencoded/;
-	test_attr $form, qw/ method GET POST /;
+	test_attr $form, qw/ method get post /;
 	test_attr $form, qw/ target foo phoo /;
 
 	my $elements = $form->elements;
@@ -100,7 +106,7 @@ use tests 30; # HTMLFormElement
 }
 
 # -------------------------#
-use tests 43; # HTMLSelectElement
+use tests 45; # HTMLSelectElement and HTMLOptionsCollection
 
 SKIP: { skip 'not written yet', 5; # ~~~ just a guess
 use tests 5;
@@ -142,6 +148,10 @@ use tests 5;
 	is $opts->[0], $opt1, 'options ->[]';
 	$opts->[0] = undef;
 	is $opts->[0], $opt2, 'undef assignment to options ->[]';
+	is $opts->length, 1, 'options length';
+	eval{$opts->length(323)};
+	cmp_ok $@, '==', HTML::DOM::Exception::NOT_SUPPORTED_ERR,
+		'error thrown by options->length';
 
 	ok!$elem->disabled              ,     'select: get disabled';
 	ok!$elem->disabled(1),          , 'select: set/get disabled';
@@ -196,7 +206,7 @@ use tests 7; # HTMLOptGroupElement
 }
 
 # -------------------------#
-use tests 26; # HTMLOptionElement
+use tests 27; # HTMLOptionElement
 
 {
 	is ref(
@@ -220,6 +230,11 @@ use tests 26; # HTMLOptionElement
 	is $elem->text, '', 'option->text when blank';
 	$elem->firstChild->data('foo');
 	is $elem->text, 'foo', 'option->text when set to something';
+
+	# I don’t know whether this is valid, but I’m supporting it anyway:
+	$elem->appendChild(my $p = $doc->createElement('p'));
+	$p->appendChild($doc->createTextNode('fffoo'));
+	is $elem->text, 'foofffoo', 'option->text w/ multiple child nodes';	$elem->splice_content(-1,1);
 
 	is $elem->index, 0, 'option->index';
 	($form->content_list)[-1]->unshift_content(
@@ -271,7 +286,7 @@ use tests 67; # HTMLInputElement
 	
 	$elem->attr(accept    => 'text/plain,text/richtext');
 	$elem->attr(accesskey => 'F');
-	$elem->attr(align     => 'top');
+	$elem->attr(align     => 'tOp');
 	$elem->attr(alt       => '__');
 	no warnings qw)qw);
 	test_attr $elem, qw-accept    text/plain,text/richtext
@@ -308,7 +323,7 @@ use tests 67; # HTMLInputElement
 	test_attr $elem, qw-src      arnold.gif fo.pdf-;
 	test_attr $elem, qw-tabIndex 7          8     -;
 
-	$elem->attr(type => 'submit');
+	$elem->attr(type => 'suBmit');
 	is $elem->type, 'submit', 'input->type';
 
 	$elem->attr(usemap => 1);
@@ -405,7 +420,7 @@ use tests 19; # HTMLButtonElement
 	test_attr $elem, qw-tabIndex 7          8     -;
 	test_attr $elem,    value=> 'not much','a lot' ;
 
-	$elem->attr(type => 'button');
+	$elem->attr(type => 'bUtton');
 	is $elem->type, 'button', 'button->type';
 }
 
@@ -456,7 +471,7 @@ use tests 9; # HTMLLegendElement
 	is $elem->form, $form, 'legend->form';
 
 	$elem->attr(accesskey => 'F');
-	$elem->attr(align     => 'left');
+	$elem->attr(align     => 'LEFT');
 	test_attr $elem, qw-accessKey F    G   -;
 	test_attr $elem, qw-align     left right -;
 }

@@ -12,7 +12,7 @@ use Scalar::Util qw'blessed weaken';
 require HTML::DOM::Node;
 
 our @ISA = 'HTML::DOM::Node';
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 
 sub   surrogify($);
@@ -306,6 +306,6 @@ C<$str>.
 
 L<HTML::DOM>
 
-L<HTML::Text>
+L<HTML::DOM::Text>
 
-L<HTML::Comment>
+L<HTML::DOM::Comment>

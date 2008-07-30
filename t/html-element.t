@@ -1,13 +1,18 @@
 #!/usr/bin/perl -T
 
 # This script tests the HTMLElement interface and most of the interfaces
-# that are derived from it.
+# that are derived from it (not forms or tables).
+
+# Note: Some attributes are supposed to have their values normalised when
+# accessed through the DOM 0 interface. For this reason, some attributes,
+# particularly ‘align’, have weird capitalisations of their values when
+# they are set. This is intentional.
 
 # ~~~ I need to write tests for content_offset
 
 use strict; use warnings;
 
-use Test::More tests => 543;
+use Test::More tests => 549;
 
 
 sub test_attr {
@@ -68,7 +73,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$elem->attr(id => 'di');
 	$elem->attr(title => 'eltit');
 	$elem->attr(lang => 'en');
-	$elem->attr(dir => 'left');
+	$elem->attr(dir => 'lefT');
 	$elem->attr(class => 'ssalc');
 
 	test_attr $elem, qw/ id        di    eyeD /;
@@ -262,7 +267,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	), 'HTML::DOM::Element::UL',
 		"class for ul";
 	;
-	$elem->attr(type     => 'disc');
+	$elem->attr(type     => 'dIsc');
 
 	ok!$elem->compact                           ,      'get compact';
 	ok!$elem->compact       (1),                ,  'set/get compact';
@@ -363,7 +368,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	), 'HTML::DOM::Element::Div',
 		"class for div";
 	;
-	$elem->attr(align     => 'left');
+	$elem->attr(align     => 'leFT');
 
 	test_attr $elem, qw 2 align left right       2;
 }
@@ -379,7 +384,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 		"class for h$_"
 	for 1..6;
 
-	$elem->attr(align     => 'left');
+	$elem->attr(align     => 'LEFt');
 
 	test_attr $elem, qw 2 align left right       2;
 }
@@ -425,7 +430,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	), 'HTML::DOM::Element::Br',
 		"class for br";
 
-	$elem->attr(clear     => 'left');
+	$elem->attr(clear     => 'leFt');
 
 	test_attr $elem, qw 2 clear left all       2;
 }
@@ -482,7 +487,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	), 'HTML::DOM::Element::HR',
 		"class for hr";
 
-	$elem->attr(align     => 'left');
+	$elem->attr(align     => 'lEFt');
 	$elem->attr(noshade     => '1');
 	$elem->attr(size    => '3');
 	$elem->attr(width    => '3');
@@ -564,7 +569,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 		"class for img";
 
 	$elem->attr(name     => 'Fred');
-	$elem->attr(align    => 'left');
+	$elem->attr(align    => 'lefT');
 	$elem->attr(alt      => 'blank');
 	$elem->attr(border   => '7');
 	$elem->attr(height   => '8');
@@ -610,7 +615,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	is $elem->form, $form, 'Object’s form';
 
 	$elem->attr(code     => 'e-doc');
-	$elem->attr(align    => 'left');
+	$elem->attr(align    => 'Left');
 	$elem->attr(archive  => 'left');
 	$elem->attr(border   => '7');
 	$elem->attr(codebase => '7');
@@ -662,13 +667,13 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$elem->attr(name      => 'Fred');
 	$elem->attr(type      => 'image/gif');
 	$elem->attr(value     => '1');
-	$elem->attr(valueType => '10');
+	$elem->attr(valueType => 'dAtA');
 
 	no warnings qw: qw: ;
 	test_attr $elem, qw 2 name      Fred      George  2;
 	test_attr $elem, qw 2 type      image/gif foo/bar 2;
 	test_attr $elem, qw 2 value     1         two     2;
-	test_attr $elem, qw 3 valueType 10        12      3;
+	test_attr $elem, qw 3 valueType data      ref     3;
 }
 
 # -------------------------#
@@ -681,7 +686,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	), 'HTML::DOM::Element::Applet',
 		"class for applet";
 
-	$elem->attr(align    => 'left');
+	$elem->attr(align    => 'lEft');
 	$elem->attr(alt      => 'left');
 	$elem->attr(archive  => 'left');
 	$elem->attr(code     => 'e-doc');
@@ -728,9 +733,9 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$elem->appendChild($_) for $area1, $area2, $area3;
 
 	is $areas->length, 3, 'number of areas in map';
-	use Scalar::Util 'refaddr';
-	is_deeply [map refaddr $_, $area1, $area2, $area3],
-	          [map refaddr $_, @$areas], 'Map’s areas';
+	use Scalar::Util 1.14 'refaddr';
+	is_deeply [map refaddr $_, @$areas],
+	          [map refaddr $_, $area1, $area2, $area3], 'Map’s areas';
 }
 
 # -------------------------#
@@ -826,7 +831,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 488-512: HTMLFrameElement
+# Tests 488-513: HTMLFrameElement
 
 {
 	my $elem;
@@ -841,7 +846,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$elem->attr(marginwidth  => '5010');
 	$elem->attr(name         => '50,10,*'); # nice name
 	$elem->attr(noresize     => '50,10,*');
-	$elem->attr(scrolling    => 'yes');
+	$elem->attr(scrolling    => 'yEs');
 	$elem->attr(src          => '50,10,*');
 
 	no # silly
@@ -857,10 +862,15 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	ok!$elem->noResize             ,      'get Frame’s noResize again';
 	test_attr $elem, qw 2 scrolling yes     auto    2;
 	test_attr $elem, qw 2 src       50,10,* foo.gif 2;
+
+	# weird frameborder test; strictly, since this is a value list, it
+	# has to be normalised to lc
+	$elem->setAttribute('frameborder'=>'bOOhoO');
+	is frameBorder $elem, 'boohoo', 'frame->frameBorder is lc';
 }
 
 # -------------------------#
-# Tests 513-43: HTMLIFrameElement
+# Tests 514-45: HTMLIFrameElement
 
 {
 	my $elem;
@@ -869,14 +879,14 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	), 'HTML::DOM::Element::IFrame',
 		"class for iframe";
 
-	$elem->attr(align        => 'left');
+	$elem->attr(align        => 'leFt');
 	$elem->attr(frameborder  => '1');
 	$elem->attr(height       => '2');
 	$elem->attr(longdesc     => 'shortescritoire');
 	$elem->attr(marginheight => '50');
 	$elem->attr(marginwidth  => '5010');
 	$elem->attr(name         => '50,10,*'); # nice name
-	$elem->attr(scrolling    => 'yes');
+	$elem->attr(scrolling    => 'yeS');
 	$elem->attr(src          => '50,10,*');
 	$elem->attr(width        => '50');
 
@@ -893,4 +903,23 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	test_attr $elem, qw 2 scrolling yes     auto    2;
 	test_attr $elem, qw 2 src       50,10,* foo.gif 2;
 	test_attr $elem, qw 2 width     50      500     2;
+
+	# weird frameborder test; strictly, since this is a value list, it
+	# has to be normalised to lc
+	$elem->setAttribute('frameborder'=>'bOOhoO');
+	is frameBorder $elem, 'boohoo', 'frame->frameBorder is lc';
+}
+
+# -------------------------#
+# Tests 546-9: HTMLParagraphElement
+
+{
+	is ref(
+		my $elem = $doc->createElement('p'),
+	), 'HTML::DOM::Element::P',
+		"class for p";
+	;
+	$elem->attr(align     => 'leFT');
+
+	test_attr $elem, qw 2 align left right       2;
 }

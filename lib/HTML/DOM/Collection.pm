@@ -5,7 +5,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 # Internals: \[$nodelist, $tie]
 
@@ -15,6 +15,7 @@ sub tye(){1}
 sub seen(){2}     # whether this key has been seen
 sub position(){3} # current (array) position used by NEXTKEY
 sub ids(){4}      # whether we are iterating through ids
+#  Number 5 is taken by ::Options (inside Element/Form.pm).
 { no warnings 'misc';
   undef &nodelist; undef &tye; undef &seen; undef &position;
 }
@@ -132,14 +133,14 @@ HTML::DOM::Collection - A Perl implementation of the HTMLCollection interface
   $images->item(0);
   $images->namedItem('logo');
   
-  $images->length; # same as $#$images
+  $images->length; # same as scalar @$images
 
 =head1 DESCRIPTION
 
 This implements the HTMLCollection interface as described in the W3C's DOM 
 standard. This class is actually just a wrapper around the NodeList
 classes. In addition to the methods below, you can use a collection as a
-has (partly implemented) and as an array.
+hash and as an array (both read-only).
 
 =head1 CONSTRUCTOR
 
@@ -176,6 +177,4 @@ C<$name> will be returned. You can also write C<< $collection->{$name} >>.
 
 L<HTML::DOM>
 
-L<HTML::DOM::NodeList> (manpage not written yet)
-
-L<HTML::DOM::NodeList::Magic> (manpage not written yet)
+L<HTML::DOM::NodeList>

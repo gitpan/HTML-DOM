@@ -24,7 +24,7 @@ use Scalar::Util qw'weaken blessed';
 
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 
@@ -84,9 +84,9 @@ sub value {
 	ref $val ? $val->data : $val;
 }
 
-sub specified { # ~~~ Do I need to deal with default attribute values
-                #     for HTML?
-	!0
+sub specified {
+	my $attr=shift;
+	($$attr[_elem]||return 1)->_attr_specified($$attr[_name]);
 }
 
 sub ownerElement { # ~~~ If the attr is detached, is _element currently
@@ -231,6 +231,11 @@ Returns the constant C<HTML::DOM::Node::ATTRIBUTE_NODE>.
 
 These both return the attribute's value.
 
+=item specified
+
+Returns true if the attribute was specified explicitly in
+the source code or was explicitly added to the tree.
+
 =item parentNode
 
 =item previousSibling
@@ -313,3 +318,6 @@ L<hasFeature|HTML::DOM::Implementation/hasFeature> method.
 
 L<HTML::DOM>
 
+L<HTML::DOM::Node>
+
+L<HTML::DOM::Element>

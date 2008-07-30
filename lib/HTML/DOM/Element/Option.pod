@@ -105,11 +105,6 @@ Returns a list of two items: (0) the name of the field and (1) the value,
 
 =back
 
-=head1 BUGS
-
-Currently, the C<text> method assumes that there is just one text node
-within the option.
-
 =head1 SEE ALSO
 
 L<HTML::DOM>

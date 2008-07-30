@@ -24,6 +24,8 @@ L<HTML::DOM::Element> (q.v.).
 
 The only method that this class implements itself and does not inherit is:
 
+=over 4
+
 =item profile
 
 Returns (and optionally sets) the C<profile> attribute.

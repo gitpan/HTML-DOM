@@ -3,19 +3,13 @@
 # This script contains a full test of the Node interface, since H:D:Attr
 # implements it itself, and does not inherit from H:D:Node.
 
-use strict; use warnings;
+use strict; use warnings; use lib 't';
 
 use Scalar::Util 'refaddr';
-use Test::More tests => 66;
-
-
-# -------------------------#
-# Test 1: load the modules
-
-BEGIN { use_ok 'HTML::DOM'; }
+use HTML::DOM;
 
 # -------------------------#
-# Tests 2-5: constructors
+use tests 4; # constructors
 
 my $doc = new HTML::DOM;
 isa_ok $doc, 'HTML::DOM';
@@ -31,19 +25,71 @@ ok $attr->DOES('HTML::DOM::Node'), '$attr does HTML::DOM::Node';
 
 
 # -------------------------#
-# Test 6: overloading
+use tests 1; # overloading
 
 is $attr, 'about:blank', '""';
 
 # -------------------------#
-# Tests 7-12: Attr interface
+use tests 1; # name
 
 is name $attr, 'href', 'name';
-SKIP :{
-	skip unimplemented => 2;
-	ok !specified $attr;
-	# ~~~ We need another test here for a specified attr
+
+
+# -------------------------#
+use tests 41; # specified
+
+{
+	for(
+		[qw[ br clear none ]],
+		[qw[ td colspan 1 ]],
+		[qw[ th colspan 1 ]],
+		[qw[ form enctype application/x-www-form-urlencoded ]],
+		[qw[ frame frameborder 1 ]],
+		[qw[ iframe frameborder 1 ]],
+		[qw[ form method GET ]],
+		[qw[ td rowspan 1 ]],
+		[qw[ th rowspan 1 ]],
+		[qw[ frame scrolling auto ]],
+		[qw[ iframe scrolling auto ]],
+		[qw[ area shape rect ]],
+		[qw[ a shape rect ]],
+		[qw[ col span 1 ]],
+		[qw[ colgroup span 1 ]],
+		[qw[ input type TEXT ]],
+		[qw[ button type submit ]],
+		[qw[ param valuetype DATA ]],
+	) {
+		my $elem = $doc->createElement($$_[0]);
+		my $attr = $elem->getAttributeNode($$_[1]);
+		ok !$attr->specified, "@$_[0,1] !specified";
+		is $attr->value, $$_[2], "default value of @$_[0,1]";
+	}
+	my $doc = new HTML::DOM;
+	$doc->write('
+		<!DOCTYPE HTML PUBLIC
+			"-//W3C//DTD HTML 4.01 Transitional//EN">
+		<title></title>
+	');$doc->close;
+	ok !specified{$doc->documentElement->getAttributeNode('version')},
+		"html version !specified";
+	is $doc->documentElement->getAttributeNode('version')->value,
+		'-//W3C//DTD HTML 4.01 Transitional//EN',
+		"default value of html version";
+
+	my $elem = $doc->createElement('br');
+	ok specified{
+		removeAttributeNode$elem getAttributeNode$elem 'clear'
+	}, "specified after removal";
+	$elem->attr('clear','left');
+	ok specified{getAttributeNode$elem 'clear'},
+		'specified when explicit';
+	$elem->attr('clear','none');
+	ok specified{getAttributeNode$elem 'clear'},
+		'specified when explicit, even when eq default';
 }
+
+# -------------------------#
+use tests 3; # value
 
 is value $attr, 'about:blank', 'get value';
 is $attr->value('javascript:window.close()'), 'about:blank',
@@ -52,7 +98,7 @@ is $elem->getAttribute('href'), 'javascript:window.close()',
 	'setting the value works';
 
 # -------------------------#
-# Tests 13-27: Node interface attributes
+use tests 15; # Node interface attributes
 
 # HTML::DOM::Attr implements all the Node interface itself, and does not
 # inherit from HTML::DOM::Node.
@@ -81,7 +127,7 @@ cmp_ok  ownerDocument $attr, '==', $doc,  'ownerDocument';
 
 
 # -------------------------#
-# Tests 28-53: Node interface methods
+use tests 26; # Node interface methods
 
 eval { insertBefore $attr };
 isa_ok $@, 'HTML::DOM::Exception',
@@ -196,7 +242,7 @@ is_deeply [parentNode $clone], [], 'deep clones are parentless';
 
 
 # -------------------------#
-# Tests 54-7: ownerElement
+use tests 4; # ownerElement
 
 {
 	my $elem = $doc->createElement('a');
@@ -221,18 +267,18 @@ is_deeply [parentNode $clone], [], 'deep clones are parentless';
 }
 
 # -------------------------#
-# Tests 58-61: XML namespace stuff and normal eyes
+use tests 4; # XML namespace stuff and normal eyes
 
 is +()=$attr->$_, 0, $_ for qw / namespaceURI prefix localName normalize /;
 
 
 # -------------------------#
-# Test 62: hasAttributes
+use tests 1; # hasAttributes
 
 ok !$attr->hasAttributes, 'hasAttrbitues';
 
 # -------------------------#
-# Tests 63-4: booleanness
+use tests 2; # booleanness
 
 {
 	my $attr = $doc->createAttribute('foo');
@@ -242,7 +288,7 @@ ok !$attr->hasAttributes, 'hasAttrbitues';
 }
 
 # -------------------------#
-# Tests 65-6: isSupported
+use tests 2; # isSupported
 
 ok $attr->isSupported('hTML', '1.0'), 'isSupported';
 ok!$attr->isSupported('onfun') ,'isn’tSupported';

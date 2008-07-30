@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 
 use strict;
@@ -469,7 +469,7 @@ sub get_event_listeners { # uses underscores because it is not a DOM method
 =item dispatchEvent($event_object)
 
 $event_object is an object returned by HTML::DOM's C<createEvent> method,
-or any object that implements the interface document in 
+or any object that implements the interface documented in 
 L<HTML::DOM::Event>.
 
 C<dispatchEvent> does not automatically call the handler passed to the
@@ -579,6 +579,41 @@ sub as_text{
 sub as_HTML{
 	(my $clone = shift->clone)->deobjectify_text;
 	$clone->SUPER::as_HTML;
+}
+
+sub push_content {
+	my $self  = shift; 
+	my $count = ()=$self->content_list;
+	$self->SUPER::push_content(@_);
+	my $ary = $self->{_content};
+	ref and weaken $_->{_parent} for @$ary[$count-@$ary..-1];
+	$self
+}
+
+sub unshift_content {
+	my $self  = shift; 
+	my $count = ()=$self->content_list;
+	$self->SUPER::unshift_content(@_);
+	my $ary = $self->{_content};
+	ref and weaken $_->{_parent} for @$ary[0..$#$ary-$count];
+	$self
+}
+
+sub splice_content {
+	my($self,$start,$deleted) = (shift,@_); 
+	my $orig_count = ()=$self->content_list;
+	$self->SUPER::splice_content(@_);
+	my $ary = $self->{_content};
+
+	# orig_length - deleted_items + x = final_length,
+	# where x is the number of items added (to be weakened), so
+	# x = final_length - orig_length + deleted_items.
+	# x needs to be adjusted so it is an ending offset, so we use
+	# $#$ary instead of the final length (@$ary) and add $start
+	ref and weaken $_->{_parent}
+		for @$ary[$start..$#$ary-$orig_count+$deleted+$start];
+
+	$self
 }
 
 

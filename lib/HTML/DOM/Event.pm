@@ -1,6 +1,6 @@
 package HTML::DOM::Event;
 
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 
 use strict;
@@ -82,18 +82,120 @@ HTML::DOM::Event - A Perl class for HTML DOM Event objects
 
 =head1 SYNOPSIS
 
-  use HTML::DOM::Event ':all';
+  use HTML::DOM::Event ':all'; # get constants
 
-  ...
-  
+  use HTML::DOM;
+  $doc=new HTML::DOM;
+
+  $event = $doc->createEvent;
+  $event->initEvent(
+      'click', # type
+       1,      # whether it propagates up the hierarchy
+       0,      # whether it can be cancelled
+  );
+
+  $doc->body->dispatchEvent($event);
 
 =head1 DESCRIPTION
 
-blar blar blar
+This class provides event objects for L<HTML::DOM>, which objects are
+passed to event handlers when they are triggered. It implements the W3C 
+DOM's Event interface and serves as a base class for more specific event
+classes (or at least it will, when those are implemented).
+
+=head1 METHODS
+
+=head2 DOM Attributes
+
+These are all read-only and ignore their arguments.
+
+=over
+
+=item type
+
+The type, or name, of the event, without the 'on' prefix that HTML
+attributes have; e.g., 'click'.
+
+=item target
+
+This returns the node on which the event occurred. It only works during
+event propagation.
+
+=item currentTarget
+
+The returns the node whose handler is currently being called. (The event
+might have been triggered on one of its child nodes.) This also works
+only during event propagation.
+
+=item eventPhase
+
+Returns one of the constants listed below. This only makes sense during
+event propagation.
+
+=item bubbles
+
+This attribute returns a list of C<Bubble> objects, each of which has a
+C<diameter> and a C<wobbliness>, which can be retrieved by the
+corresponding get_* method. :-)
+
+Actually, this strangely-named method returns true if the event propagates 
+up the 
+hierarchy after triggering
+event handlers on the target.
+
+=item cancelable
+
+Returns true or false.
+
+=item timeStamp
+
+Returns the time at which the event object was created as returned by
+Perl's built-in C<time> function.
+
+=back
+
+=head2 Other DOM Methods
+
+=over
+
+=item initEvent ( $name, $propagates_up, $cancelable )
+
+This initialises the event object. C<$propagates_up> is whether the event
+should trigger handlers of parent nodes after the target node's handlers
+have been triggered. C<$cancelable> determines whether C<preventDefault>
+has any effect.
+
+=item stopPropagation
+
+If this is called, no more event handlers will be triggered.
+
+=item preventDefault
+
+If this is called and the event object is cancelable, L<HTML::DOM::Node's 
+C<dispatchEvent>
+method|HTML::DOM::Node/dispatchEvent> will return false, indicating that
+the default action is not to be taken.
+
+=back
+
+=head2 Non-DOM Methods
+
+=over
+
+=item cancelled
+
+Returns true if C<preventDefault> has been called.
+
+=item propagation_stopped
+
+Returns true if C<stopPropagation> has been called.
+
+=back
 
 =head1 EXPORTS
 
-The following node type constants are exportable:
+The following node type constants are exportable, individually or with
+':all':
 
 =over 4
 
@@ -111,3 +213,4 @@ The following node type constants are exportable:
 
 L<HTML::DOM>
 
+L<HTML::DOM::Node>

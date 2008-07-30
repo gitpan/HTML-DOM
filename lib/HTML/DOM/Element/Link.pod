@@ -25,6 +25,8 @@ L<HTML::DOM::Element> (q.v.).
 In addition to those inherited from HTML::DOM::Element and its 
 superclasses, this class implements the following DOM methods:
 
+=over 4
+
 =item disabled
 
 Returns a boolean. Pass an argument to set it.
@@ -51,12 +53,13 @@ will be returned.
 
 =item sheet
 
-This returns a style sheet (a L<CSS::DOM> object), empty by default (since
+Unless the 'rel' attribute is set to 'stylesheet', this returns null.
+
+Otherwise it returns a style sheet (a L<CSS::DOM> object), empty by default
+(since
 fetching URLs is
 something HTML::DOM doesn't do). You can set the contents of the style
 sheet by passing CSS code to its C<read_string> method.
-
-=cut
 
 =back
 

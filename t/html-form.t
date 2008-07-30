@@ -1,17 +1,18 @@
 #!/usr/bin/perl -T
 
 # This script tests compatibility with HTML::Form's interface. These tests
-# are plagiarised from that module's tests (22/Sep/7).
+# are plagiarised from that module's tests (22/Sep/7), except for a few at
+# the bottom.
 
 use strict; use warnings;
 
-use Test::More tests => 116+24;
+use Test::More tests => 116+24+1;
 
 BEGIN{	use_ok 'HTML::DOM' };
 
-# Since HTML::Form's click method is the one to call main::click, whereas
+# Since HTML::Form's click method is the one to call make_request, whereas
 # with HTML::DOM, it just triggers the event and it is up to an event
-# handler to call main::click, I'm putting a handler here that (sort of)
+# handler to call make_request, I'm putting a handler here that (sort of)
 # imitates HTML::Form's behaviour, for the sake of the tests.
 
 {	my $req;
@@ -60,7 +61,7 @@ is($f->attr("name"), "foo");
 is($f->attr("method"), undef);
 
 $f = ($doc->forms)[1];
-is($f->method, "GET");
+is($f->method, "get");
 is($f->action, "http://localhost/");
 is($f->enctype, "application/x-www-form-urlencoded");
 
@@ -103,7 +104,7 @@ EOT
 is($f->main::click->as_string, <<'EOT');
 POST http://localhost/
 Content-Length: 76
-Content-Type: application/x-www-form-urlencoded
+Content-Type: application/x-www-form-urlencoded; charset="utf-8"
 
 i.x=1&i.y=1&c=on&r=b&t=&p=&h=xyzzy&f=foo.txt&x=&a=%0Aabc%0A+++&s=bar&m=a&m=b
 EOT
@@ -471,7 +472,7 @@ ok($f->find_input("randomkey")->keytype, "rsa");
 ok($f->main::click->as_string, <<EOT);
 POST http://example.com/secure/keygen/test.cgi
 Content-Length: 19
-Content-Type: application/x-www-form-urlencoded
+Content-Type: application/x-www-form-urlencoded; charset=utf-8
 
 Field1=Default+Text
 EOT
@@ -480,7 +481,7 @@ $f->value(randomkey => "foo");
 ok($f->main::click->as_string, <<EOT);
 POST http://example.com/secure/keygen/test.cgi
 Content-Length: 33
-Content-Type: application/x-www-form-urlencoded
+Content-Type: application/x-www-form-urlencoded; charset=utf-8
 
 randomkey=foo&Field1=Default+Text
 EOT
@@ -624,3 +625,15 @@ sub j {
     join(":", @_);
 }
 
+
+# -------- Bugs related to HTML::DOM’s HTML::Form imitation ---------- #
+{
+
+my $doc = new HTML::DOM;
+$doc->write('<title>What’s up, Doc?</title>
+	<form><select name=Bunny><!-- no options --></select></form>');
+$doc->close;
+is eval { $doc->forms->[0]->{Bunny}->options->name } || diag($@), 'Bunny',
+	'select->options->name no longer dies when there are no options';
+
+}

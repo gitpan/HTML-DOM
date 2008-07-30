@@ -1,5 +1,55 @@
 Revision history for HTML::DOM
 
+0.012   29 July, 2008
+        Incompatible changes:
+        • The parse_file method now uses HTML::Encoding to detect the
+          encoding of the file,  if given a file  name,  and  if  the
+          encoding has not been set with the new ‘charset’  method or
+          the constructor’s new ‘charset’  option.  It used to assume
+          ISO  Latin  1.  It  still  treats  file  handles  the  same
+          way, though;  that is, it assumes the file handle is produc-
+          ing Unicode text (you have to ‘binmode’ to set the encoding
+          if that’s not the case).
+        New features:
+        • The constructor now accepts a ‘charset’ option which is used
+          by  parse_file  and  by  the  make_request  method  of  form
+          form elements.
+        • A ‘charset’ method has been added to HTML::DOM,  which
+          returns the encoding passed to the constructor or that
+          parse_file  used.  You can  also  use  it  to  set  it.
+        • parse_file’s return value is now useful: true upon success;
+          false upon failure (to open the file)
+        • Upward references in the object tree are now weak
+          references.
+        • I’ve started work on Level-2 HTML features. So far,
+          • HTML::DOM::Interface lists HTMLOptionsCollection as a sepa-
+            rate interface from HTMLCollection and
+          • HTML::DOM::Collection::Options now throws an error if
+            length is set.
+        • A callback routine passed to event_attr_handler now receives
+          the offset within the source of the attribute’s value as the
+          fourth argument.
+        • Attribute methods of elements now support  implicit  attri-
+          butes (those with default values in the DTD).
+        Bug fixes:
+        • Suppressed an erroneous warning triggered in bleadperl (5.11
+          to be) by HTML::DOM::Element::Form’s inputs method.
+        • HTML::DOM’s close method had an erroneous eval, which would
+          catch errors that should have been propagated,  in addition
+          to the specific error it was intended to catch.
+        • HTML::DOM::Collection::Option’s name and form_name_value
+          methods no longer die when there are no options.
+        • HTML::DOM::Element::Option’s text method now supports multi-
+          ple child nodes,  and no longer assumes that there is  just
+          one text node within the option.
+        • In cases where the HTML DTD specifies a list of alternates
+          for an attribute’s value,  the corresponding DOM 0 methods
+          return a normalised (lc) value.
+        • HTML::DOM::Element’s removeAttributeNode method used to emit
+          warnings when the node did not belong to the element and the
+          element either had no attribute with the node’s name  or  an
+          attribute that had never been accessed as a node.
+
 0.011   19 May, 2008
         New features:
         • Link and style elements now have their ‘sheet’ attribute (in
@@ -67,6 +117,7 @@ Revision history for HTML::DOM
           undef for form, img and map elements.
         • HTML::DOM::Collection::Elements’s namedItem method used to
           die if there were multiple form fields with the same  name.
+        • HTML::DOM’s open method no longer clobbers element handlers.
 
 0.009   23 November, 2007
         Changes/new features:

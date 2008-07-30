@@ -5,7 +5,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => scalar reverse 78;
+use Test::More tests => scalar reverse 98;
 
 # -------------------------#
 # Test 1-2: load the modules
@@ -427,7 +427,7 @@ is $e->target, $grandchild,
 
 
 # -------------------------#
-# Tests 75-81: even laster: make sure event_attr_handler is actually used
+# Tests 75-83: even laster: make sure event_attr_handler is actually used
 
 {
 	$doc->close;
@@ -438,7 +438,9 @@ is $e->target, $grandchild,
 	});
 
 	$doc->write('
-		<form onsubmit="die"><input Onclick="print q/foo/"></form>
+		<form name=foo onsubmit="die">
+			<input Onclick="print q/foo/">
+		</form>
 	');
 	$doc->close;
 	
@@ -447,25 +449,27 @@ is $e->target, $grandchild,
 	is $__[1][1], 'submit',
 		'event name is passed to the event attr handler';
 	is $__[1][2], 'die', 'code is passed to the event attr handler';
+	is $__[1][3], 27, 'offset is passed ...';
+	is $__[0][3], 52, '... to the event attr handler';
 
 	is_deeply [$doc->forms->[0]->get_event_listeners('submit')],
-	   [$__[1][3]],
+	   [$__[1][4]],
 	  'coderef returned by event attr handler becomes an eavesdropper';
 	is_deeply [$doc->forms->[0]->elements->[0]
 	              ->get_event_listeners('click')],
-	          [$__[0][3]],
+	          [$__[0][4]],
 	          'same when on is spelt On';
 
 	$doc->forms->[0]->setAttribute('onsubmit' => 'live');
 	is $__[2][1], 'submit',
 		'setAttribute triggers the event attr handler';
 	is_deeply [$doc->forms->[0]->get_event_listeners('submit')],
-	   [$__[2][3]],
+	   [$__[2][-1]],
 	  're-assigning to an event attr can replace an existing listener';
 }
 
 # -------------------------#
-# Tests 82-6: HTML::DOM::error_handler access
+# Tests 84-8: HTML::DOM::error_handler access
 
 {
 	my $coderef = sub{};
@@ -484,7 +488,7 @@ is $e->target, $grandchild,
 }
 
 # -------------------------#
-# Test 87: use of HTML::DOM::error_handler
+# Test 89: use of HTML::DOM::error_handler
 
 {
 	my $e;

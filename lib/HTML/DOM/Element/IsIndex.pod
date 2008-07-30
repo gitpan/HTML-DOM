@@ -26,6 +26,8 @@ L<HTML::DOM::Element> (q.v.).
 In addition to those inherited from HTML::DOM::Element and its 
 superclasses, this class implements the following DOM methods:
 
+=over 4
+
 =item form
 
 Returns the form element that contains this element, if any.

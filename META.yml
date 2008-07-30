@@ -1,25 +1,29 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         HTML-DOM
-version:      0.011
+version:      0.012
 version_from: lib/HTML/DOM.pm
 installdirs:  site
 requires:
     Carp:                          0
     constant:                      0
+    constant::lexical:             0
     CSS::DOM:                      0
     CSS::DOM::StyleDecl:           0
     CSS::DOM::StyleSheetList:      0
     Exporter:                      5.57
     HTML::Element:                 0
+    HTML::Encoding:                0
     HTML::Form:                    1.054
+    HTML::Parser:                  3
     HTML::TreeBuilder:             0
     HTTP::Headers::Util:           0
     overload:                      0
-    Scalar::Util:                  1.08
+    Scalar::Util:                  1.14
     strict:                        0
     Test::More:                    0
     URI:                           0
+    utf8:                          0
     warnings:                      0
 
 distribution_type: module

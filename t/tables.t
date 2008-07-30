@@ -1,5 +1,10 @@
 #!/usr/bin/perl -T
 
+# Note: Some attributes are supposed to have their values normalised when
+# accessed through the DOM 0 interface. For this reason, some attributes,
+# particularly ‘align’, have weird capitalisations of their values when
+# they are set. This is intentional.
+
 use strict; use warnings;
 our $tests;
 BEGIN { ++$INC{'tests.pm'} }
@@ -78,13 +83,13 @@ use tests 73; # HTMLTableElement
 	test_attr $table, tFoot => $tf,
 		$doc->createElement('tfoot');
 
-	$table->attr(align => 'left');
+	$table->attr(align => 'LEft');
 	$table->attr(bgcolor => 'red');
 	$table->attr(border => '2');
 	$table->attr(cellpadding => '3');
 	$table->attr(cellspacing => '4');
 	$table->attr(frame => '5');
-	$table->attr(rules => 'none');
+	$table->attr(rules => 'noNe');
 	$table->attr(summary => 'left');
 	$table->attr(width => '80');
 	
@@ -138,7 +143,7 @@ use tests 4; # HTMLTableCaptionElement
 	), 'HTML::DOM::Element::Caption',
 		"class for caption";
 
-	$elem->attr(align => 'left');
+	$elem->attr(align => 'lEft');
 	test_attr $elem, qw/align left right /;
 }
 
@@ -151,11 +156,11 @@ use tests 20; # HTMLTableColElement
 	), 'HTML::DOM::Element::TableColumn',
 		"class for $_" for qw/ col colgroup /;
 
-	$elem->attr(align => 'left');
+	$elem->attr(align => 'LeFt');
 	$elem->attr(char => '.');
 	$elem->attr(charoff => '8');
 	$elem->attr(span => '9');
-	$elem->attr(vAlign => 'top');
+	$elem->attr(vAlign => 'toP');
 	$elem->attr(width => '10');
 	no warnings 'qw';
 	test_attr $elem, qw/align left right /;
@@ -175,10 +180,10 @@ use tests 25; # HTMLTableSectionElement
 	), 'HTML::DOM::Element::TableSection',
 		"class for $_" for qw/ thead tbody tfoot /;
 
-	$elem->attr(align => 'left');
+	$elem->attr(align => 'LefT');
 	$elem->attr(char => '.');
 	$elem->attr(charoff => '8');
-	$elem->attr(vAlign => 'top');
+	$elem->attr(vAlign => 'tOp');
 	no warnings 'qw';
 	test_attr $elem, qw/align left right /;
 	test_attr $elem, qw/ch . , /;
@@ -235,11 +240,11 @@ use tests 29; # HTMLTableRowElement
 	$subt->insertRow()->appendChild($doc->createElement('td'));
 	is @$cells, 1, 'cells is not recursive';
 
-	$row->attr(align => 'left');
+	$row->attr(align => 'LEFt');
 	$row->attr(bgcolor => 'red');
 	$row->attr(char => '.');
 	$row->attr(charoff => '8');
-	$row->attr(vAlign => 'top');
+	$row->attr(vAlign => 'Top');
 	no warnings 'qw';
 	test_attr $row, qw/align left right /;
 	test_attr $row, qw/bgColor red green /;
@@ -273,7 +278,7 @@ use tests 45; # HTMLTableCellElement
 	is $cell->cellIndex, 0, 'cellIndex';
 
 	$cell->attr(abbr => 'evi');
-	$cell->attr(align => 'left');
+	$cell->attr(align => 'lEfT');
 	$cell->attr(axis => 'allies');
 	$cell->attr(bgcolor => 'red');
 	$cell->attr(char => '.');
@@ -283,8 +288,8 @@ use tests 45; # HTMLTableCellElement
 	$cell->attr(height => '10');
 	$cell->attr(nowrap => '10');
 	$cell->attr(rowspan => '11');
-	$cell->attr(scope => 'row');
-	$cell->attr(vAlign => 'top');
+	$cell->attr(scope => 'roW');
+	$cell->attr(vAlign => 'TOp');
 	$cell->attr(width => '12');
 	no warnings 'qw';
 	test_attr $cell, qw/abbr evi ation /;

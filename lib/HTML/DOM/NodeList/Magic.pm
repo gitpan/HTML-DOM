@@ -6,7 +6,7 @@ use overload fallback => 1, '@{}' => \&_get_tie;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 # Innards: {
 #	get => sub { ... }, # sub that gets the list
@@ -88,29 +88,29 @@ sub DELETE {
 
 __END__
 
+=head1 NAME
 
-The reference behind a tied variable can be weakened with 'weaken tie'. But
-a subsequent 'weaken tied' won't work, so it has to be weakened as the tie
-is created.
+HTML::DOM::NodeList - Magical node list class for HTML::DOM
 
-#!/usr/bin/perl -l
+=head1 SYNOPSIS
 
-# works with 5.8.8 and 5.9.5 patch level #31224
+  use HTML::DOM;
+  $doc = HTML::DOM->new;
 
-use Scalar::Util qw'weaken isweak';
+  $list = $doc->getElementsByTagName('p');
+    # returns an HTML::DOM::NodeList::Magic object
+    
+  $list->[0];     # first node
+  $list->item(0); # same
+  
+  $list->length; # same as scalar @$list
 
-sub TIEHASH { $_[1] }
-sub DESTROY { print "Bye bye!" }
-$obj = bless[];
+=head1 DESCRIPTION
 
+See L<HTML::DOM::NodeList> both for a description and the API.
 
-weaken tie %{$obj->[0]}, __PACKAGE__, $obj;
-# This does not work:
-#weaken tied %{$obj->[0]};
+=head1 SEE ALSO
 
-print 'before undef';
-undef $obj;
-print 'after undef';
+L<HTML::DOM>
 
-__END__
-
+L<HTML::DOM::NodeList>

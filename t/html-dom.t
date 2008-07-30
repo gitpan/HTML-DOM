@@ -3,9 +3,9 @@
 # ~~~ I need a test that makes sure HTML::TreeBuilder doesn’t spit out
 #     warnings because of hash deref overloading.
 
-use strict; use warnings;
+use strict; use warnings; use utf8;
 
-use Test::More tests => 23;
+use Test::More tests => 31;
 
 
 # -------------------------#
@@ -59,13 +59,16 @@ $doc->close;
 }
 
 # -------------------------#
-# Test 21: parse_file
+# Tests 21-9: parse_file & charset
 
 use File::Basename;
 use File::Spec::Functions 'catfile';
 
-($doc = new HTML::DOM) # clobber the existing one
- ->parse_file(catfile(dirname ($0),'test.html'));
+is $doc->charset, undef, 'undefined charset';
+ok +($doc = new HTML::DOM) # clobber the existing one
+   ->parse_file(catfile(dirname ($0),'test.html')),
+	'parse_file returns true';
+is $doc->charset, 'utf-8', 'charset';
 
 sub traverse($) {
 	my $thing = shift;
@@ -149,7 +152,7 @@ is_deeply traverse $doc, [
                 ],
               },
               '#text' => {
-                data => '!',
+                data => '‼',
               },
               '#text' => {
                 data => ' ', # the line break after </html>
@@ -162,9 +165,23 @@ is_deeply traverse $doc, [
   },
 ], 'parse_file';
 
+ok !(new HTML::DOM)
+ ->parse_file(catfile(dirname ($0),'I know this file does not exist.')),
+	'parse_file can return false';
+
+($doc = new HTML::DOM charset => 'x-mac-roman') # clobber the existing one
+   ->parse_file(catfile(dirname ($0),'test.html'));
+like $doc->getElementsByTagName('p')->[-1]->as_text, qr/‚Äº/,
+	'parse_file respects existing charset';
+
+
+$doc = new HTML::DOM charset => 'iso-8859-1';
+is $doc->charset, 'iso-8859-1', 'charset in constructor';
+is $doc->charset('utf-16be'), 'iso-8859-1', 'charset get/set';
+is $doc->charset, 'utf-16be', 'get charset after set';
 
 # -------------------------#
-# Test 22: another elem_handler test with nested <script> elems
+# Test 30: another elem_handler test with nested <script> elems
 #          This was causing infinite recursion before version 0.004.
 
 {
@@ -189,7 +206,7 @@ is_deeply traverse $doc, [
 }
 
 # -------------------------#
-# Test 23: Yet another elem_handler test, this time with '*' for the tag.
+# Test 31: Yet another elem_handler test, this time with '*' for the tag.
 #          I broke this in 0.009 and fixed it in 0.010.
 
 {

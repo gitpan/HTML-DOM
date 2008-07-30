@@ -5,7 +5,7 @@ package HTML::DOM;
 # something to be done still (except in this sentence).
 
 
-use 5.006;
+use 5.008002;
 
 use strict;
 use warnings;
@@ -15,7 +15,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -26,12 +26,14 @@ require  HTML::DOM::Implementation;
 require         HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 require             HTML::DOM::Text;
+require                 HTML::Tagset;
 require             HTML::TreeBuilder;
 require                  HTML::DOM::View;
 
 use overload fallback => 1,
 '%{}' => sub {
 	my $self = shift;
+#return $self; # for debugging
 	$self->isa(scalar caller) || caller->isa('HTML::TreeBuilder')
 		and return $self;
 	$self->forms;
@@ -44,7 +46,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.011 (alpha)
+Version 0.012 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -55,6 +57,10 @@ notice.
   use HTML::DOM;
   
   my $dom_tree = new HTML::DOM; # empty tree
+  $dom_tree->write($source_code);
+  $dom_tree->close;
+  
+  my $other_dom_tree = new HTML::DOM;
   $dom_tree->parse_file($filename);
   
   $dom_tree->getElementsByTagName('body')->[0]->appendChild(
@@ -125,6 +131,14 @@ An HTTP::Cookies object. As with C<response>, if you omit this, arguments
 passed to the 
 C<cookie> method will be ignored.
 
+=item charset
+
+The original character set of the document. This does not affect parsing
+via the C<write> method (which always assumes Unicode). C<parse_file> will
+use this, if specified, or L<HTML::Encoding> otherwise.
+L<HTML::DOM::Form>'s C<make_request> method uses this to encode form data
+unless the form has a valid 'accept-charset' attribute.
+
 =back
 
 If C<referrer> and C<url> are omitted, they can be inferred from 
@@ -167,6 +181,8 @@ The TB object used for innerHTML can probably be cached and re-used.
 	package HTML::DOM::TreeBuilder;
 	our @ISA = qw' HTML::DOM::Element::HTML HTML::TreeBuilder';
 
+	use Scalar::Util qw 'weaken isweak';
+
 	# I have to override this so it doesn't delete _HTML_DOM_* attri-
 	# butes and so that it blesses the object into the right  class.
 	sub elementify {
@@ -174,7 +190,9 @@ The TB object used for innerHTML can probably be cached and re-used.
 	  my %attrs = map /^[a-z_]*\z/ ? () : ($_ => $self->{$_}),
 	    keys %$self;
           $self->SUPER::elementify;
-	  %$self = (%$self, %attrs);
+	  my @weak = grep isweak $self->{$_}, keys %$self;
+	  %$self = (%$self, %attrs); # this invigorates feeble refs
+	  weaken $self->{$_} for @weak;
 	  bless $self, HTML::DOM::Element::class_for(tag $self);
 	}
 
@@ -197,23 +215,12 @@ The TB object used for innerHTML can probably be cached and re-used.
 			'tweak_*' => sub {
 				my($elem, $tag, $doc_elem) = @_;
 				$tag =~ /^~/ and return;
-				defined(my $event_attr_handler =
-				  $doc_elem->parent->event_attr_handler)
+				my $event_offsets = delete
+				    $elem->{_HTML_DOM_tb_event_offsets}
 				  or return;
-				for($elem->all_attr_names) {
-					if(/^on(.*)/is) {
-						my $l =
-						&$event_attr_handler(
-							$elem,
-							my $name = lc $1,
-							$elem->attr($_)
-						);
-						defined $l and
-						$elem->_add_attr_event (
-							$name, $l
-						);
-					}
-				}
+				_create_events(
+					$doc_elem, $elem, $event_offsets
+				);
 			 },
 		 ))
 		   ->ignore_ignorable_whitespace(0); # stop eof()'s cleanup
@@ -224,11 +231,68 @@ The TB object used for innerHTML can probably be cached and re-used.
 
 		$tb->handler(text => "text",         # so we can get line
 		    "self, text, is_cdata, offset"); # numbers for scripts
+		$tb->handler(start => "start",
+		  "self, tagname, attr, attrseq, offset, tokenpos");
+		$tb->handler((declaration=>)x2, 'self,tagname,tokens');
 
 		$tb->{_HTML_DOM_tweakall} = $tb->{'_tweak_*'};
 
-		weaken $tb;
-		$tb;
+		# We have to copy it like this, because our circular ref-
+		# erence is thus:  $tb  ->  object  ->  closure  ->  $tb
+		# We can’t weaken $tb without a copy of it, because it is
+		# the only reference to the object.
+		my $life_raft = $tb; weaken $tb; $tb;
+	}
+
+	sub start {
+		return shift->SUPER::start(@_) if @_ < 6; # shirt-çorcuit
+		
+		my $tokenpos = pop;
+		my $offset = pop;
+		my %event_offsets;
+		my $attr_names = pop;
+		for(0..$#$attr_names) {
+			$$attr_names[$_] =~ /^on(.*)/is
+				and $event_offsets{$1} =
+					$$tokenpos[$_*4 + 4] + $offset;
+		}
+
+		my $elem = (my $self = shift)->SUPER::start(@_);
+		
+		return $elem unless %event_offsets;
+
+		if(!$HTML::Tagset::emptyElement{$_[0]}) { # container
+			$$elem{_HTML_DOM_tb_event_offsets} =
+				\%event_offsets;
+		} else {
+			_create_events(
+				$self,
+				$elem,
+				\%event_offsets,
+			);
+		}
+
+		return $elem;
+	}
+
+	sub _create_events {
+		my ($doc_elem,$elem,$event_offsets) = @_;
+		defined(my $event_attr_handler =
+		  $doc_elem->parent->event_attr_handler)
+		  or return;
+		for(keys %$event_offsets) {
+			my $l =
+			&$event_attr_handler(
+				$elem,
+				$_,
+				$elem->attr("on$_"),
+				$$event_offsets{$_}
+			);
+			defined $l and
+			$elem->_add_attr_event (
+				$_, $l
+			);
+		}
 	}
 
 	sub text {
@@ -258,6 +322,14 @@ The TB object used for innerHTML can probably be cached and re-used.
 			if ($self->{_pos}||return)->{_tag} eq '~doc';
 	}
 
+	sub declaration {
+		my($self,$tagname,$tokens) = @_;
+		return unless $tagname eq 'doctype' and @$tokens > 3;
+		for ($self->{_HTML_DOM_version} = $tokens->[3]){
+			s/^['"]// and s/['"]\z//;
+		}
+	}
+
 } # end of special TreeBuilder package
 
 sub new {
@@ -282,6 +354,7 @@ sub new {
 	$self->{_HTML_DOM_jar} = $opts{cookie_jar}; # might be undef
 	$self->push_content(new HTML::DOM::TreeBuilder);
 	$self->{_HTML_DOM_view} = new HTML::DOM::View $self;
+	$self->{_HTML_DOM_cs} = $opts{charset};
 	$self;
 }
 
@@ -289,14 +362,16 @@ sub new {
 
 =item $tree = new_from_content HTML::DOM
 
-B<Not yet implemented.>
+B<Not yet implemented.> (I'm minded never to implement these, for the 
+simple reason that you won't
+get all the options that the constructor provides.)
 
 =item $tree->elem_handler($elem_name => sub { ... })
 
-This method has no effect unless you call it I<before> building the DOM
-tree. If you call this method, then, when the DOM tree is in the 
+If you call this method first, then, when the DOM tree is in the 
 process of
-being built, the subroutine will be called after each C<$elem_name> element 
+being built (as a result of a call to C<write> or C<parse_file>), the 
+subroutine will be called after each C<$elem_name> element 
 is
 added to the tree. If you give '*' as the element name, the subroutine will
 be called for each element that does not have a handler. The subroutine's 
@@ -330,8 +405,6 @@ or security into account):
 L<C<content_offset>|HTML::DOM::Element/content_offset> method might come in
 handy for reporting line numbers for script errors.)
 
-B<BUG:> The 'open' method currently undoes what this method does.
-
 =cut
 
 sub elem_handler {
@@ -352,7 +425,7 @@ sub elem_handler {
 		my $p = HTML::Parser->new(
 			start_h => [ 
 				sub { $doc_elem->start(@_) },
-				'tagname, attr, attrseq, text'
+				'tagname, attr, attrseq'
 			],
 			end_h => [ 
 				sub { $doc_elem->end(@_) },
@@ -384,18 +457,12 @@ sub elem_handler {
 
 
 
-=item $tree->parse_file($file)
-
-This simply
-calls HTML::TreeBuilder's method of the same name (q.v., and see also
-HTML::Element). It takes a file name or handle and parses the content,
-(effectively) calling C<close> afterwards.
-
 =item $tree->write(...) (DOM method)
 
 This parses the HTML code passed to it, adding it to the end of 
 the
-document. Like L<HTML::TreeBuilder>'s
+document. It assumes that its input is a normal Perl Unicode string. Like
+L<HTML::TreeBuilder>'s
 C<parse> method, it can take a coderef.
 
 When it is called from an an element handler (see
@@ -419,13 +486,85 @@ Call this method to signal to the parser that the end of the HTML code has
 been reached. It will then parse any residual HTML that happens to be
 buffered. It also makes the next C<write> call C<open>.
 
+=item $tree->open (DOM method)
+
+Deletes the HTML tree, resetting it so that it has just an <html> element,
+and a parser hungry for HTML code.
+
+=item $tree->parse_file($file)
+
+This method takes a file name or handle and parses the content,
+(effectively) calling C<close> afterwards. In the former case (a file 
+name), L<HTML::Encoding> will be used to detect the encoding. In the
+latter (a file handle), you'll have to C<binmode> it yourself. This could
+be considered a bug. If you have a solution to this (how to make
+HTML::Encoding detect an encoding from a file handle), please let me know.
+
+As of version 0.12, this method returns true upon success, or undef/empty
+list on failure.
+
+=item $tree->charset
+
+This method returns the name of the character
+set that was passed to C<new>, or, if that was not given, that which
+C<parse_file> used.
+
+It returns undef if C<new> was not given a charset, if C<parse_file> was 
+not 
+used or if C<parse_file> was
+passed a file handle.
+
+You can also set the charset by passing an argument, in which case the old
+value is returned.
+
 
 =cut
 
 sub parse_file {
-	(my $a = (shift->content_list)[0])
-		->parse_file(@_);
-	 $a	->elementify;
+	my $file = $_[1];
+
+	# This ‘if’ statement uses the same check that HTML::Parser uses.
+	# We are not strictly checking to see whether it’s a handle,
+	# but whether  HTML::Parser  would  consider  it  one.
+	if (ref($file) || ref(\$file) eq "GLOB") {
+		(my $a = (shift->content_list)[0])
+			->parse_file($file) || return;
+		 $a	->elementify;
+		return 1;
+	}
+
+	no warnings 'parenthesis'; # 5.8.3 Grrr!!
+	if(my $charset = $_[0]{_HTML_DOM_cs}) {
+		open my $fh, $file or return;
+		$charset =~ s/^(?:x-?)?mac-?/mac/i;
+		binmode $fh, ":encoding($charset)";
+		($_->content_list)[0]->parse_file($fh) || return,
+		$_->close
+			for shift;
+		return 1;
+	}
+
+	open my $fh, $file or return;
+	local $/;
+	my $contents = <$fh>;
+	require HTML::Encoding;
+	my $encoding = HTML::Encoding::encoding_from_html_document(
+		$contents
+	) || 'iso-8859-1';
+	# Since we’ve already slurped the file, we might as well
+	# avoid having HTML::Parser read it again, even if we could
+	# use binmode.
+	require Encode;
+	$_->write(Encode::decode($encoding, $contents)), $_->close,
+	$_->{_HTML_DOM_cs} = $encoding
+		for shift;
+	return 1;
+}
+
+sub charset {
+	my $old = (my$ self = shift)->{_HTML_DOM_cs};
+	$self->{_HTML_DOM_cs} = shift if @_;
+	$old;
 }
 
 sub write {
@@ -444,41 +583,35 @@ sub write {
 sub writeln { $_[0]->write("$_[1]\n") }
 
 sub close {
-	eval { # make it a no-op if there's no parser
-	(my $a = (shift->content_list)[0])
-		->eof(@_);
-	 $a	->elementify;
-	};
+	my $a = (shift->content_list)[0];
+
+	# We can’t use eval { $a->eof } because that would catch errors
+	# that are meant to propagate  (a  nasty  bug  [the  so-called
+	# ‘content—offset’ bug] was hidden because of an eval in ver-
+	#  sion 0.010).
+	return unless $a->can('eof');
+	                             
+	$a->eof(@_);
+	$a->elementify;
 	return # nothing;
 }
 
-=item $tree->open
-
-Deletes the HTML tree, reseting it so that it has just an <html> element,
-and a parser hungry for HTML code.
-
-=cut
-
 sub open {
-	(my $self = shift)->delete_content; # remove circular references
-	$self->{_content} = [new HTML::DOM::TreeBuilder];
+	(my $self = shift)->detach_content;
 
-	# The ownerDocument method of items in the tree stops working
-	# without this, since the root currently has no parent:
-	($self->content_list)[0]->parent($self);
+	# We have to use push_content instead of simply putting it there
+	# ourselves,  because push_content  takes care of weakening the
+	# parent  (and that code  doesn’t  belong  in  this  package).
+	$self->push_content(my $tb = new HTML::DOM::TreeBuilder);
 
 	return unless $self->{_HTML_DOM_elem_handlers};
 	for(keys %{$self->{_HTML_DOM_elem_handlers}}) {
-#warn "$_: $self->{_HTML_DOM_elem_handlers}{$_}";
-		$self->{_content}[0]{"_tweak_$_"} =
+		$$tb{"_tweak_$_"} =
 			$self->{_HTML_DOM_elem_handlers}{$_}
 	}
-#use DDS;
-#Dump $self->{_content}[0]{'_tweak_*'};
 
 	return # nothing;
 }
-
 
 =back
 
@@ -673,11 +806,7 @@ Returns the document's URL.
 
 Returns the body element, or the outermost frame set if the document has
 frames. You can set the body by passing an element as an argument, in which
-case the old body element is returned. In this case you should call
-C<delete> on the return value to remove circular references, unless you
-plan to use it still. E.g.,
-
-  $doc->body($new_body)->delete;
+case the old body element is returned.
 
 =item images
 
@@ -689,7 +818,7 @@ plan to use it still. E.g.,
 
 =item anchors
 
-These five methods return a list of the appropriate elements in list
+These five methods each return a list of the appropriate elements in list
 context, or an L<HTML::DOM::Collection> object in scalar context. In this
 latter case, the object will update automatically when the document is
 modified.
@@ -698,6 +827,8 @@ In the case of C<forms> you can access those by using the HTML::DOM object
 itself as a hash. I.e., you can write C<< $doc->{f} >> instead of
 S<< C<< $doc->forms->{f} >> >>.
 
+=for comment
+# ~~~ Why on earth did I ever put this in the docs?!
 B<TO DO:> I need to make these methods cache the HTML collection objects
 that they create. Once I've done this, I can make list context use those
 objects, as well as scalar context.
@@ -915,10 +1046,10 @@ sub getElementsByName {
 
 =item createEvent
 
+Creates a new event object, believe it or not.
+
 This currently ignores its args. Later the arg passed to it will determine
 into which class the newly-created event object is blessed.
-
-=back
 
 =cut
 
@@ -1054,7 +1185,12 @@ The C<event_attr_handler> can be used to assign a coderef that will turn
 text assigned to an event attribute (e.g., C<onclick>) into a listener. The
 arguments to the routine will be (0) the element, (1) the name (aka
 type) of 
-the event (without the initial 'on') and (2) the value of the attribute. As 
+the event (without the initial 'on'), (2) the value of the attribute and
+(3) the offset within the source of the attribute's value. (Actually, if
+the value is within quotes, it is the offset of the first quotation mark.
+Also, it will be C<undef> for generated HTML [source code passed to the
+C<write> method by an element handler].) 
+As 
 with C<default_event_handler>, you
 can replace an existing handler with a new one, in which case the old
 handler is returned. If you call this method without arguments, it returns
@@ -1062,7 +1198,7 @@ the current handler. Here is an example of its use, that assumes that
 handlers are Perl code:
 
   $dom_tree->event_attr_handler(sub {
-          my($elem, $name, $code) = @_;
+          my($elem, $name, $code, $offset) = @_;
           my $sub = eval "sub { $code }";
           return sub {
                   my($event) = @_;
@@ -1231,6 +1367,10 @@ machine-readable list of standard methods.)
 Although HTML::DOM::Node inherits from HTML::Element, the interface is not
 entirely compatible, so don't rely on any HTML::Element methods.
 
+Note also that HTML::Element's C<delete> method is not necessary, because
+HTML::DOM uses weak references (for 'upward' references in the object
+tree).
+
 The EventListener interface is not implemented by HTML::DOM, but is 
 supported.
 See L</EVENT HANDLING>, above.
@@ -1277,17 +1417,17 @@ object in scalar context, or a simple list in list context. You can use
 the object as an array ref in addition to calling its C<item> and 
 C<length> methods.
 
-=begin for-me
+=item *
 
-If I implement any methods that make use of the DOMTimeStamp interface, I
-need to document that simple Perl scalars containing the time as returned
-by Perl’s built-in ‘time’ function are used.
+In cases where a method is supposed to return something implementing
+the DOMTimeStamp interface, a simple Perl scalar is returned, containing
+the time as returned by Perl’s built-in C<time> function.
 
-=end for-me
+=back
 
 =head1 PREREQUISITES
 
-perl 5.8.0 or later
+perl 5.8.2 or later
 
 Exporter 5.57 or later
 
@@ -1309,43 +1449,21 @@ CSS::DOM is required if you use any of the style sheet features. Version
 0.02 or later is required for the C<styleSheets> method to work in scalar
 context.
 
-Scalar::Util 1.08 or later
+Scalar::Util 1.14 or later
+
+HTML::Encoding is required if a file name is passed to 
+C<parse_file>.
+
+constant::lexical
 
 =head1 BUGS
 
+=for comment
+(since I might use it as a template if I need it later)
 (See also BUGS in 
-L<HTML::DOM::Collection::Options/BUGS|HTML::DOM::Collection::Options> and
 L<HTML::DOM::Element::Option/BUGS|HTML::DOM::Element::Option>)
 
 =over 4
-
-=item -
-
-I really don't know what will happen if a element handler goes and deletes
-parent elements of the element for which the handler is called.
-
-=item -
-
-The values of attributes whose data type is a value list in the HTML DTD
-are currently not normalised when accessed through the Level 0 interface, 
-though they should be.
-
-=item -
-
-The values of boolean attributes 
-are currently not normalised when accessed through the Level 0 interface, 
-though they should be.
-
-=item -
-
-Certain HTML attributes are supposed to have default values if they are
-not in specified in the document. This is not implemented yet, except for
-a few cases here and there.
-
-=item -
-
-The C<open> method currently delete's any of the HTML::DOM object's
-references to subroutines that were passed to C<elem_handler>.
 
 =item -
 
@@ -1376,7 +1494,7 @@ L<HTML::DOM::Interface>
 L<HTML::Tree>, L<HTML::TreeBuilder>, L<HTML::Element>, L<HTML::Parser>,
 L<LWP>, L<WWW::Mechanize>, L<HTTP::Cookies>, 
 L<WWW::Mechanize::Plugin::JavaScript>,
-L<HTML::Form>
+L<HTML::Form>, L<HTML::Encoding>
 
 The DOM Level 1 specification at S<L<http://www.w3.org/TR/REC-DOM-Level-1>>
 

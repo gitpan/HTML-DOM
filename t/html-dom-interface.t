@@ -8,7 +8,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 35;
+use Test::More tests => 37;
 
 
 # -------------------------#
@@ -29,8 +29,8 @@ ok exists $HTML::DOM::Interface{HTMLDocument}{createComment},
 	"{HTMLDocument}{createComment} exists";
 is $HTML::DOM::Interface{HTMLDocument}{_isa}, "Node",
 	'HTMLDocument isa Node';
-is $HTML::DOM::Interface{'HTML::DOM::Collection::Options'},
-	'HTMLCollection', 'HTML::DOM::Collection::Options is there';
+ok exists $HTML::DOM::Interface{'HTML::DOM::Collection::Options'},
+	'HTML::DOM::Collection::Options is there';
 
 # -------------------------#
 # Test 7-32: changes made in 0.010
@@ -77,3 +77,12 @@ ok exists $HTML::DOM::Interface{HTMLLinkElement}{sheet},
 ok exists $HTML::DOM::Interface{HTMLStyleElement}{sheet},
 	'HTMLStyleElement sheet';
 ok exists $HTML::DOM::Interface{HTMLDocument}{styleSheets}, 'styleSheets';
+
+# -------------------------#
+# Tests 36-7: changes made in 0.012
+
+is $HTML::DOM::Interface{'HTML::DOM::Collection::Options'},
+	'HTMLOptionsCollection',
+	'HTML::DOM::Collection::Options maps to HTMLOptionsCollection';
+ok exists $HTML::DOM::Interface{HTMLOptionsCollection},
+	'HTMLOptionsCollection';

@@ -409,6 +409,8 @@ use Scalar::Util 'refaddr';
 
 {
 	my $element = $doc->createElement('p');
+	$element->getAttribute('dir'); # make sure implied attributes don't
+	                               # affect serialisation when accessed
 	$element->appendChild($doc->createTextNode('This text contains '));
 	$element->appendChild(my $belem = $doc->createElement('tt'));
 	$belem->appendChild($doc->createTextNode('<tags>'));
