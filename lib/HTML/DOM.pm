@@ -15,7 +15,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -46,7 +46,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.012 (alpha)
+Version 0.013 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -84,7 +84,7 @@ The following DOM modules are currently supported:
 
   Feature      Version (aka level)
   -------      -------------------
-  HTML         1.0
+  HTML         2.0
   Core         2.0
   Events       2.0 (partially)
   StyleSheets  2.0
@@ -92,7 +92,7 @@ The following DOM modules are currently supported:
   CSS2         2.0
   Views        2.0
 
-StyleSheets, CSS and CSS2 are actually provided by C<CSS::DOM>. This list
+StyleSheets, CSS and CSS2 are actually provided by L<CSS::DOM>. This list
 corresponds to CSS::DOM version 0.02.
 
 =head1 METHODS
@@ -355,6 +355,20 @@ sub new {
 	$self->push_content(new HTML::DOM::TreeBuilder);
 	$self->{_HTML_DOM_view} = new HTML::DOM::View $self;
 	$self->{_HTML_DOM_cs} = $opts{charset};
+
+	$self->default_event_handler_for(
+		submit_button => sub {
+			(shift->target->form||return)
+				->trigger_event('submit')
+		}
+	);
+	$self->default_event_handler_for(
+		reset_button => sub {
+			(shift->target->form||return)
+				->trigger_event('reset')
+		}
+	);
+
 	$self;
 }
 
@@ -1104,6 +1118,8 @@ sub nodeName { '#document' }
 
 =item $tree->default_event_handler
 
+=item $tree->default_event_handler_for
+
 =item $tree->error_handler
 
 See L</EVENT HANDLING>, below.
@@ -1148,29 +1164,51 @@ method or an object with C<&{}> overloading. HTML::DOM does not implement
 any classes that provide a C<handleEvent> method, but will support any
 object that has one.
 
+=head2 Default Actions
+
 To specify the default actions associated with an event, provide a
-subroutine via the C<default_event_handler> method. The sole argument will
+subroutine (in this case, it not being part of the DOM, you can't use an
+object with a C<handleEvent> method) via the C<default_event_handler_for> 
+and 
+C<default_event_handler> methods.
+
+With the former, you can specify the
+default action to be taken when a particular type of event occurs. The
+currently supported types are:
+
+  link           triggered when a link is clicked
+  submit_button  when a submit button is clicked
+  reset_button   when a reset button is clicked
+  submit         when a form is submitted
+
+Pass the type of event as the first argument and a code ref as the second
+argument. When the code ref is called, its sole argument will
 be the event object. For instance:
 
-  $dom_tree->default_event_handler(sub {
+  $dom_tree->default_event_handler_for( link => sub {
          my $event = shift;
-         my $type = $event->type;
-         my $tag = (my $target = $event->target)->nodeName;
-         if ($type eq 'click' && $tag eq 'A') {
-                # ...
-         }
-         # etc.
+         go_to( $event->target->href );
   });
+  sub go_to { ... }
 
-C<default_event_handler> without any arguments will return the currently 
+The C<submit_button> and C<reset_button> event types by default already
+have subroutines
+associated with them that triggers a submit or reset event on the button's 
+form.
+
+C<default_event_handler_for> with just one argument returns the 
+currently 
+assigned coderef. With two arguments it returns the old one after
+assigning the new one.
+
+Use C<default_event_handler> (without the C<_for>) to specify a fallback
+subroutine that will be used for events not in the list above, and for
+events in the list above that do not have subroutines assigned to them.
+Without any arguments it will return the currently 
 assigned coderef. With an argument it will return the old one after
 assigning the new one.
 
-Currently no default actions are taken when events are triggered. It is up
-to the default event handler to do that. Later I will allow for multiple
-default event handlers to be assigned to more specific events, and a few
-will be in place to begin with (e.g., for a submit button's 'click' event,
-the form's 'submit' event will be triggered; currently it is not).
+=head2 Dispatching Events
 
 HTML::DOM::Node's C<dispatchEvent> method triggers the appropriate event 
 listeners, but does B<not> call any default actions associated with it.
@@ -1180,6 +1218,8 @@ should be taken.
 H:D:Node's C<trigger_event> method will trigger the event for real. It will
 call C<dispatchEvent> and, provided it returns true, will call the default
 event handler.
+
+=head2 HTML Event Attributes
 
 The C<event_attr_handler> can be used to assign a coderef that will turn
 text assigned to an event attribute (e.g., C<onclick>) into a listener. The
@@ -1211,7 +1251,11 @@ handlers are Perl code:
 
 The event attribute handler will be called whenever an element attribute 
 whose name
-begins with 'on' (case-tolerant) is modified.
+begins with 'on' (case-tolerant) is modified. (For efficiency's sake, I may
+change it to call the event attribute handler only when the event is
+triggered, so it is not called unnecessarily.)
+
+=head2 When an Event Handler Dies
 
 Use C<error_handler> to assign a coderef that will be called whenever an
 event listener raises an error. The error will be contained in C<$@>.
@@ -1228,6 +1272,11 @@ sub event_attr_handler {
 sub default_event_handler {
 	my $old = $_[0]->{_HTML_DOM_default_event_handler};
 	$_[0]->{_HTML_DOM_default_event_handler} = $_[1] if @_ > 1;
+	$old;
+}
+sub default_event_handler_for {
+	my $old = $_[0]->{_HTML_DOM_dehf}{$_[1]};
+	$_[0]->{_HTML_DOM_dehf}{$_[1]} = $_[2] if @_ > 2;
 	$old;
 }
 sub error_handler {
@@ -1445,9 +1494,8 @@ HTTP::Headers::Util :-).
 HTML::Form 1.054 or later if any of the methods provided for
 WWW::Mechanize compatibility are called.
 
-CSS::DOM is required if you use any of the style sheet features. Version
-0.02 or later is required for the C<styleSheets> method to work in scalar
-context.
+CSS::DOM 0.03 or later is required if you use any of the style sheet 
+features.
 
 Scalar::Util 1.14 or later
 
@@ -1463,14 +1511,17 @@ constant::lexical
 (See also BUGS in 
 L<HTML::DOM::Element::Option/BUGS|HTML::DOM::Element::Option>)
 
+=begin comment
+
 =over 4
 
 =item -
 
-The C<removeChild> method of an HTML::DOM object currently throws a
-'Can't call method "_modified" on an undefined value' error.
+blah blah blah
 
 =back
+
+=end comment
 
 B<To report bugs,> please e-mail the author.
 

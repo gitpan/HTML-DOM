@@ -5,7 +5,7 @@ use strict;
 
 use Scalar::Util qw'weaken';
 
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 
 # -------- NON-DOM METHODS -------- #
 

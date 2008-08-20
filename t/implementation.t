@@ -2,7 +2,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 15;
+use Test::More tests => 17;
 
 
 # -------------------------#
@@ -12,19 +12,21 @@ BEGIN { use_ok 'HTML::DOM::Implementation'; }
 package HTML::DOM::Implementation; our $it; package main; # fake import
 
 # -------------------------#
-# Tests 2-15: hasFeature
+# Tests 2-17: hasFeature
 
 for (qw/html hTML/) {
 	ok $it->hasFeature($_ => '1.0'), qq'hasFeature("$_","1.0")';
-	ok!$it->hasFeature($_ => '2.0'), qq'hasFeature("$_","2.0")';
+	ok!$it->hasFeature($_ => '3.0'), qq'hasFeature("$_","3.0")';
 	ok $it->hasFeature($_),          qq'hasFeature("$_")';
 }
 ok!$it->hasFeature('exeotuht.cg.');
 ok!$it->hasFeature('etg.d.h', '1.0');
 ok!$it->hasFeature('nuthotgud,gd',haonuhoentuh=>);
 
-ok$it->hasFeature('core','2.0');
-ok$it->hasFeature('views','2.0');
+ok$it->hasFeature('core','1.0'), 'core 1';
+ok$it->hasFeature('core','2.0'), 'core 2';
+ok$it->hasFeature('views','2.0'), 'views 2';
+ok$it->hasFeature('html','2.0'), 'html 2';
 
 ++$INC{'CSS/DOM.pm'};
 sub CSS::DOM::hasFeature { join '-', @_ }

@@ -14,7 +14,7 @@ WriteMakefile(
     PL_FILES            => {},
     PREREQ_PM => {
          Carp                      => 0,
-         constant                  => 0,
+         constant                  => 1.03, # multiple at once
          constant::lexical         => 0,
         'CSS::DOM'                 => 0,
         'CSS::DOM::StyleDecl'      => 0,
@@ -25,6 +25,11 @@ WriteMakefile(
 	'HTML::Encoding'           => 0,
         'HTML::Form'               => 1.054,
          HTML::Parser              => 3,
+         HTTP::Message             => eval('require HTTP::Message;
+                                            VERSION HTTP::Message') == 5.81
+                                            ? 5.811 : 0,
+         HTTP::Request             => 0,
+         HTTP::Request::Common     => 0,
         'HTTP::Headers::Util'      => 0,
          overload                  => 0,
 #        'Scalar::Util'             => 1.08, # refaddr

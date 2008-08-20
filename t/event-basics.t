@@ -5,7 +5,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => scalar reverse 98;
+use Test::More tests => scalar reverse 601;
 
 # -------------------------#
 # Test 1-2: load the modules
@@ -40,7 +40,7 @@ SKIP :{
 }
 
 # -------------------------#
-# Tests 8-12: HTML::DOM::default_event_handler
+# Tests 8-19: HTML::DOM::default_event_handler(_for) accessors
 
 {
 	my $coderef = sub{};
@@ -56,10 +56,28 @@ SKIP :{
 	$doc->default_event_handler(undef);
 	is $doc->default_event_handler, undef,
 		'default event handlers can be deleted';
+
+	is scalar $doc->default_event_handler_for('link',$coderef), undef,
+		'1st assignment to dehf returns undef';
+	is $doc->default_event_handler_for('link',$coderef2), $coderef,
+		'2nd assignment to dehf returns old sub';
+	is $doc->default_event_handler_for('link'), $coderef2,
+		'2nd assignment to dehf did assign the new sub';
+	is $doc->default_event_handler_for('link'), $coderef2,
+	    'simply getting the dehf doesn\'t change it';
+	$doc->default_event_handler_for('link',undef);
+	is $doc->default_event_handler('link'), undef,
+		'def evt handlers for specific event types can be deleted';
+
+	$doc->default_event_handler_for('link'=>$coderef);
+	is $doc->default_event_handler_for('submit', $coderef2), undef,
+		'first arg to dehf is not ignored';
+	is $doc->default_event_handler_for('submit'), $coderef2,
+		'asignement to dffirenet event types works';
 }
 
 # -------------------------#
-# Tests 13-17: HTML::DOM::event_attr_handler
+# Tests 20-4: HTML::DOM::event_attr_handler
 
 {
 	my $coderef = sub{};
@@ -78,7 +96,7 @@ SKIP :{
 }
 
 # -------------------------#
-# Tests 18-25: (add|remove)EventListener and get_event_listeners
+# Tests 25-32: (add|remove)EventListener and get_event_listeners
 
 {
 	my $sub1 = sub{};
@@ -139,7 +157,7 @@ sub clear_event_listeners {
 #  few sections)
 
 # -------------------------#
-# Tests 26-41: event initialisation
+# Tests 33-48: event initialisation
 
 is $event->type, undef, 'event type before init';
 is $event->eventPhase, undef, 'eventPhase before init';
@@ -171,7 +189,7 @@ is $event->eventPhase, undef, 'eventPhase after init';
 is $event->type, 'click', 'event type after init';
 
 # -------------------------#
-# Tests 42-4: event dispatch:
+# Tests 49-51: event dispatch:
 # First we'll make sure that the events are triggered in the right order,
 # and for the right event type.
 
@@ -223,7 +241,7 @@ clear_event_listeners($grandchild, 'click', 'focus');
 
 
 # -------------------------#
-# Tests 45-8: event dispatch:
+# Tests 52-5: event dispatch:
 # Now we need to see whether eventPhase is set correctly.
 
 # Let's just check the constants first:
@@ -248,7 +266,7 @@ clear_event_listeners($grandchild, 'click');
 
 
 # -------------------------#
-# Tests 49-53: event dispatch: stopPropagation
+# Tests 56-60: event dispatch: stopPropagation
 
 {
 	# I put stopPropagation in both listeners for each phase, since
@@ -310,7 +328,7 @@ clear_event_listeners($doc, 'click');
 
 
 # -------------------------#
-# Tests 54-63: event dispatch:
+# Tests 61-70: event dispatch:
 #             qw/ target currentTarget preventDefault cancelable /
 #    This section also makes sure that event types are indifferent to case.
 
@@ -356,7 +374,7 @@ ok $grandchild->dispatchEvent($event),
 is $e, 'did it', 'And, yes, preventDefault *was* actually called.';
 
 # -------------------------#
-# Tests 64-9: exceptions thrown by dispatchEvent
+# Tests 71-6: exceptions thrown by dispatchEvent
 
 $event = $doc->createEvent;
 eval {
@@ -392,7 +410,7 @@ cmp_ok $@, '==', HTML::DOM::Exception::UNSPECIFIED_EVENT_TYPE_ERR,
 
 
 # -------------------------#
-# Tests 70-4: last, but not least: trigger_event
+# Tests 77-90: trigger_event and default_event_handler(_for)
 
 clear_event_listeners($grandchild, 'click');
 $grandchild->addEventListener(click => sub {
@@ -425,9 +443,66 @@ is $e->type, 'click',
 is $e->target, $grandchild,
 	'$event->target when an event name is passed to trigger_event';
 
+{
+	my $which = '';
+	$doc->default_event_handler(sub { $which = 'default' });
+	$doc->default_event_handler_for(submit_button =>
+		sub { $which = 'sb' }
+	);
+	$doc->default_event_handler_for(link =>
+		sub { $which = 'link' }
+	);
+	$doc->default_event_handler_for(submit =>
+		sub { $which = 'submit' }
+	);
+	$doc->default_event_handler_for(reset_button =>
+		sub { $which = 'resetb' }
+	);
+
+	$doc->createElement('a')->click();
+	is $which, 'link', 'dehf link';
+	$doc->default_event_handler_for('link' => undef);
+	$doc->createElement('a')->click();
+	is $which, 'default', 'link fallback to default';
+
+	(my $el = $doc->createElement('input'))-> type('submit');
+	$el->click();
+	is $which, 'sb', 'dehf submit_button';
+	$doc->default_event_handler_for('submit_button' => undef);
+	$el->click();
+	is $which, 'default', 'submit_button fallback to default';
+
+	($el = $doc->createElement('input'))-> type('reset');
+	$el->click();
+	is $which, 'resetb', 'dehf reset_button';
+	$doc->default_event_handler_for('reset_button' => undef);
+	$el->click();
+	is $which, 'default', 'reset_button fallback to default';
+
+	$doc->createElement('form')->submit();
+	is $which, 'submit', 'dehf submit';
+	$doc->default_event_handler_for('submit' => undef);
+	$doc->createElement('form')->submit();
+	is $which, 'default', 'submit fallback to default';
+	
+	$which = '';
+	my $doc = new HTML::DOM;
+	$doc->body->appendChild(my $f = $doc->createElement('form'))
+		->appendChild($el = $doc->createElement('input'))
+		->type('submit');
+	$f->addEventListener(submit => sub { $which .= '-form submit'});
+	$f->addEventListener(reset => sub { $which .= '-form reset'});
+	$el->addEventListener(click => sub { $which .= '-button'});
+	$el->click();
+	$el->attr(type=>'reset');
+	$el->click;
+	is $which, '-button-form submit-button-form reset',
+		'default default event handler for submit buttons';
+}
+
 
 # -------------------------#
-# Tests 75-83: even laster: make sure event_attr_handler is actually used
+# Tests 91-9: even laster: make sure event_attr_handler is actually used
 
 {
 	$doc->close;
@@ -469,7 +544,7 @@ is $e->target, $grandchild,
 }
 
 # -------------------------#
-# Tests 84-8: HTML::DOM::error_handler access
+# Tests 101-4: HTML::DOM::error_handler access
 
 {
 	my $coderef = sub{};
@@ -488,7 +563,7 @@ is $e->target, $grandchild,
 }
 
 # -------------------------#
-# Test 89: use of HTML::DOM::error_handler
+# Test 105: use of HTML::DOM::error_handler
 
 {
 	my $e;
@@ -501,6 +576,23 @@ is $e->target, $grandchild,
 		$_->trigger_event('foo');
 	}
 	is $e, "67\n", 'error_handler gets called';
+}
+
+# -------------------------#
+# Test 106: modification of Attr objects for event attributes
+#         (bug in 0.012 and earlier)
+
+{
+	my $accum;
+	my $h = new HTML::DOM;
+	$h->event_attr_handler( sub { my $n = $_[2]; sub{$accum .= $n}});
+	my $b = $h->body;
+	$b->setAttribute("onclick","foo");
+	$b->trigger_event("click");
+	$b->getAttributeNode("onclick")->value("bar");
+	$b->trigger_event("click");
+	is $accum, 'foobar',
+	  'modification of Attr objects corresponding to event attributes';
 }
 
 

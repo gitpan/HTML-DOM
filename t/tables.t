@@ -29,7 +29,7 @@ sub test_attr {
 }
 
 # -------------------------#
-use tests 73; # HTMLTableElement
+use tests 87; # HTMLTableElement
 {
 	is ref(
 		my $table = $doc->createElement('table'),
@@ -65,18 +65,30 @@ use tests 73; # HTMLTableElement
 	is $table->tBodies->length, 1, 'table->tBodies is not recursiev';
 	is $rows->length, 1, 'table->rows is not recursive';
 
+	ok !eval{$table->caption($doc->createElement('a'));1},
+		'caption dies when set to a non-caption element';
+	cmp_ok $@, '==', HTML::DOM::Exception::HIERARCHY_REQUEST_ERR,
+		'caption throws the right error';
 	$table->caption(my $captain = $doc->createElement('caption'));	
 	is +($table->content_list)[0], $captain,
 		'setting table->caption adds the element below the table';
 	test_attr $table, caption => $captain,
 		$doc->createElement('caption');
 
+	ok !eval{$table->tHead($doc->createElement('a'));1},
+		'tHead dies when set to a non-caption element';
+	cmp_ok $@, '==', HTML::DOM::Exception::HIERARCHY_REQUEST_ERR,
+		'tHead throws the right error';
 	$table->tHead(my $th = $doc->createElement('thead'));	
 	is +($table->content_list)[1], $th,
 		'setting table->tHead adds the element below the table';
 	test_attr $table, tHead => $th,
 		$doc->createElement('thead');
 
+	ok !eval{$table->tFoot($doc->createElement('a'));1},
+		'tFoot dies when set to a non-caption element';
+	cmp_ok $@, '==', HTML::DOM::Exception::HIERARCHY_REQUEST_ERR,
+		'tFoot throws the right error';
 	$table->tFoot(my $tf = $doc->createElement('tfoot'));	
 	is +($table->content_list)[2], $tf,
 		'setting table->tFoot adds the element below the table';
@@ -126,13 +138,35 @@ use tests 73; # HTMLTableElement
 		'createCaption creates and returns a new table caption';
 
 	isa_ok $row = $table->insertRow(0), 'HTML::DOM::Element::TR',
-		'table->insertRow';
-	is $row, $rows->[0], 'result of insertRow';
-	is @$rows, 2, 'number of rows after insertRow';
+		'table->insertRow(0)';
+	is $row, $rows->[0], 'result of insertRow(0)';
+	is $table->insertRow(1), $rows->[1], 'result of insertRow(1)';
+	is @$rows, 3, 'number of rows after insertRow';
 	
+	my $last_row = $rows->[-1];
 	is +()=$table->deleteRow(1), 0, 'retval of table->deleteRow';
-	is_deeply \@$rows, [$row],
+	is_deeply \@$rows, [$row,$last_row],
 		'effect of table->deleteRow';
+
+	(my $doc = new HTML::DOM)->write('
+		<table><tbody><tr><tbody><tr></table>
+	'); $doc->close;
+	my $new_table = $doc->getElementsByTagName('table')->[0];
+	$row = $new_table->insertRow(1);
+	is $new_table->tBodies->[1]->childNodes->[0], $row,
+	    'insertRow inserts in the same section as the following row';
+	is $new_table->insertRow(-1), $new_table->rows->[-1],
+		'insertRow(-1)';
+	is $new_table->insertRow($new_table->rows->length),
+		$new_table->rows->[-1], 'insertRow(number of rows)';
+	ok !eval{$new_table->insertRow(-2);1},
+		'insertRow(negative number less than -1)';
+	cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+		'insertRow with neg num too small throws the right error';
+	ok !eval{$new_table->insertRow(328);1},
+		'insertRow(beeg number)';
+	cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+		'insertRow with big number throws the right error';
 }
 
 # -------------------------#
@@ -172,7 +206,7 @@ use tests 20; # HTMLTableColElement
 }
 
 # -------------------------#
-use tests 25; # HTMLTableSectionElement
+use tests 32; # HTMLTableSectionElement
 {
 	my $elem;
 	is ref(
@@ -204,16 +238,37 @@ use tests 25; # HTMLTableSectionElement
 
 	isa_ok $row = $elem->insertRow(0), 'HTML::DOM::Element::TR',
 		'table section ->insertRow';
-	is $row, $rows->[0], 'result of table section ->insertRow';
-	is @$rows, 2, 'number of rows after table section ->insertRow';
+	is $row, $rows->[0], 'result of table section ->insertRow(0)';
+	is $elem->insertRow(1), $rows->[1],
+		'result of table section ->insertRow(1)';
+	is @$rows, 3, 'number of rows after table section ->insertRow';
 	
+	my $last_row = $rows->[-1];
 	is +()=$elem->deleteRow(1), 0, 'retval of table sect ->deleteRow';
-	is_deeply \@$rows, [$row],
+	is_deeply \@$rows, [$row,$last_row],
 		'effect of table section ->deleteRow';
+
+	(my $doc = new HTML::DOM)->write('
+		<table><tbody><tr><tr></table>
+	'); $doc->close;
+	$elem =$doc->getElementsByTagName('table')->[0]->firstChild;
+	is $elem->insertRow(-1), $elem->rows->[-1],
+		'table section ->insertRow(-1)';
+	is $elem->insertRow($elem->rows->length),
+		$elem->rows->[-1],
+		'table section ->insertRow(no. of rows)';
+	ok !eval{$elem->insertRow(-2);1},
+		'table section ->insertRow(negative number less than -1)';
+	cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+		'table section ->insertRow(neg) throws the right error';
+	ok !eval{$elem->insertRow(328);1},
+		'table section ->insertRow(beeg number)';
+	cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+	   'table section ->insertRow(big number) throws the right error';
 }
 
 # -------------------------#
-use tests 29; # HTMLTableRowElement
+use tests 36; # HTMLTableRowElement
 {
 	is ref(
 		my $row = $doc->createElement('tr'),
@@ -256,12 +311,29 @@ use tests 29; # HTMLTableRowElement
 		'HTML::DOM::Element::TableCell',
 		'insertCell';
 	is $cell->tag, 'td', 'tag of cell inserted by insertCell';
-	is $cell, $cells->[0], 'result of insertCell';
-	is @$cells, 2, 'number of cells after insertCell';
+	is $cell, $cells->[0], 'result of insertCell(0)';
+	is $row->insertCell(1), $cells->[1],
+		'result of insertCell(1)';
+	is @$cells, 3, 'number of cells after insertCell';
 	
+	my $last_cell = $cells->[-1];
 	is +()=$row->deleteCell(1), 0, 'retval of deleteCell';
-	is_deeply \@$cells, [$cell],
+	is_deeply \@$cells, [$cell,$last_cell],
 		'effect of deleteCell';
+
+	is $row->insertCell(-1), $cells->[-1],
+		'insertCell(-1)';
+	is $row->insertCell($cells->length),
+		$cells->[-1],
+		'insertCell(no. of rows)';
+	ok !eval{$row->insertCell(-2);1},
+		'insertCell(negative number less than -1)';
+	cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+		'insertCell(neg) throws the right error';
+	ok !eval{$row->insertCell(328);1},
+		'insertCell(beeg number)';
+	cmp_ok $@, '==', HTML::DOM::Exception::INDEX_SIZE_ERR,
+	   'insertCell(big number) throws the right error';
 }
 
 # -------------------------#

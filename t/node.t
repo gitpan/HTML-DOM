@@ -12,7 +12,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => scalar reverse '201';
+use Test::More tests => scalar reverse '301';
 
 
 # -------------------------#
@@ -267,7 +267,7 @@ fill_frag($frag = createDocumentFragment $doc);
 }
 
 # -------------------------#
-# Tests 61-5: removeChild
+# Tests 61-6: removeChild
 
 # replaceChild messed up our frag, so let's make a new one.
 fill_frag($frag = createDocumentFragment $doc);
@@ -296,10 +296,12 @@ fill_frag($frag = createDocumentFragment $doc);
 	)->ownerDocument, $dock,
 		'implicit ownerDocument is made explicit by removeChild';
 	
+	ok eval{$dock->removeChild($dock->firstChild)},
+		'$doc->removeChild doesn\'t kick the bucket';
 }
 
 # -------------------------#
-# Tests 66-75: appendChild
+# Tests 67-76: appendChild
 
 # removeChild messed up our frag, so let's make a new one.
 fill_frag($frag = createDocumentFragment $doc);
@@ -358,7 +360,7 @@ fill_frag($frag = createDocumentFragment $doc);
 }
 
 # -------------------------#
-# Tests 76-7: hasChildNodes
+# Tests 77-8: hasChildNodes
 
 $frag = createDocumentFragment $doc;
 
@@ -367,7 +369,7 @@ $frag->appendChild(createTextNode $doc 'eoteuht');
 ok  hasChildNodes $frag, 'hasChildNodes';
 
 # -------------------------#
-# Tests 78-88: cloneNode
+# Tests 79-89: cloneNode
 
 use Scalar::Util 'refaddr';
 {
@@ -405,7 +407,7 @@ use Scalar::Util 'refaddr';
 }
 
 # -------------------------#
-# Tests 89-90: as_text and as_HTML
+# Tests 90-1: as_text and as_HTML
 
 {
 	my $element = $doc->createElement('p');
@@ -425,7 +427,7 @@ use Scalar::Util 'refaddr';
 
 
 # -------------------------#
-# Tests 91-4: normalize
+# Tests 92-5: normalize
 
 {
 	my $element = $doc->createElement('p');
@@ -455,12 +457,12 @@ use Scalar::Util 'refaddr';
 }
 
 # -------------------------#
-# Tests 95-7: XML namespace stuff
+# Tests 96-8: XML namespace stuff
 
 is +()=$frag->$_, 0, $_ for qw / namespaceURI prefix localName /;
 
 # -------------------------#
-# Tests 98-100: hasAttributes
+# Tests 99-101: hasAttributes
 
 ok !$frag->hasAttributes, 'hasAttributes (non-Element node)';
 {
@@ -471,7 +473,7 @@ ok !$frag->hasAttributes, 'hasAttributes (non-Element node)';
 }
 
 # -------------------------#
-# Tests 101-2: isSupported
+# Tests 102-3: isSupported
 
 ok $frag->isSupported('hTML', '1.0'), 'isSupported';
 ok!$frag->isSupported('onfun') ,'isn’tSupported';

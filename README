@@ -1,51 +1,40 @@
-HTML::DOM, version 0.012
+HTML::DOM, version 0.013
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
-This is an alpha release.  So far,  the level-1 DOM interfaces and the
-level-2 core interfaces have been implemented, and some of the level-2
-event and style sheet interfaces.
+This is an alpha release.  So far,  the level-2 core and  HTML  DOM
+interfaces have been implemented, and some of the level-2 event and
+style sheet interfaces.
 
 
 CHANGES IN THIS RELEASE
 
-Incompatible changes:
-• The  parse_file  method now uses HTML::Encoding to detect the encod-
-  ing of the file, if given a file name,  and if the encoding has not
-  been set with the new  ‘charset’  method or the  constructor’s  new
- ‘charset’  option.  It used to assume  ISO Latin 1.  It still treats
-  file handles the same way, though; that is, it assumes the file han-
-  dle is producing Unicode text  (you have to  ‘binmode’  to set  the
-  encoding if that’s not the case).
 New features:
-• The constructor now accepts a ‘charset’ option which is used by
-  parse_file and by the make_request method of form elements.
-• A ‘charset’  method has been added to HTML::DOM,  which returns the
-  encoding passed to the constructor or that parse_file used. You can
-  also use it to set it.
-• parse_file’s return value is now useful: true upon success; false
-  upon failure (to open the file)
-• Upward references in the object tree are now weak references.
-• I’ve started work on Level-2 HTML features. So far,
-  • HTML::DOM::Interface lists HTMLOptionsCollection as a separate
-    interface from HTMLCollection and
-  • HTML::DOM::Collection::Options now throws an error if
-    length is set.
-• A callback routine passed to event_attr_handler now receives the
-  offset within  the  source  of  the  attribute’s  value  as  the
-  fourth argument.
-• Attribute methods of elements now support  implicit  attri-
-  butes (those with default values in the DTD).
+• HTML::DOM::Interface now indicates which members have UTF-16
+  equivalents.
+• Changes to conform to the Level-2 HTML DOM module (see the
+  Changes file).
+• HTML::DOM::Exception now has a ‘code’ method. I don’t know how I
+  missed this.
+• The brand new shiny default_event_handler_for method has been added.
+  It makes it less cumbersome to provide default behaviours for diffe-
+  rent event types.
+• All HTML elements now have a click method--something from HTML 5 (I
+  seem to be getting ahead of myself).
 Bug fixes — see the Changes file
 
 
 TO DO
 
-- Add support to HTML::DOM::Interface for UTF-16 methods.
-- Add Level 2 HTML support
 - Finish Level 2 Events support
 - Finish Level 2 CSS support
-- etc.
+- Finish DOM Level 0 event support (add event properties)
+- Provide support for multiple default event handers, each assigned
+  to a different type of event
+- innerHTML (and outerHTML?)
+- Other DOM interfaces (the rest of level 2, and level 3)
+- Support callback routines for creating DOM objects for frames.
+- HTML 5 stuff
 - Write more complete documentation
 - Write more tests
 
@@ -80,7 +69,7 @@ Perl modules:
 - HTTP::Headers::Util is required for writing cookies.
 - HTML::Form 1.054 is required if any of the methods provided for
   WWW::Mechanize compatibility are to be used.
-- CSS::DOM 0.02 or later
+- CSS::DOM 0.03 or later
 - HTML::Encoding is required if the parse_file method is to be used.
 - constant::lexical
 

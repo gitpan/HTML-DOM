@@ -24,7 +24,7 @@ use Scalar::Util qw'weaken blessed';
 
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 
@@ -78,6 +78,18 @@ sub value {
 	if(@_ > 1){
 		my $old = $_[0][_val][0];
 		$_[0][_val][0] = "$_[1]" ;
+		if ($_[0][_name] =~ /^on(.*)/is
+		    and my $listener_maker = $_[0]->ownerDocument
+				->event_attr_handler
+		    and my $element = $_[0][_elem]) {
+			my $eavesdropper = &$listener_maker(
+				$element, my $name = lc $1, $_[1]
+			);
+			defined $eavesdropper
+				and $element-> _add_attr_event(
+					$name, $eavesdropper
+				);
+		}
 		return ref $old ? $old->data : $old;
 	}
 	my $val = $_[0][_val][0];

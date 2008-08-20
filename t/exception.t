@@ -5,7 +5,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 21;
+use Test::More tests => 22;
 
 
 # -------------------------#
@@ -31,7 +31,7 @@ BEGIN { use_ok 'HTML::DOM::Exception', ':all'; }
 }
 
 # --------------------------------------- #
-# Tests 18-21: constructor and overloading #
+# Tests 18-22: constructor and object interface #
 
 {
 	my $x = new HTML::DOM::Exception NOT_SUPPORTED_ERR,
@@ -40,6 +40,7 @@ BEGIN { use_ok 'HTML::DOM::Exception', ':all'; }
 	is "$x", "Seems we lack this feature\n",
 		'string overloading that adds a newline';
 	is 0+$x, NOT_SUPPORTED_ERR, 'numeric overloading';
+	is $x->code, NOT_SUPPORTED_ERR, 'code';
 	$x = new HTML::DOM::Exception NOT_SUPPORTED_ERR,
 		qq'Another exceptional object\n';
 	is $x, "Another exceptional object\n",

@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 
 =head1 NAME
 
@@ -55,6 +55,10 @@ HTML::DOM::Interface - A list of HTML::DOM's interface members in machine-readab
   ($HTML::DOM::Interface{Node}{appendChild}   & TYPE) == NUM;  # false
   ($HTML::DOM::Interface{Node}{replaceChild}  & TYPE) == OBJ;  # true
   
+  # Do these methods have UTF-16 equivalents ending with '16'?
+  $HTML::DOM::Interface{Node}{getElementById}      & UTF16;  # false
+  $HTML::DOM::Interface{CharacterData}{insertData} & UTF16;  # true
+  
   
   # Constants
 
@@ -78,14 +82,15 @@ gory details, look at the source code. In fact, here it is:
   our @EXPORT_OK = qw/METHOD VOID READONLY BOOL STR NUM OBJ TYPE/;
   our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
-  sub METHOD   () {      1 }
-  sub VOID     () {   0b10 } # for methods
-  sub READONLY () {   0b10 } # for properties
-  sub BOOL     () { 0b0000 }
-  sub STR      () { 0b0100 }
-  sub NUM      () { 0b1000 }
-  sub OBJ      () { 0b1100 }
-  sub TYPE     () { 0b1100 } # only for use as a mask
+  sub METHOD   () {       1 }
+  sub VOID     () {    0b10 } # for methods
+  sub READONLY () {    0b10 } # for properties
+  sub BOOL     () {  0b0000 }
+  sub STR      () {  0b0100 }
+  sub NUM      () {  0b1000 }
+  sub OBJ      () {  0b1100 }
+  sub TYPE     () {  0b1100 } # only for use as a mask
+  sub UTF16    () { 0b10000 }
 
   %HTML::DOM::Interface = (
   	'HTML::DOM::Exception' => 'DOMException',
@@ -161,6 +166,7 @@ gory details, look at the source code. In fact, here it is:
   	'HTML::DOM::Event' => 'Event',
   	'HTML::DOM::View' => 'AbstractView',
   	 DOMException => {
+  		code => NUM | READONLY,
   		_constants => [qw[
   			HTML::DOM::Exception::INDEX_SIZE_ERR
   			HTML::DOM::Exception::DOMSTRING_SIZE_ERR
@@ -255,12 +261,12 @@ gory details, look at the source code. In fact, here it is:
 		_hash => 0,
 		_array => 0,
   		data => STR,
-  		length => NUM | READONLY,
-  		substringData => METHOD | STR,
+  		length => NUM | READONLY | UTF16,
+  		substringData => METHOD | STR | UTF16,
   		appendData => METHOD | VOID,
-  		insertData => METHOD | VOID,
-  		deleteData => METHOD | VOID,
-  		replaceData => METHOD | VOID,
+  		insertData => METHOD | VOID | UTF16,
+  		deleteData => METHOD | VOID | UTF16,
+  		replaceData => METHOD | VOID | UTF16,
   	 },
   	 Attr => {
 		_isa => 'Node',
@@ -275,7 +281,7 @@ gory details, look at the source code. In fact, here it is:
 		_isa => 'CharacterData',
 		_hash => 0,
 		_array => 0,
-  		splitText => METHOD | OBJ,
+  		splitText => METHOD | OBJ | UTF16,
   	 },
   	 Comment => {
 		_isa => 'CharacterData',
@@ -495,7 +501,7 @@ gory details, look at the source code. In fact, here it is:
   		form => OBJ | READONLY,
   		defaultSelected => BOOL,
   		text => STR | READONLY,
-  		index => NUM | READONLY,
+  		index => NUM,
   		disabled => BOOL,
   		label => STR,
   		selected => BOOL,
@@ -748,7 +754,7 @@ gory details, look at the source code. In fact, here it is:
   		useMap => STR,
   		vspace => NUM,
   		width => STR,
-  #		contentDocument => OBJ | READONLY,
+  		contentDocument => OBJ | READONLY,
   	 },
   	 HTMLParamElement => {
 		_isa => 'HTMLElement',
@@ -917,7 +923,7 @@ gory details, look at the source code. In fact, here it is:
   		noResize => BOOL,
   		scrolling => STR,
   		src => STR,
-  #		contentDocument => OBJ | READONLY,
+  		contentDocument => OBJ | READONLY,
   	 },
   	 HTMLIFrameElement => {
 		_isa => 'HTMLElement',
@@ -933,7 +939,7 @@ gory details, look at the source code. In fact, here it is:
   		scrolling => STR,
   		src => STR,
   		width => STR,
-  #		contentDocument => OBJ | READONLY,
+  		contentDocument => OBJ | READONLY,
   	 },
   	 Event => {
 		_hash => 0,

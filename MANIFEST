@@ -25,10 +25,12 @@ lib/HTML/DOM/Element/DL.pod
 lib/HTML/DOM/Element/FieldSet.pod
 lib/HTML/DOM/Element/Font.pod
 lib/HTML/DOM/Element/Form.pm
+lib/HTML/DOM/Element/Frame.pod
 lib/HTML/DOM/Element/Head.pod
 lib/HTML/DOM/Element/Heading.pod
 lib/HTML/DOM/Element/HR.pod
 lib/HTML/DOM/Element/HTML.pod
+lib/HTML/DOM/Element/IFrame.pod
 lib/HTML/DOM/Element/Img.pod
 lib/HTML/DOM/Element/Input.pod
 lib/HTML/DOM/Element/IsIndex.pod

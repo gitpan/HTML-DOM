@@ -24,7 +24,7 @@ use constant {
 
 use Exporter 5.57 'import';
 
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 our @EXPORT_OK = qw'
 	INDEX_SIZE_ERR             
 	DOMSTRING_SIZE_ERR         
@@ -49,13 +49,15 @@ our %EXPORT_TAGS = (all => [@EXPORT_OK]);
 
 use overload
 	fallback => 1,
-	'0+' => sub { $_[0][0] },
+	'0+' => \&code,
 	'""' => sub { $_[0][1] =~ /^(.*?)\n?\z/s; "$1\n" },
 ;
 
 sub new {
 	bless [@_[1,2]], $_[0];
 }
+
+sub code { $_[0][0] }
 
 'true'
 __END__
@@ -91,11 +93,15 @@ number (see below, under L<'EXPORTS'>).
 
 =over 4
 
-=item new HTML::DOM::Exception $type, $message
+=item $errr = new HTML::DOM::Exception $type, $message
 
 This class method creates a new exception object. C<$type> is expected to
 be an integer (you can use the constants listed under L<'EXPORTS'>).
 C<$message> is the error message.
+
+=item $errr->code
+
+Returns the error code. Same as C<0+$errr>.
 
 =cut
 

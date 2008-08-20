@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 
 
 use strict;
@@ -321,7 +321,7 @@ sub removeChild {
 
 	$child->detach;
 
-	$self->ownerDocument->_modified;
+	{($self->ownerDocument||next)->_modified;}
 
 	$child;
 }
@@ -547,7 +547,8 @@ action for the event unless an event listener cancels it.
 =cut
 
 sub trigger_event { # non-DOM method
-	my ($target, $event) = @_;
+	# ~~~ Should I document the C<$default> arg? (If I do, I need explicit tests for it.)
+	my ($target, $event, $default) = @_;
 	my $doc;
 	defined blessed $event and $event->isa('HTML::DOM::Event') or do {
 		my $type = $event;
@@ -556,6 +557,7 @@ sub trigger_event { # non-DOM method
 		$event->initEvent($type,1,1);
 	};
 	$target->dispatchEvent($event) and &{
+		$default ||
 		($doc || $target->ownerDocument)->default_event_handler
 		|| return
 	}($event);

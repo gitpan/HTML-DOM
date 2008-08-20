@@ -263,7 +263,7 @@ use tests 27; # HTMLOptionElement
 }
 
 # -------------------------#
-use tests 67; # HTMLInputElement
+use tests 69; # HTMLInputElement
 
 {
 	is ref(
@@ -324,7 +324,7 @@ use tests 67; # HTMLInputElement
 	test_attr $elem, qw-tabIndex 7          8     -;
 
 	$elem->attr(type => 'suBmit');
-	is $elem->type, 'submit', 'input->type';
+	test_attr $elem, qw-type submit password-;
 
 	$elem->attr(usemap => 1);
 	ok $elem->useMap            ,     'input: get useMap';
@@ -336,6 +336,7 @@ use tests 67; # HTMLInputElement
 	is $elem->attr('value'), '$6.00',
 		'modifying input->value leaves the value attr alone';
 
+	$doc->default_event_handler_for(submit_button=>undef);
 	test_event($elem,$_) for qw/ blur focus select click /;
 }
 

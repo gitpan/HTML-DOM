@@ -8,7 +8,7 @@ use HTML::DOM::Node 'COMMENT_NODE';
 require HTML::DOM::CharacterData;
 
 our @ISA = 'HTML::DOM::CharacterData';
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 
 sub new { # $_[1] contains the text
 	$_[0]->SUPER::new('~comment', text => $_[1]);

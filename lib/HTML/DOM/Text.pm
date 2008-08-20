@@ -8,7 +8,7 @@ use HTML::DOM::Node 'TEXT_NODE';
 require HTML::DOM::CharacterData;
 
 our @ISA = 'HTML::DOM::CharacterData';
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 
 
 =head1 NAME

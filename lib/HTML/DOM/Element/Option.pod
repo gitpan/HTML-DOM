@@ -58,7 +58,10 @@ Returns the option's text label.
 =item index
 
 Returns the index of this option in it's 'select' element's C<options>
-array.
+array. You can pass an argument to set it. In that case, the option will be
+moved to a different place in the tree. (This is actually contrary to the
+DOM Level 2 specification, which makes it read-only, but Level 1 supported
+this, and I find feature deletion very disagreeable.)
 
 =item selected
 

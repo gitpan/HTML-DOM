@@ -3,21 +3,29 @@ package HTML::DOM::Element::Table;
 use strict;
 use warnings;
 
+use HTML::DOM::Exception qw 'HIERARCHY_REQUEST_ERR INDEX_SIZE_ERR';
+
 require HTML::DOM::Collection;
 require HTML::DOM::Element;
 #require HTML::DOM::NodeList::Magic;
 
 our @ISA = qw'HTML::DOM::Element';
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 
 sub caption {
 	my $old = ((my $self = shift)->content_list)[0];
 	undef $old unless $old and $old->tag eq 'caption';
 	if(@_) {
+		my $new = shift;
+		my $tag = (eval{$new->tag}||'');
+		$tag eq 'caption' or die new HTML'DOM'Exception
+			HIERARCHY_REQUEST_ERR,
+			$tag ? "A $tag element cannot be a table caption"
+			     : "Not a valid table caption";
 		if ($old) {
-			$self->replaceChild(shift, $old);
+			$self->replaceChild($new, $old);
 		} else {
-			$self->unshift_content(shift)
+			$self->unshift_content($new)
 		}
 	}
 	return $old || ();
@@ -25,14 +33,24 @@ sub caption {
 sub tHead {
 	my $self = shift;
 	for($self->content_list) {
-		(my $tag  = tag $_) eq 'thead' and
-			@_ && $_->replace_with(shift),
-			$self->ownerDocument->_modified,
-			return $_;
-		$tag eq 'tbody' || $tag eq 'tfoot' and
-			@_ && $_->preinsert(shift),
-			$self->ownerDocument->_modified,
-			return
+		(my $tag  = tag $_);
+		if($tag =~ /^t(?:head|body|foot)\z/) {
+		  if(@_) {
+		    my $new = shift;
+		    my $new_tag = (eval{$new->tag}||'');
+		    $new_tag eq 'thead' or die
+		      new HTML'DOM'Exception
+		        HIERARCHY_REQUEST_ERR,
+		        $tag
+		        ? "A $new_tag element cannot be a table header"
+		        : "Not a valid table header";
+		    $_->${\qw[preinsert replace_with][$tag eq 'thead']}(
+		      $new
+		    );
+		    $self->ownerDocument->_modified;
+		  }
+		  return $tag eq 'thead' ? $_:();
+		}
 	}
 	@_ and $self->appendChild(shift);
 	return;
@@ -40,14 +58,24 @@ sub tHead {
 sub tFoot {
 	my $self = shift;
 	for($self->content_list) {
-		(my $tag  = tag $_) eq 'tfoot' and
-			@_ && $_->replace_with(shift),
-			$self->ownerDocument->_modified,
-			return $_;
-		$tag eq 'tbody' and
-			@_ && $_->preinsert(shift),
-			$self->ownerDocument->_modified,
-			return
+		(my $tag  = tag $_);
+		if($tag =~ /^t(?:body|foot)\z/) {
+		  if(@_) {
+		    my $new = shift;
+		    my $new_tag = (eval{$new->tag}||'');
+		    $new_tag eq 'tfoot' or die
+		      new HTML'DOM'Exception
+		        HIERARCHY_REQUEST_ERR,
+		        $tag
+		        ? "A $new_tag element cannot be a table footer"
+		        : "Not a valid table footer";
+		    $_->${\qw[preinsert replace_with][$tag eq 'tfoot']}(
+		      $new
+		    );
+		    $self->ownerDocument->_modified;
+		  }
+		  return $tag eq 'tfoot' ? $_ : ();
+		}
 	}
 	@_ and $self->appendChild(shift);
 	return;
@@ -173,15 +201,19 @@ sub insertRow {
 			$self->appendChild($tb);
 		}
 	}
-	elsif(!$ix) {
-		$rows->item(0)->preinsert($row);
-		$self->ownerDocument->_modified;
-	}
-	else {
-		$rows->item($ix >= $len ? $len-1 : $ix)->postinsert(
+	elsif($ix == -1 || $ix == $len) {
+		$rows->item(-1)->postinsert(
 			$row
 		);
+		$self->ownerDocument->_modified;
+	}
+	elsif($ix < $len && $ix >= 0) {
+		$rows->item($ix)->preinsert($row);
 		$self->ownerDocument->_modified
+	}
+	else {
+		die new HTML::DOM::Exception INDEX_SIZE_ERR,
+			"Index $ix is out of range"
 	}
 
 	return $row;
@@ -316,14 +348,14 @@ L<HTML::DOM::Element::TableCell>
 # ------- HTMLTableCaptionElement interface ---------- #
 
 package HTML::DOM::Element::Caption;
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 our @ISA = 'HTML::DOM::Element';
 *align = \&HTML::DOM::Element::Table::align;
 
 # ------- HTMLTableColElement interface ---------- #
 
 package HTML::DOM::Element::TableColumn;
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 our @ISA = 'HTML::DOM::Element';
 *align = \&HTML::DOM::Element::Table::align;
 sub ch     { shift->attr('char'   => @_) }
@@ -335,7 +367,7 @@ sub width  { shift->attr('width'  => @_) }
 # ------- HTMLTableSectionElement interface ---------- #
 
 package HTML::DOM::Element::TableSection;
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 our @ISA = 'HTML::DOM::Element';
 *align  = \&HTML::DOM::Element::Table::align;
 *ch     = \&HTML::DOM::Element::TableColumn::ch;
@@ -358,21 +390,26 @@ sub rows { # ~~~ I need to make this cache the resulting collection obj
 }
 sub insertRow {
 	my $self = shift;
-	my $ix = shift;
+	my $ix = shift||0;
 	my $len = (my $rows = $self->rows)->length;
 	my $row = $self->ownerDocument->createElement('tr');
 	if(!$len) {
 		$self->appendChild($row);
 	}
-	elsif(!$ix) {
-		$rows->item(0)->preinsert($row);
-		$self->ownerDocument->_modified;
-	}
-	else {
-		$rows->item($ix >= $len ? $len-1 : $ix)->postinsert(
+	elsif($ix == -1 || $ix == $len) {
+		$rows->item(-1)->postinsert(
 			$row
 		);
 		$self->ownerDocument->_modified;
+	}
+	elsif($ix < $len && $ix >= 0) {
+		$rows->item($ix)->preinsert($row);
+		$self->ownerDocument->_modified;
+	}
+	else {
+		die new HTML::DOM::Exception
+			 HTML::DOM::Exception::INDEX_SIZE_ERR,
+			"Index $ix is out of range"
 	}
 
 	return $row;
@@ -383,7 +420,7 @@ sub insertRow {
 # ------- HTMLTableRowElement interface ---------- #
 
 package HTML::DOM::Element::TR;
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 our @ISA = 'HTML::DOM::Element';
 sub rowIndex {
 	my $self = shift;
@@ -435,21 +472,26 @@ sub cells { # ~~~ I need to make this cache the resulting collection obj
 *vAlign  = \&HTML::DOM::Element::TableColumn::vAlign;
 sub insertCell {
 	my $self = shift;
-	my $ix = shift;
+	my $ix = shift||0;
 	my $len = (my $cels = $self->cells)->length;
 	my $cel = $self->ownerDocument->createElement('td');
 	if(!$len) {
 		$self->appendChild($cel);
 	}
-	elsif(!$ix) {
-		$cels->item(0)->preinsert($cel);
-		$self->ownerDocument->_modified;
-	}
-	else {
-		$cels->item($ix >= $len ? $len-1 : $ix)->postinsert(
+	elsif($ix == -1 || $ix == $len) {
+		$cels->item(-1)->postinsert(
 			$cel
 		);
 		$self->ownerDocument->_modified;
+	}
+	elsif($ix < $len && $ix >= 0) {
+		$cels->item($ix)->preinsert($cel);
+		$self->ownerDocument->_modified;
+	}
+	else {
+		die new HTML::DOM::Exception
+			 HTML::DOM::Exception::INDEX_SIZE_ERR,
+			"Index $ix is out of range"
 	}
 
 	return $cel;
@@ -464,7 +506,7 @@ sub deleteCell {
 # ------- HTMLTableCellElement interface ---------- #
 
 package HTML::DOM::Element::TableCell;
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 our @ISA = 'HTML::DOM::Element';
 sub cellIndex {
 	my $self = shift;

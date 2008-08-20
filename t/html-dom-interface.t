@@ -8,7 +8,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 37;
+use Test::More tests => 48;
 
 
 # -------------------------#
@@ -86,3 +86,30 @@ is $HTML::DOM::Interface{'HTML::DOM::Collection::Options'},
 	'HTML::DOM::Collection::Options maps to HTMLOptionsCollection';
 ok exists $HTML::DOM::Interface{HTMLOptionsCollection},
 	'HTMLOptionsCollection';
+
+# -------------------------#
+# Tests 38-48: changes made in 0.013
+
+ok $HTML::DOM::Interface{CharacterData}{length} & &
+	HTML::DOM::Interface::UTF16, 'length16';
+ok $HTML::DOM::Interface{CharacterData}{substringData} & &
+	HTML::DOM::Interface::UTF16, 'substringData16';
+ok $HTML::DOM::Interface{CharacterData}{insertData} & &
+	HTML::DOM::Interface::UTF16, 'insertData16';
+ok $HTML::DOM::Interface{CharacterData}{deleteData} & &
+	HTML::DOM::Interface::UTF16, 'deleteData16';
+ok $HTML::DOM::Interface{CharacterData}{replaceData} & &
+	HTML::DOM::Interface::UTF16, 'replaceData16';
+ok $HTML::DOM::Interface{Text}{splitText} & &
+	HTML::DOM::Interface::UTF16, 'splitText16';
+ok !($HTML::DOM::Interface{HTMLOptionElement}{index} &
+	&HTML::DOM::Interface::READONLY),
+	'HTMLOptionElement.index is not read-only';
+ok !($HTML::DOM::Interface{HTMLInputElement}{type} &
+	&HTML::DOM::Interface::READONLY),
+	'HTMLInputElement.type is not read-only';
+ok exists $HTML::DOM::Interface{HTMLFrameElement}{contentDocument},
+		'HTMLFrameElement contentDocument';
+ok exists $HTML::DOM::Interface{HTMLIFrameElement}{contentDocument},
+		'HTMLIFrameElement contentDocument';
+ok exists $HTML::DOM::Interface{DOMException}{code}, 'DOMException.code';

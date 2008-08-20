@@ -12,7 +12,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 549;
+use Test::More tests => 555;
 
 
 sub test_attr {
@@ -519,7 +519,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 244-86: HTMLAnchorElement
+# Tests 244-89: HTMLAnchorElement
 
 {
 	my $elem;
@@ -555,11 +555,11 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	test_attr $elem, qw 2 target    bull's-eye      whatever    2;
 	test_attr $elem, qw 2 type      application/pdf text/html   2;
 
-	test_event $elem => $_ for qw/blur focus/;
+	test_event $elem => $_ for qw/blur focus click/;
 }
 
 # -------------------------#
-# Tests 287-323: HTMLImageElement
+# Tests 290-326: HTMLImageElement
 
 {
 	my $elem;
@@ -599,7 +599,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 324-77: HTMLObjectElement
+# Tests 327-81: HTMLObjectElement
 
 {
 	my $elem;
@@ -652,10 +652,12 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	test_attr $elem, qw 2 useMap   1         two     2;
 	test_attr $elem, qw 3 vspace   10        12      3;
 	test_attr $elem, qw 2 width    11        79      2;
+
+	is +()=$elem->contentDocument, 0, 'object contentDocument';
 }
 
 # -------------------------#
-# Tests 378-90: HTMLParamElement
+# Tests 382-95: HTMLParamElement
 
 {
 	my $elem;
@@ -677,7 +679,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 391-424: HTMLAppletElement
+# Tests 396-428: HTMLAppletElement
 
 {
 	my $elem;
@@ -712,7 +714,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 425-30: HTMLMapElement
+# Tests 429-34: HTMLMapElement
 
 {
 	my $elem;
@@ -739,7 +741,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 431-55: HTMLAreaElement
+# Tests 435-59: HTMLAreaElement
 
 {
 	my $elem;
@@ -773,7 +775,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 456-80: HTMLAreaElement
+# Tests 460-84: HTMLAreaElement
 
 {
 	my $elem;
@@ -811,7 +813,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 481-7: HTMLFrameSetElement
+# Tests 485-91: HTMLFrameSetElement
 
 {
 	my $elem;
@@ -831,7 +833,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 488-513: HTMLFrameElement
+# Tests 491-518: HTMLFrameElement
 
 {
 	my $elem;
@@ -867,10 +869,12 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	# has to be normalised to lc
 	$elem->setAttribute('frameborder'=>'bOOhoO');
 	is frameBorder $elem, 'boohoo', 'frame->frameBorder is lc';
+
+	isa_ok $elem->contentDocument, 'HTML::DOM','frame contentDocument';
 }
 
 # -------------------------#
-# Tests 514-45: HTMLIFrameElement
+# Tests 519-51: HTMLIFrameElement
 
 {
 	my $elem;
@@ -908,10 +912,12 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	# has to be normalised to lc
 	$elem->setAttribute('frameborder'=>'bOOhoO');
 	is frameBorder $elem, 'boohoo', 'frame->frameBorder is lc';
+
+	isa_ok $elem->contentDocument,'HTML::DOM','iframe contentDocument';
 }
 
 # -------------------------#
-# Tests 546-9: HTMLParagraphElement
+# Tests 554-5: HTMLParagraphElement
 
 {
 	is ref(

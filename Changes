@@ -1,5 +1,43 @@
 Revision history for HTML::DOM
 
+0.013   19 August, 2008
+        New features:
+        • HTML::DOM::Interface now indicates which members have UTF-16
+          equivalents.
+        • Changes to conform to the Level-2 HTML DOM module:
+          • HTML::DOM::Element::Input’s ‘type’ method is no longer
+            read-only.
+          • HTML::DOM::Element::Object now has a contentDocument,
+            which returns nothing for now.
+          • HTML::DOM::Element::Table’s caption, tHead and tFoot meth-
+            ods now die when passed something other an element of the
+            right type.
+          • The  insertRow  methods of  HTML::DOM::Element::Table  and
+            ::TableSection and the insertCell method of ::TableRow now
+            die if the index is out of range.
+          • Frame and iframe elements now each have a contentDocument
+            method, which, for now, returns an empty HTML::DOM object.
+            Later I need to add support for  callback  routines  that
+            create the object.
+        • HTML::DOM::Exception now has a ‘code’ method.
+        • The brand new shiny  default_event_handler_for  method has
+          been added. It makes it less cumbersome to provide default
+          behaviours for different event types.
+        • All HTML elements now have a click method--something from
+          HTML 5 (I seem to be getting ahead of myself).
+        Bug fixes:
+        • removeChild now works on the document tree.
+        • Modification of an Attr object for an event attribute now
+          modifies the event handler itself.
+        • HTML::DOM::Interface no longer lists the index property of
+          the HTMLOptionsElement interface as read-only.
+        • HTML::DOM::Table’s and ::TableSection’s insertRow methods
+          and ::TableRow’s insertCell method now insert the new row
+          or cell into the right place when called  with  an  index
+          other than 0 or -1.
+        • HTML::DOM::Implementation->hasFeature now returns true for
+          Core 1.0, and not just Core 2.0. (Oops!)
+
 0.012   29 July, 2008
         Incompatible changes:
         • The parse_file method now uses HTML::Encoding to detect the

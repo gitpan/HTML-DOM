@@ -55,7 +55,7 @@ use tests 4; # LinkStyle
 		$doc->createTextNode('a { color: black}')
 	);
 	isa_ok $elem->sheet, 'CSS::DOM', '<style> ->sheet';
-	is +($elem->sheet->cssRules)[0]->selectors, 'a',
+	is +($elem->sheet->cssRules)[0]->selectorText, 'a',
 		'contents are there';
 
 	$elem = $doc->createElement('link');
