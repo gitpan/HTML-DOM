@@ -1,6 +1,6 @@
 package HTML::DOM::Event;
 
-our $VERSION = '0.013';
+our $VERSION = '0.014';
 
 
 use strict;
@@ -26,9 +26,6 @@ sub new {
 
 # ----------- ATTRIBUTE METHODS ------------- #
 # (all read-only)
-
-# ~~~ I need to document that timeStamp returns the same value as time, not
-# the number of milliseconds since the epoch.
 
 sub type          { $_[0]{name      } }
 sub target        { $_[0]{target    } }
@@ -62,14 +59,13 @@ sub initEvent {
 # ~~~ Should I document class_for?
 
 my %class_for = (
+	'' => __PACKAGE__,
 	#UIEvents => 'HTML::DOM::Event::UIEvent', # not yetimplemnedeteted
 	# etc.
 );
 
-# This routine is identical to the one in Element.pm, but in a differnt
-# lexical scope.
 sub class_for {
-	$class_for{$_[0]} || __PACKAGE__
+	$class_for{$_[0]}
 }
 
 1;

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use overload fallback => 1, '@{}' => sub { ${$_[0]} };
 
-our $VERSION = '0.013';
+our $VERSION = '0.014';
 
 
 # new NodeList \@array;

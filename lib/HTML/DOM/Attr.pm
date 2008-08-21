@@ -24,7 +24,7 @@ use Scalar::Util qw'weaken blessed';
 
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.013';
+our $VERSION = '0.014';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 

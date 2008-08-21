@@ -1,4 +1,4 @@
-HTML::DOM, version 0.013
+HTML::DOM, version 0.014
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -7,8 +7,15 @@ interfaces have been implemented, and some of the level-2 event and
 style sheet interfaces.
 
 
-CHANGES IN THIS RELEASE
+RECENT CHANGES
 
+0.014:
+• Fixed the Makefile.PL so it installs properly and doesn’t downgrade
+  CSS::DOM after installing 0.03.
+• HTML::DOM->createEvent now dies if the arg passed to it is an unsup-
+  ported event category.
+
+0.013:
 New features:
 • HTML::DOM::Interface now indicates which members have UTF-16
   equivalents.

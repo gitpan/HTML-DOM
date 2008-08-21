@@ -17,7 +17,7 @@ WriteMakefile(
          constant                  => 1.03, # multiple at once
          constant::lexical         => 0,
         'CSS::DOM'                 => 0,
-        'CSS::DOM::StyleDecl'      => 0,
+        'CSS::DOM::Style'      => 0,
         'CSS::DOM::StyleSheetList' => 0,
          Exporter                  => 5.57, # for use Exporter 'import'
         'HTML::TreeBuilder'        => 0,

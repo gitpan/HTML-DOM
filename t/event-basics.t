@@ -5,16 +5,12 @@
 
 use strict; use warnings;
 
-use Test::More tests => scalar reverse 601;
+use lib 't';
+use HTML::DOM;
+use HTML::DOM::Event ':all';
 
 # -------------------------#
-# Test 1-2: load the modules
-
-BEGIN { use_ok 'HTML::DOM'; }
-BEGIN { &use_ok(qw'HTML::DOM::Event :all'); }
-
-# -------------------------#
-# Test 3: constructor
+use tests 1; # constructor
 
 my $doc = new HTML::DOM;
 isa_ok $doc, 'HTML::DOM';
@@ -24,7 +20,7 @@ my $grandchild =
 	 ->appendChild($doc->createElement('div'));
 
 # -------------------------#
-# Tests 4-7: DocumentEvent::createEvent
+use tests 7; # DocumentEvent::createEvent
 
 my $event = $doc->createEvent;
 isa_ok $event, 'HTML::DOM::Event';
@@ -39,8 +35,14 @@ SKIP :{
 	isa_ok $event, 'HTML::DOM::Event::MutationEvent';
 }
 
+ok !eval{$doc->createEvent('bleeblaabloo');1},
+	'createEvent dies with invalid arg';
+isa_ok $@, 'HTML::DOM::Exception', 'what createEvent dies';
+cmp_ok $@, '==', &HTML::DOM::Exception::NOT_SUPPORTED_ERR,
+	'createEvent\'s error\'s code';
+
 # -------------------------#
-# Tests 8-19: HTML::DOM::default_event_handler(_for) accessors
+use tests 12; # HTML::DOM::default_event_handler(_for) accessors
 
 {
 	my $coderef = sub{};
@@ -77,7 +79,7 @@ SKIP :{
 }
 
 # -------------------------#
-# Tests 20-4: HTML::DOM::event_attr_handler
+use tests 5; # HTML::DOM::event_attr_handler
 
 {
 	my $coderef = sub{};
@@ -96,7 +98,7 @@ SKIP :{
 }
 
 # -------------------------#
-# Tests 25-32: (add|remove)EventListener and get_event_listeners
+use tests 8; # (add|remove)EventListener and get_event_listeners
 
 {
 	my $sub1 = sub{};
@@ -157,7 +159,7 @@ sub clear_event_listeners {
 #  few sections)
 
 # -------------------------#
-# Tests 33-48: event initialisation
+use tests 16; # event initialisation
 
 is $event->type, undef, 'event type before init';
 is $event->eventPhase, undef, 'eventPhase before init';
@@ -189,7 +191,7 @@ is $event->eventPhase, undef, 'eventPhase after init';
 is $event->type, 'click', 'event type after init';
 
 # -------------------------#
-# Tests 49-51: event dispatch:
+use tests 3; # event dispatch:
 # First we'll make sure that the events are triggered in the right order,
 # and for the right event type.
 
@@ -241,7 +243,7 @@ clear_event_listeners($grandchild, 'click', 'focus');
 
 
 # -------------------------#
-# Tests 52-5: event dispatch:
+use tests 4; # event dispatch:
 # Now we need to see whether eventPhase is set correctly.
 
 # Let's just check the constants first:
@@ -266,7 +268,7 @@ clear_event_listeners($grandchild, 'click');
 
 
 # -------------------------#
-# Tests 56-60: event dispatch: stopPropagation
+use tests 5; # event dispatch: stopPropagation
 
 {
 	# I put stopPropagation in both listeners for each phase, since
@@ -328,7 +330,7 @@ clear_event_listeners($doc, 'click');
 
 
 # -------------------------#
-# Tests 61-70: event dispatch:
+use tests 10; # event dispatch:
 #             qw/ target currentTarget preventDefault cancelable /
 #    This section also makes sure that event types are indifferent to case.
 
@@ -374,7 +376,7 @@ ok $grandchild->dispatchEvent($event),
 is $e, 'did it', 'And, yes, preventDefault *was* actually called.';
 
 # -------------------------#
-# Tests 71-6: exceptions thrown by dispatchEvent
+use tests 6; # exceptions thrown by dispatchEvent
 
 $event = $doc->createEvent;
 eval {
@@ -410,7 +412,7 @@ cmp_ok $@, '==', HTML::DOM::Exception::UNSPECIFIED_EVENT_TYPE_ERR,
 
 
 # -------------------------#
-# Tests 77-90: trigger_event and default_event_handler(_for)
+use tests 14; # trigger_event and default_event_handler(_for)
 
 clear_event_listeners($grandchild, 'click');
 $grandchild->addEventListener(click => sub {
@@ -502,7 +504,7 @@ is $e->target, $grandchild,
 
 
 # -------------------------#
-# Tests 91-9: even laster: make sure event_attr_handler is actually used
+use tests 9; # even laster: make sure event_attr_handler is actually used
 
 {
 	$doc->close;
@@ -544,7 +546,7 @@ is $e->target, $grandchild,
 }
 
 # -------------------------#
-# Tests 101-4: HTML::DOM::error_handler access
+use tests 5; # HTML::DOM::error_handler access
 
 {
 	my $coderef = sub{};
@@ -563,7 +565,7 @@ is $e->target, $grandchild,
 }
 
 # -------------------------#
-# Test 105: use of HTML::DOM::error_handler
+use tests 1; # use of HTML::DOM::error_handler
 
 {
 	my $e;
@@ -579,7 +581,7 @@ is $e->target, $grandchild,
 }
 
 # -------------------------#
-# Test 106: modification of Attr objects for event attributes
+use tests 1; # modification of Attr objects for event attributes
 #         (bug in 0.012 and earlier)
 
 {

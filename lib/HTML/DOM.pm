@@ -15,7 +15,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.013';
+our $VERSION = '0.014';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -46,7 +46,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.013 (alpha)
+Version 0.014 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -1067,7 +1067,12 @@ into which class the newly-created event object is blessed.
 
 =cut
 
-sub createEvent { HTML::DOM::Event::class_for($_[1] || '')->new }
+sub createEvent {
+	my $class = HTML::DOM::Event::class_for($_[1] || '');
+	defined $class or die new HTML::DOM::Exception NOT_SUPPORTED_ERR,
+		"The event category '$_[1]' is not supported";
+	$class->new
+}
 
 # ---------- DocumentView interface -------------- #
 

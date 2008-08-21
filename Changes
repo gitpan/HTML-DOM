@@ -1,5 +1,11 @@
 Revision history for HTML::DOM
 
+0.014   20 August, 2008
+        • Fixed the Makefile.PL so it installs properly and doesn’t
+          downgrade CSS::DOM after installing 0.03.
+        • HTML::DOM->createEvent now dies if the arg passed to it is
+          an unsupported event category.
+
 0.013   19 August, 2008
         New features:
         • HTML::DOM::Interface now indicates which members have UTF-16
