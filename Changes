@@ -1,5 +1,9 @@
 Revision history for HTML::DOM
 
+0.015   20 August, 2008
+        • Removed every last reference to CSS::DOM::StyleDecl, which
+          was renamed in 0.03.
+
 0.014   20 August, 2008
         • Fixed the Makefile.PL so it installs properly and doesn’t
           downgrade CSS::DOM after installing 0.03.

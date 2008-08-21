@@ -16,8 +16,8 @@ WriteMakefile(
          Carp                      => 0,
          constant                  => 1.03, # multiple at once
          constant::lexical         => 0,
-        'CSS::DOM'                 => 0,
-        'CSS::DOM::Style'      => 0,
+        'CSS::DOM'                 => 0.03,
+        'CSS::DOM::Style'          => 0,
         'CSS::DOM::StyleSheetList' => 0,
          Exporter                  => 5.57, # for use Exporter 'import'
         'HTML::TreeBuilder'        => 0,
@@ -32,11 +32,13 @@ WriteMakefile(
          HTTP::Request::Common     => 0,
         'HTTP::Headers::Util'      => 0,
          overload                  => 0,
-#        'Scalar::Util'             => 1.08, # refaddr
+#        'Scalar::Util'             => 1.09, # refaddr
          strict                    => 0,
          URI                       => 0,
          warnings                  => 0,
 # used only in the tests:
+        'CSS::DOM::Style'          => 0.04, # setProperty when ::Parser is
+                                            # not loaded
          Scalar::Util              => 1.14, # refaddr with ties
         'Test::More'               => 0,
 	 utf8                      => 0,

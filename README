@@ -1,4 +1,4 @@
-HTML::DOM, version 0.014
+HTML::DOM, version 0.015
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -8,6 +8,10 @@ style sheet interfaces.
 
 
 RECENT CHANGES
+
+0.015:
+• Removed every last reference to CSS::DOM::StyleDecl, which was
+  renamed in 0.03.
 
 0.014:
 • Fixed the Makefile.PL so it installs properly and doesn’t downgrade

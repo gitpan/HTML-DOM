@@ -16,7 +16,7 @@ use tests 9; # ElementCSSInlineStyle
 {
 	(my $elem = $doc->createElement('div'))
 		->setAttribute('style', 'margin-top: 3px');
-	isa_ok($elem->style, 'CSS::DOM::StyleDecl');
+	isa_ok($elem->style, 'CSS::DOM::Style');
 	is $elem->style->marginTop, '3px',
 		'the css dom is copied from the style attribute';
 	$elem->style->marginTop('4em');

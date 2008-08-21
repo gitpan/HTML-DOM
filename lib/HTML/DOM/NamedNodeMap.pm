@@ -16,7 +16,7 @@ use warnings;
 use HTML::DOM::Exception qw'NOT_FOUND_ERR';
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.014';
+our $VERSION = '0.015';
 
 # This object stores nothing more than the Element object whose attributes
 # it purports to hold.
