@@ -8,7 +8,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 48;
+use Test::More tests => 53;
 
 
 # -------------------------#
@@ -113,3 +113,13 @@ ok exists $HTML::DOM::Interface{HTMLFrameElement}{contentDocument},
 ok exists $HTML::DOM::Interface{HTMLIFrameElement}{contentDocument},
 		'HTMLIFrameElement contentDocument';
 ok exists $HTML::DOM::Interface{DOMException}{code}, 'DOMException.code';
+
+# -------------------------#
+# Tests 49-53: changes made in 0.016
+ok exists $HTML::DOM::Interface{MouseEvent},'MouseEvent';
+ok exists $HTML::DOM::Interface{UIEvent},'UIEvent';
+ok exists $HTML::DOM::Interface{MutationEvent},'MutationEvent';
+ok $HTML::DOM::Interface{HTMLOptionsCollection}{_hash},
+	'options doess hash';
+ok $HTML::DOM::Interface{HTMLOptionsCollection}{_array},
+	'options doess ary';

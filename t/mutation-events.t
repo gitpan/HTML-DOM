@@ -1,0 +1,742 @@
+#!/usr/bin/perl -T
+
+use strict; use warnings; no warnings qw 'utf8 parenthesis'; use lib 't';
+
+use lib 't';
+use HTML::DOM;
+
+my $doc = new HTML::DOM;
+my $event = $doc->createEvent('MutationEvents');
+
+use HTML::DOM::Event::Mutation ':all';
+
+# -------------------------#
+use tests 3; # constants
+cmp_ok MODIFICATION , '==', 1, 'MODIFICATION';
+cmp_ok ADDITION , '==', 2, 'ADDITION';
+cmp_ok REMOVAL , '==', 3, 'REMOVAL';
+
+
+# -------------------------#
+use tests 13; # initMutationEvent
+
+is +()=$event->relatedNode, 0, 'relatedNode before init';
+is $event->prevValue, undef, 'prevValue before init';
+is $event->newValue, undef, 'newValue before init';
+is $event->attrName, undef, 'attrName before init';
+is $event->attrChange, undef, 'attrChange before init';
+
+my $foo = bless[];
+is_deeply [initMutationEvent $event
+	DOMSubtreeModified => 1, 1,$foo,5,3,4,2
+], [],
+	'initMutationEvent returns nothing';
+
+ok bubbles $event, 'event is bubbly after init*Event';
+ok cancelable $event, 'event is cancelable after init*Event';
+is $event->relatedNode, $foo, 'relatedNode type after init*Event';
+is $event->prevValue, 5, 'prevValue after init*Event';
+is $event->newValue, 3, 'newValue, after init*Event';
+is $event->attrName, 4, 'attrName after init*Event';
+is $event->attrChange, 2, 'attrChange after init*Event';
+
+# -------------------------#
+use tests 7; # init
+
+init $event type       =>DOMSubtreeModified=>propagates_up=> 1,
+            cancellable=> 1,                 rel_node     => $foo,
+            prev_value => 5,                 new_value    => 3,
+            attr_name  => 4,                 attr_change_type => 2;
+
+ok bubbles $event, 'event is bubbly after init';
+ok cancelable $event, 'event is cancelable after init';
+is $event->relatedNode, $foo, 'relatedNode type after init';
+is $event->prevValue, 5, 'prevValue after init';
+is $event->newValue, 3, 'newValue, after init';
+is $event->attrName, 4, 'attrName after init';
+is $event->attrChange, 2, 'attrChange after init';
+
+# -------------------------#
+use tests 14; # trigger_event’s defaults
+{
+	my $elem = $doc->createElement('div');
+	my $output;
+	$elem->addEventListener($_ => sub {
+		my $event = shift;
+		isa_ok $event, 'HTML::DOM::Event::Mutation',
+			$event->type . " event object";
+		$output = join ',', map {
+			my $foo = $event->$_;
+			ref $foo || (defined $foo ? $foo : '_')
+		} qw/ bubbles cancelable type relatedNode prevValue
+		      newValue attrName attrChange /;
+	})
+	  for map "DOM$_", qw(SubtreeModified NodeInserted NodeRemoved
+	                      NodeRemovedFromDocument
+	                      NodeInsertedIntoDocument AttrModified
+	                      CharacterDataModified);
+	undef $output;
+	$elem->trigger_event('DOMSubtreeModified');
+	is $output,
+	   "1,0,DOMSubtreeModified,_,_,_,_,_";
+
+	undef $output;
+	$elem->trigger_event('DOMNodeInserted');
+	is $output,
+	   "1,0,DOMNodeInserted,_,_,_,_,_";
+
+	undef $output;
+	$elem->trigger_event('DOMNodeRemoved');
+	is $output,
+	   "1,0,DOMNodeRemoved,_,_,_,_,_";
+
+	undef $output;
+	$elem->trigger_event('DOMNodeRemovedFromDocument');
+	is $output,
+	   "0,0,DOMNodeRemovedFromDocument,_,_,_,_,_";
+
+	undef $output;
+	$elem->trigger_event('DOMNodeInsertedIntoDocument');
+	is $output,
+	   "0,0,DOMNodeInsertedIntoDocument,_,_,_,_,_";
+
+	undef $output;
+	$elem->trigger_event('DOMAttrModified');
+	is $output,
+	   "1,0,DOMAttrModified,_,_,_,_,_";
+
+	undef $output;
+	$elem->trigger_event('DOMCharacterDataModified');
+	is $output,
+	   "1,0,DOMCharacterDataModified,_,_,_,_,_";
+
+};
+
+# -------------------------#
+
+sub gimme_a_test_doc {
+	my $doc = new HTML::DOM;
+	$doc->write(
+		'<html id=h>' .
+		'<body id=b>' .
+		'<div id=d1><p id=p11><p id=p12><p id=p13></div>' .
+		'<div id=d2><p id=p21><p id=p22><p id=p23></div>' .
+		'<div id=d3><p id=p31><p id=p32><p id=p33></div>'
+	);
+	$doc->close;
+	my $scratch = [];
+	for my$id(qw( h b d1 d2 d3 p11 p12 p13 p21 p22 p23 p31 p32 p33 )) {
+		my $e = $doc->getElementById($id);
+		$e->addEventListener($_ => sub {
+			push @$scratch, "$id-".$_[0]->target->id."-"
+				.lc$_[0]->type 
+		})
+			for qw(
+				domsubtreemodified
+				domnoderemovedfromdocument
+				domnodeinsertedintodocument
+			);
+
+		# We need the evals around the $_[0]->foo->id things below,
+		# because at one point I had events erroneously occurring,
+		# with relatedNode set to undef.
+		$e->addEventListener($_ => sub {
+			push @$scratch,"$id-" . $_[0]->target->id ."-"
+				. lc ($_[0]->type) . "-"
+				. (eval{$_[0]->relatedNode->id}||'')
+				.'-'.(eval{$_[0]->target->parent->id}||'')
+		}) for qw ,domnodeinserted domnoderemoved,;
+		$e->addEventListener(domattrmodified => sub {
+			push @$scratch, "$id-".$_[0]->target->id
+			  ."-domattrmodified-".
+			  (eval{$_[0]->relatedNode->id}||'')."-".
+			  $_[0]->target->hasAttribute($_[0]->attrName)."-".
+			  join '-', map $_[0]->$_,
+			    attrName=>attrChange=>prevValue=>newValue=>;
+		});
+		$e->addEventListener(domcharacterdatamodified => sub {
+			push @$scratch, "$id-" . $_[0]->target->id.
+			  "-domcharacterdatamodified-".
+			  join '-', map $_[0]->$_,
+			    =>prevValue=>newValue=>;
+		});	
+	}
+	$doc, $scratch;
+}
+
+# The basic order we have to test for is as follows. This is what happens
+# when a node is moved from one tree to  another.  All  the  node-moving
+# events, except attrmodified, follow the same order, but some steps may
+# sometimes be skipped.
+#	event: noderemoved (node itself)
+#	event: noderemovedfromdocument (node and children)
+#	actual removal
+#	insertion
+#	event: nodeinserted
+#	event: nodeinsertedintodocument
+#	event: subtreemodified (nearest common parent)
+
+# The event handlers above push the following info on to @$scratch:
+#	current target id-target id-event name
+# possibly followed by more info (concatenated) based on the type of event:
+#	nodeinserted/removed:  -related node id-parent id
+#	attrmodfied:           -related node id-whether the attr exists
+#	                         -attr name-change type-prev value
+#	                         -new value
+#	characterdatamodified: -prev value-new value
+
+
+# -------------------------#
+use tests 6; # $node->insertBefore
+{
+	my($doc, $scratch) = gimme_a_test_doc;
+
+	$doc->getElementById('d3')->insertBefore(
+		map $doc->getElementById($_), 'p21', 'p33'
+	);
+	is_deeply $scratch, [
+		'p21-p21-domnoderemoved-d2-d2' ,
+		'd2-p21-domnoderemoved-d2-d2' ,
+		'b-p21-domnoderemoved-d2-d2' ,
+		'h-p21-domnoderemoved-d2-d2' ,
+
+		'p21-p21-domnoderemovedfromdocument' ,
+
+		'p21-p21-domnodeinserted-d3-d3' ,
+		'd3-p21-domnodeinserted-d3-d3' ,
+		'b-p21-domnodeinserted-d3-d3' ,
+		'h-p21-domnodeinserted-d3-d3' ,
+
+		'p21-p21-domnodeinsertedintodocument' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "insertBefore transferring an item to it's uncle (same level)";
+
+	@$scratch = ();
+
+	$doc->getElementById('d2')->insertBefore(
+		map $doc->getElementById($_), 'd1', 'p22'
+	);
+	is_deeply $scratch, [
+		'd1-d1-domnoderemoved-b-b' ,
+		'b-d1-domnoderemoved-b-b' ,
+		'h-d1-domnoderemoved-b-b' ,
+
+		'd1-d1-domnoderemovedfromdocument' ,
+		'p11-p11-domnoderemovedfromdocument' ,
+		'p12-p12-domnoderemovedfromdocument' ,
+		'p13-p13-domnoderemovedfromdocument' ,
+
+		'd1-d1-domnodeinserted-d2-d2' ,
+		'd2-d1-domnodeinserted-d2-d2' ,
+		'b-d1-domnodeinserted-d2-d2' ,
+		'h-d1-domnodeinserted-d2-d2' ,
+
+		'd1-d1-domnodeinsertedintodocument' ,
+		'p11-p11-domnodeinsertedintodocument' ,
+		'p12-p12-domnodeinsertedintodocument' ,
+		'p13-p13-domnodeinsertedintodocument' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "insertBefore transferring an item to it's nephew (down)";
+
+	@$scratch = ();
+
+	$doc->body->insertBefore(
+		map $doc->getElementById($_), 'd1', 'd2'
+	);
+	is_deeply $scratch, [
+		'd1-d1-domnoderemoved-d2-d2' ,
+		'd2-d1-domnoderemoved-d2-d2' ,
+		'b-d1-domnoderemoved-d2-d2' ,
+		'h-d1-domnoderemoved-d2-d2' ,
+
+		'd1-d1-domnoderemovedfromdocument' ,
+		'p11-p11-domnoderemovedfromdocument' ,
+		'p12-p12-domnoderemovedfromdocument' ,
+		'p13-p13-domnoderemovedfromdocument' ,
+
+		'd1-d1-domnodeinserted-b-b' ,
+		'b-d1-domnodeinserted-b-b' ,
+		'h-d1-domnodeinserted-b-b' ,
+
+		'd1-d1-domnodeinsertedintodocument' ,
+		'p11-p11-domnodeinsertedintodocument' ,
+		'p12-p12-domnodeinsertedintodocument' ,
+		'p13-p13-domnodeinsertedintodocument' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "insertBefore transferring an item to it's grandparent (up)";
+
+
+	my $foo = $doc->body->removeChild($doc->getElementById('d3'));
+
+	@$scratch = ();
+
+	$foo->insertBefore($doc->getElementById('d1'));
+	is_deeply $scratch, [
+		'd1-d1-domnoderemoved-b-b' ,
+		'b-d1-domnoderemoved-b-b' ,
+		'h-d1-domnoderemoved-b-b' ,
+
+		'd1-d1-domnoderemovedfromdocument' ,
+		'p11-p11-domnoderemovedfromdocument' ,
+		'p12-p12-domnoderemovedfromdocument' ,
+		'p13-p13-domnoderemovedfromdocument' ,
+
+		'd1-d1-domnodeinserted-d3-d3' ,
+		'd3-d1-domnodeinserted-d3-d3' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+
+		'd3-d3-domsubtreemodified',
+	], "insertBefore transferring to an unrelated tree";
+
+	@$scratch = ();
+
+	$doc->body->insertBefore(
+		$foo->lastChild, $doc->getElementById('d2')
+	);
+	is_deeply $scratch, [
+		'd1-d1-domnoderemoved-d3-d3' ,
+		'd3-d1-domnoderemoved-d3-d3' ,
+
+		'd1-d1-domnodeinserted-b-b' ,
+		'b-d1-domnodeinserted-b-b' ,
+		'h-d1-domnodeinserted-b-b' ,
+
+		'd1-d1-domnodeinsertedintodocument' ,
+		'p11-p11-domnodeinsertedintodocument' ,
+		'p12-p12-domnodeinsertedintodocument' ,
+		'p13-p13-domnodeinsertedintodocument' ,
+
+		'd3-d3-domsubtreemodified',
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "insertBefore transferring from an unrelated tree";
+
+	$foo = $doc->body->removeChild($doc->getElementById('d1'));
+	@$scratch = ();
+	
+	$doc->body->insertBefore(
+		$foo
+	);
+	is_deeply $scratch, [
+		'd1-d1-domnodeinserted-b-b' ,
+		'b-d1-domnodeinserted-b-b' ,
+		'h-d1-domnodeinserted-b-b' ,
+
+		'd1-d1-domnodeinsertedintodocument' ,
+		'p11-p11-domnodeinsertedintodocument' ,
+		'p12-p12-domnodeinsertedintodocument' ,
+		'p13-p13-domnodeinsertedintodocument' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "insertBefore just inserting";
+}
+
+# -------------------------#
+use tests 6; # $node->replaceChild
+{
+	my($doc, $scratch) = gimme_a_test_doc;
+
+	$doc->getElementById('d3')->replaceChild(
+		map $doc->getElementById($_), 'p21', 'p33'
+	);
+	is_deeply $scratch, [
+		'p33-p33-domnoderemoved-d3-d3' ,
+		'd3-p33-domnoderemoved-d3-d3' ,
+		'b-p33-domnoderemoved-d3-d3' ,
+		'h-p33-domnoderemoved-d3-d3' ,
+
+		'p33-p33-domnoderemovedfromdocument',
+
+		'p21-p21-domnoderemoved-d2-d2' ,
+		'd2-p21-domnoderemoved-d2-d2' ,
+		'b-p21-domnoderemoved-d2-d2' ,
+		'h-p21-domnoderemoved-d2-d2' ,
+
+		'p21-p21-domnoderemovedfromdocument' ,
+
+		'p21-p21-domnodeinserted-d3-d3' ,
+		'd3-p21-domnodeinserted-d3-d3' ,
+		'b-p21-domnodeinserted-d3-d3' ,
+		'h-p21-domnodeinserted-d3-d3' ,
+
+		'p21-p21-domnodeinsertedintodocument' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "replaceChild transferring an item to it's uncle (same level)";
+
+	@$scratch = ();
+
+	$doc->getElementById('d2')->replaceChild(
+		map $doc->getElementById($_), 'd1', 'p22'
+	);
+	is_deeply $scratch, [
+		'p22-p22-domnoderemoved-d2-d2' ,
+		'd2-p22-domnoderemoved-d2-d2' ,
+		'b-p22-domnoderemoved-d2-d2' ,
+		'h-p22-domnoderemoved-d2-d2' ,
+
+		'p22-p22-domnoderemovedfromdocument',
+
+		'd1-d1-domnoderemoved-b-b' ,
+		'b-d1-domnoderemoved-b-b' ,
+		'h-d1-domnoderemoved-b-b' ,
+
+		'd1-d1-domnoderemovedfromdocument' ,
+		'p11-p11-domnoderemovedfromdocument' ,
+		'p12-p12-domnoderemovedfromdocument' ,
+		'p13-p13-domnoderemovedfromdocument' ,
+
+		'd1-d1-domnodeinserted-d2-d2' ,
+		'd2-d1-domnodeinserted-d2-d2' ,
+		'b-d1-domnodeinserted-d2-d2' ,
+		'h-d1-domnodeinserted-d2-d2' ,
+
+		'd1-d1-domnodeinsertedintodocument' ,
+		'p11-p11-domnodeinsertedintodocument' ,
+		'p12-p12-domnodeinsertedintodocument' ,
+		'p13-p13-domnodeinsertedintodocument' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "replaceChild transferring an item to it's nephew (down)";
+
+	@$scratch = ();
+
+	my $d2 = $doc->body->replaceChild(
+		map $doc->getElementById($_), 'd1', 'd2'
+	);
+	is_deeply $scratch, [
+		'd2-d2-domnoderemoved-b-b' ,
+		'b-d2-domnoderemoved-b-b' ,
+		'h-d2-domnoderemoved-b-b' ,
+
+		'd2-d2-domnoderemovedfromdocument' ,
+		'd1-d1-domnoderemovedfromdocument' ,
+		'p11-p11-domnoderemovedfromdocument' ,
+		'p12-p12-domnoderemovedfromdocument' ,
+		'p13-p13-domnoderemovedfromdocument' ,
+		'p23-p23-domnoderemovedfromdocument' ,
+
+		'd1-d1-domnoderemoved-d2-d2' ,
+		'd2-d1-domnoderemoved-d2-d2' ,
+		'b-d1-domnoderemoved-d2-d2' ,
+		'h-d1-domnoderemoved-d2-d2' ,
+
+		'd1-d1-domnodeinserted-b-b' ,
+		'b-d1-domnodeinserted-b-b' ,
+		'h-d1-domnodeinserted-b-b' ,
+
+		'd1-d1-domnodeinsertedintodocument' ,
+		'p11-p11-domnodeinsertedintodocument' ,
+		'p12-p12-domnodeinsertedintodocument' ,
+		'p13-p13-domnodeinsertedintodocument' ,
+
+		'd2-d2-domsubtreemodified',
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "replaceChild transferring an item to it's grandparent (up)";
+
+
+	my $foo = $doc->body->removeChild($doc->getElementById('d3'));
+
+	@$scratch = ();
+
+	$foo->replaceChild($doc->getElementById('d1'), $foo->firstChild);
+	is_deeply $scratch, [
+		'p31-p31-domnoderemoved-d3-d3' ,
+		'd3-p31-domnoderemoved-d3-d3' ,
+
+		'd1-d1-domnoderemoved-b-b' ,
+		'b-d1-domnoderemoved-b-b' ,
+		'h-d1-domnoderemoved-b-b' ,
+
+		'd1-d1-domnoderemovedfromdocument' ,
+		'p11-p11-domnoderemovedfromdocument' ,
+		'p12-p12-domnoderemovedfromdocument' ,
+		'p13-p13-domnoderemovedfromdocument' ,
+
+		'd1-d1-domnodeinserted-d3-d3' ,
+		'd3-d1-domnodeinserted-d3-d3' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+
+		'd3-d3-domsubtreemodified',
+	], "replaceChild transferring to an unrelated tree";
+
+	$doc->body->appendChild($d2);
+	@$scratch = ();
+	$doc->body->replaceChild(
+		$foo->firstChild, $d2
+	);
+	is_deeply $scratch, [
+		'd2-d2-domnoderemoved-b-b' ,
+		'b-d2-domnoderemoved-b-b' ,
+		'h-d2-domnoderemoved-b-b' ,
+
+		'd2-d2-domnoderemovedfromdocument' ,
+		'p23-p23-domnoderemovedfromdocument' ,
+
+		'd1-d1-domnoderemoved-d3-d3' ,
+		'd3-d1-domnoderemoved-d3-d3' ,
+
+		'd1-d1-domnodeinserted-b-b' ,
+		'b-d1-domnodeinserted-b-b' ,
+		'h-d1-domnodeinserted-b-b' ,
+
+		'd1-d1-domnodeinsertedintodocument' ,
+		'p11-p11-domnodeinsertedintodocument' ,
+		'p12-p12-domnodeinsertedintodocument' ,
+		'p13-p13-domnodeinsertedintodocument' ,
+
+		'd3-d3-domsubtreemodified',
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "replaceChild transferring from an unrelated tree";
+
+	$foo = $doc->body->removeChild($doc->getElementById('d1'));
+	$doc->body->appendChild($d2);
+	@$scratch = ();
+	
+	$doc->body->replaceChild(
+		$foo, $d2
+	);
+	is_deeply $scratch, [
+		'd2-d2-domnoderemoved-b-b' ,
+		'b-d2-domnoderemoved-b-b' ,
+		'h-d2-domnoderemoved-b-b' ,
+
+		'd2-d2-domnoderemovedfromdocument' ,
+		'p23-p23-domnoderemovedfromdocument' ,
+
+		'd1-d1-domnodeinserted-b-b' ,
+		'b-d1-domnodeinserted-b-b' ,
+		'h-d1-domnodeinserted-b-b' ,
+
+		'd1-d1-domnodeinsertedintodocument' ,
+		'p11-p11-domnodeinsertedintodocument' ,
+		'p12-p12-domnodeinsertedintodocument' ,
+		'p13-p13-domnodeinsertedintodocument' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "replaceChild inserting an orphaned node";
+}
+
+# -------------------------#
+use tests 2; # $node->removeChild
+{
+	my($doc, $scratch) = gimme_a_test_doc;
+
+	my $d3 = $doc->body->removeChild(
+		$doc->getElementById('d3')
+	);
+	is_deeply $scratch, [
+		'd3-d3-domnoderemoved-b-b' ,
+		'b-d3-domnoderemoved-b-b' ,
+		'h-d3-domnoderemoved-b-b' ,
+
+		'd3-d3-domnoderemovedfromdocument' ,
+		'p31-p31-domnoderemovedfromdocument' ,
+		'p32-p32-domnoderemovedfromdocument' ,
+		'p33-p33-domnoderemovedfromdocument' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "removeChild removing items from the document";
+
+	$d3->appendChild($doc->getElementById('d1'))
+	;@$scratch = ();
+
+	$d3->removeChild($d3->lastChild);
+	is_deeply $scratch, [
+		'd1-d1-domnoderemoved-d3-d3' ,
+		'd3-d1-domnoderemoved-d3-d3' ,
+
+		'd3-d3-domsubtreemodified' ,
+	], "removeChild removing an item from a node outside the doc";
+}
+
+
+# -------------------------#
+use tests 6; # $node->appendChild
+{
+	my($doc, $scratch) = gimme_a_test_doc;
+
+	$doc->getElementById('d3')->appendChild(
+		$doc->getElementById('p21')
+	);
+	is_deeply $scratch, [
+		'p21-p21-domnoderemoved-d2-d2' ,
+		'd2-p21-domnoderemoved-d2-d2' ,
+		'b-p21-domnoderemoved-d2-d2' ,
+		'h-p21-domnoderemoved-d2-d2' ,
+
+		'p21-p21-domnoderemovedfromdocument' ,
+
+		'p21-p21-domnodeinserted-d3-d3' ,
+		'd3-p21-domnodeinserted-d3-d3' ,
+		'b-p21-domnodeinserted-d3-d3' ,
+		'h-p21-domnodeinserted-d3-d3' ,
+
+		'p21-p21-domnodeinsertedintodocument' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "appendChild transferring an item to it's uncle (same level)";
+
+	@$scratch = ();
+
+	$doc->getElementById('d2')->appendChild(
+		$doc->getElementById('d1')
+	);
+	is_deeply $scratch, [
+		'd1-d1-domnoderemoved-b-b' ,
+		'b-d1-domnoderemoved-b-b' ,
+		'h-d1-domnoderemoved-b-b' ,
+
+		'd1-d1-domnoderemovedfromdocument' ,
+		'p11-p11-domnoderemovedfromdocument' ,
+		'p12-p12-domnoderemovedfromdocument' ,
+		'p13-p13-domnoderemovedfromdocument' ,
+
+		'd1-d1-domnodeinserted-d2-d2' ,
+		'd2-d1-domnodeinserted-d2-d2' ,
+		'b-d1-domnodeinserted-d2-d2' ,
+		'h-d1-domnodeinserted-d2-d2' ,
+
+		'd1-d1-domnodeinsertedintodocument' ,
+		'p11-p11-domnodeinsertedintodocument' ,
+		'p12-p12-domnodeinsertedintodocument' ,
+		'p13-p13-domnodeinsertedintodocument' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "appendChild transferring an item to it's nephew (down)";
+
+	@$scratch = ();
+
+	$doc->body->appendChild(
+		$doc->getElementById('d1')
+	);
+	is_deeply $scratch, [
+		'd1-d1-domnoderemoved-d2-d2' ,
+		'd2-d1-domnoderemoved-d2-d2' ,
+		'b-d1-domnoderemoved-d2-d2' ,
+		'h-d1-domnoderemoved-d2-d2' ,
+
+		'd1-d1-domnoderemovedfromdocument' ,
+		'p11-p11-domnoderemovedfromdocument' ,
+		'p12-p12-domnoderemovedfromdocument' ,
+		'p13-p13-domnoderemovedfromdocument' ,
+
+		'd1-d1-domnodeinserted-b-b' ,
+		'b-d1-domnodeinserted-b-b' ,
+		'h-d1-domnodeinserted-b-b' ,
+
+		'd1-d1-domnodeinsertedintodocument' ,
+		'p11-p11-domnodeinsertedintodocument' ,
+		'p12-p12-domnodeinsertedintodocument' ,
+		'p13-p13-domnodeinsertedintodocument' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "appendChild transferring an item to it's grandparent (up)";
+
+
+	my $foo = $doc->body->removeChild($doc->getElementById('d3'));
+
+	@$scratch = ();
+
+	$foo->appendChild($doc->getElementById('d1'));
+	is_deeply $scratch, [
+		'd1-d1-domnoderemoved-b-b' ,
+		'b-d1-domnoderemoved-b-b' ,
+		'h-d1-domnoderemoved-b-b' ,
+
+		'd1-d1-domnoderemovedfromdocument' ,
+		'p11-p11-domnoderemovedfromdocument' ,
+		'p12-p12-domnoderemovedfromdocument' ,
+		'p13-p13-domnoderemovedfromdocument' ,
+
+		'd1-d1-domnodeinserted-d3-d3' ,
+		'd3-d1-domnodeinserted-d3-d3' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+
+		'd3-d3-domsubtreemodified',
+	], "appendChild transferring to an unrelated tree";
+
+	@$scratch = ();
+
+	$doc->body->appendChild(
+		$foo->lastChild
+	);
+	is_deeply $scratch, [
+		'd1-d1-domnoderemoved-d3-d3' ,
+		'd3-d1-domnoderemoved-d3-d3' ,
+
+		'd1-d1-domnodeinserted-b-b' ,
+		'b-d1-domnodeinserted-b-b' ,
+		'h-d1-domnodeinserted-b-b' ,
+
+		'd1-d1-domnodeinsertedintodocument' ,
+		'p11-p11-domnodeinsertedintodocument' ,
+		'p12-p12-domnodeinsertedintodocument' ,
+		'p13-p13-domnodeinsertedintodocument' ,
+
+		'd3-d3-domsubtreemodified',
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "appendChild transferring from an unrelated tree";
+
+	$foo = $doc->body->removeChild($doc->getElementById('d1'));
+	@$scratch = ();
+	
+	$doc->body->appendChild(
+		$foo
+	);
+	is_deeply $scratch, [
+		'd1-d1-domnodeinserted-b-b' ,
+		'b-d1-domnodeinserted-b-b' ,
+		'h-d1-domnodeinserted-b-b' ,
+
+		'd1-d1-domnodeinsertedintodocument' ,
+		'p11-p11-domnodeinsertedintodocument' ,
+		'p12-p12-domnodeinsertedintodocument' ,
+		'p13-p13-domnodeinsertedintodocument' ,
+
+		'b-b-domsubtreemodified' ,
+		'h-b-domsubtreemodified' ,
+	], "appendChild just inserting";
+}
+
+
+# ~~~ setAttribute
+# ~~~ removeAttribute
+# ~~~ setAttributeNode
+# ~~~ removeAttributeNode
+# ~~~ appendData
+# ~~~ insertData
+# ~~~ insertData16
+# ~~~ deleteData
+# ~~~ deleteData16
+# ~~~ replaceData
+# ~~~ replaceData16
+
+# ~~~ All the shorthand HTML properties.

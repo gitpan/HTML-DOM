@@ -24,11 +24,12 @@ use tests 7; # DocumentEvent::createEvent
 
 my $event = $doc->createEvent;
 isa_ok $event, 'HTML::DOM::Event';
-
+{
+	my $event = $doc->createEvent('UIEvents');
+	isa_ok $event, 'HTML::DOM::Event::UI';
+}
 SKIP :{
-	skip 'unimplemented', 3;
-	$event = $doc->createEvent('UIEvents');
-	isa_ok $event, 'HTML::DOM::Event::UIEvent';
+	skip 'unimplemented', 2;
 	$event = $doc->createEvent('MouseEvent');
 	isa_ok $event, 'HTML::DOM::Event::MouseEvent';
 	my $event = $doc->createEvent('MutationEvents');
@@ -159,7 +160,7 @@ sub clear_event_listeners {
 #  few sections)
 
 # -------------------------#
-use tests 16; # event initialisation
+use tests 24; # event initialisation (initEvent and init)
 
 is $event->type, undef, 'event type before init';
 is $event->eventPhase, undef, 'eventPhase before init';
@@ -181,6 +182,20 @@ is_deeply [initEvent $event click => 1, 1], [],
 	'initEvent returns nothing';
 initEvent $event2 focus => 0, 0;
 
+ok bubbles $event, 'event is bubbly after initEvent';
+ok!bubbles $event2, 'event is flat after initEvent';
+ok cancelable $event, 'event is cancelable after initEvent';
+ok!cancelable $event2, 'event is uncancelable after initEvent';
+is scalar $event->currentTarget, undef, 'no currentTarget after initEvent';
+is scalar $event->target, undef, 'no target after initEvent';
+is $event->eventPhase, undef, 'eventPhase after initEvent';
+is $event->type, 'click', 'event type after initEvent';
+
+$event = $doc->createEvent;
+$event2 = $doc->createEvent;
+init $event type => click => cancellable => 1 => propagates_up => 1;
+init $event2 type => focus => cancellable => 0 => propagates_up => 0;
+
 ok bubbles $event, 'event is bubbly after init';
 ok!bubbles $event2, 'event is flat after init';
 ok cancelable $event, 'event is cancelable after init';
@@ -189,6 +204,7 @@ is scalar $event->currentTarget, undef, 'no currentTarget after init';
 is scalar $event->target, undef, 'no target after init';
 is $event->eventPhase, undef, 'eventPhase after init';
 is $event->type, 'click', 'event type after init';
+
 
 # -------------------------#
 use tests 3; # event dispatch:
@@ -412,10 +428,13 @@ cmp_ok $@, '==', HTML::DOM::Exception::UNSPECIFIED_EVENT_TYPE_ERR,
 
 
 # -------------------------#
-use tests 14; # trigger_event and default_event_handler(_for)
+use tests 10; # trigger_event and default_event_handler(_for)
 
 clear_event_listeners($grandchild, 'click');
-$grandchild->addEventListener(click => sub {
+
+# We have to use the non-standard ‘clink’ here, because click has its own
+# magic handling (triggering DOMActivate).
+$grandchild->addEventListener(clink => sub {
 	$_[0]->preventDefault
 });
 
@@ -424,23 +443,23 @@ $doc-> default_event_handler(sub {
 });
 
 $e = '';
-($event = $doc->createEvent)->initEvent(click => 1, 1);
+($event = $doc->createEvent)->initEvent(clink => 1, 1);
 $grandchild->trigger_event($event);
 is $e, '', 'event objects passed to trigger_event can be stopped';
 
-$grandchild->trigger_event('click');
+$grandchild->trigger_event('clink');
 is $e, '', 'event names passed to trigger_event can be stopped';
 
 $e = '';
-($event = $doc->createEvent)->initEvent(click => 1, 0);
+($event = $doc->createEvent)->initEvent(clink => 1, 0);
 $grandchild->trigger_event($event);
 is $e, $event,
     'the default event was run when an obj was passed to trigger_event';
 
-clear_event_listeners($grandchild, 'click');
+clear_event_listeners($grandchild, 'clink');
 $e = '';
-$grandchild->trigger_event('click');
-is $e->type, 'click',
+$grandchild->trigger_event('clink');
+is $e->type, 'clink',
 	'$event->type when an event name is passed to trigger_event';
 is $e->target, $grandchild,
 	'$event->target when an event name is passed to trigger_event';
@@ -448,59 +467,28 @@ is $e->target, $grandchild,
 {
 	my $which = '';
 	$doc->default_event_handler(sub { $which = 'default' });
-	$doc->default_event_handler_for(submit_button =>
-		sub { $which = 'sb' }
-	);
 	$doc->default_event_handler_for(link =>
 		sub { $which = 'link' }
 	);
 	$doc->default_event_handler_for(submit =>
 		sub { $which = 'submit' }
 	);
-	$doc->default_event_handler_for(reset_button =>
-		sub { $which = 'resetb' }
-	);
 
-	$doc->createElement('a')->click();
+	$doc->createElement('a')->trigger_event("DOMActivate");
 	is $which, 'link', 'dehf link';
 	$doc->default_event_handler_for('link' => undef);
-	$doc->createElement('a')->click();
+	$doc->createElement('a')->trigger_event("DOMActivate");
 	is $which, 'default', 'link fallback to default';
-
-	(my $el = $doc->createElement('input'))-> type('submit');
-	$el->click();
-	is $which, 'sb', 'dehf submit_button';
-	$doc->default_event_handler_for('submit_button' => undef);
-	$el->click();
-	is $which, 'default', 'submit_button fallback to default';
-
-	($el = $doc->createElement('input'))-> type('reset');
-	$el->click();
-	is $which, 'resetb', 'dehf reset_button';
-	$doc->default_event_handler_for('reset_button' => undef);
-	$el->click();
-	is $which, 'default', 'reset_button fallback to default';
 
 	$doc->createElement('form')->submit();
 	is $which, 'submit', 'dehf submit';
 	$doc->default_event_handler_for('submit' => undef);
 	$doc->createElement('form')->submit();
 	is $which, 'default', 'submit fallback to default';
-	
-	$which = '';
-	my $doc = new HTML::DOM;
-	$doc->body->appendChild(my $f = $doc->createElement('form'))
-		->appendChild($el = $doc->createElement('input'))
-		->type('submit');
-	$f->addEventListener(submit => sub { $which .= '-form submit'});
-	$f->addEventListener(reset => sub { $which .= '-form reset'});
-	$el->addEventListener(click => sub { $which .= '-button'});
-	$el->click();
-	$el->attr(type=>'reset');
-	$el->click;
-	is $which, '-button-form submit-button-form reset',
-		'default default event handler for submit buttons';
 }
+
+ok eval{new HTML::DOM +()=>->trigger_event("foo");1},
+	'$doc->trigger_event(string) doesn\'t die';
 
 
 # -------------------------#

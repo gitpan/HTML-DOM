@@ -62,6 +62,9 @@ lib/HTML/DOM/Element/Title.pod
 lib/HTML/DOM/Element/TR.pod
 lib/HTML/DOM/Element/UL.pod
 lib/HTML/DOM/Element.pm
+lib/HTML/DOM/Event/Mouse.pm
+lib/HTML/DOM/Event/Mutation.pm
+lib/HTML/DOM/Event/UI.pm
 lib/HTML/DOM/Event.pm
 lib/HTML/DOM/Exception.pm
 lib/HTML/DOM/Implementation.pm
@@ -96,6 +99,8 @@ t/html-dom.t
 t/html-element.t
 t/html-form.t
 t/implementation.t
+t/mouse-events.t
+t/mutation-events.t
 t/named-node-map.t
 t/node-list.t
 t/node.t
@@ -104,5 +109,6 @@ t/test.html
 t/tests.pm
 t/text.t
 t/tree-builder.t
+t/uievents.t
 t/views.t
 META.yml                                 Module meta-data (added by MakeMaker)

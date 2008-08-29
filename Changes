@@ -1,5 +1,37 @@
 Revision history for HTML::DOM
 
+0.016   28 August, 2008
+        New features/miscellaneous changes:
+        • The UIEvent, MouseEvent and MutationEvent interfaces have
+          been added. (Mutation events for attributes and character
+          data  modified  are  not  yet  automatically  triggered.)
+        • Events now have an init method that works like initEvent,
+          but takes named args.
+        • trigger_event has been extended to allow named args specify-
+          ing the event type and which default  action  to  take.  It
+          also chooses the right event class and reasonable  defaults
+          for the event name passed to it.
+        • default_event_handler_for’s submit_button and reset_button
+          event types have been removed,  and default default  event
+          handlers for specific event types (i.e., default event han-
+          dlers already in place by default)  have been replaced  by
+          another mechanism (not part of the public API).
+        • The innerHTML has been added to HTML::DOM and
+          HTML::DOM::Element. It is currently read-only.
+        • Triggering a form’s reset event  (or calling its reset
+          method, which in turn triggers the event) now actually
+          resets the form.
+        Bug fixes:
+        • A  table  cell  following  an  unclosed  table  cell
+          (<td><TD>) no longer mangles the tree.  This was bro-
+          ken in  0.011 which turned that into the nonsensical
+          <tr><td></td><tr><td></td></tr></tr>. (This may have
+          affected other elements, as well.)
+        • HTMLOptionsCollection is now listed as acting as a hash and
+          as an array in HTML::DOM::Interface.
+        • The trigger_event method now works on the document with a
+          string arg, instead of dying.
+
 0.015   20 August, 2008
         • Removed every last reference to CSS::DOM::StyleDecl, which
           was renamed in 0.03.

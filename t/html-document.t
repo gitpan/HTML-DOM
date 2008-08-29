@@ -3,9 +3,9 @@
 # This script tests the HTMLDocument interface of HTML::DOM.
 # For the other features, see document.t and html-dom.t.
 
-use strict; use warnings;
+use strict; use warnings; use utf8;
 
-use Test::More tests => 67;
+use Test::More tests => 68;
 
 
 # -------------------------#
@@ -309,5 +309,31 @@ $doc->close;
 
 is $doc->{fred}, $doc->forms->[0],           'hashness (1)';
 is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
+
+# -------------------------#
+# Test 68: innerHTML
+{
+	my $doc = new HTML::DOM;
+	$doc->write('
+		<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+			"http://www.w3.org/TR/html4/strict.dtd">
+		<title></title><p>
+		<a href=foo>hello<br>goodbye</a>
+	');
+	$doc->close;
+	ok $doc->innerHTML =~(
+		join '\s*', "",
+			qw| <!(?i)doctype html public(?-i) |,
+			'"-//W3C//DTD HTML 4.01//EN"',
+			'"http://www\.w3\.org/TR/html4/strict\.dtd"',
+			qw| >
+				<html> <head> <title></title> </head>
+				<body> <p> <a href=(['"])foo\1
+					>hello<br >goodbye</a>
+				(?:</p>\s*)?</body> </html>
+			|
+	), 'innerHTML serialisation'
+		or diag ("got " .$doc->innerHTML);
+}
 
 

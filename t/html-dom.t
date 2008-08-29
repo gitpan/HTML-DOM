@@ -219,4 +219,3 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 
 	is $counter,3,  'elem_handler(*)';
 }
-

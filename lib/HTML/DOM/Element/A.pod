@@ -66,6 +66,9 @@ Each of these triggers the corresponding event.
 
 =back
 
+And L<HTML::DOM::Node>'s C<trigger_event> method is overridden to call the
+default event handler for links when the DOMActivate event occurs.
+
 =head1 SEE ALSO
 
 L<HTML::DOM>

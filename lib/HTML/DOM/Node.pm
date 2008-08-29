@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 
 
 use strict;
@@ -196,7 +196,8 @@ sub _set_ownerDocument {
 
 =head2 Other Methods
 
-See the DOM spec. for descriptions of most of these.
+See the DOM spec. for descriptions of most of these. The first four
+automatically trigger mutation events. (See L<HTML::DOM::Event::Mutation>.)
 
 =over 4
 
@@ -254,11 +255,28 @@ sub insertBefore {
 	else {
 		$index = @kids;
 	}
+
+	my $old_parent = $new_node->parent;
+	$old_parent and $new_node->trigger_event('DOMNodeRemoved',
+		rel_node => $old_parent);
+	if($new_node->is_inside($doc)) {
+		$_->trigger_event('DOMNodeRemovedFromDocument')
+		  for $new_node, $new_node->descendants;
+	}
+
 	$self->splice_content($index, 0,
 		$new_node->isa('HTML::DOM::DocumentFragment')
 		? $new_node->childNodes
 		: $new_node
 	);
+
+	$new_node->trigger_event('DOMNodeInserted', rel_node => $self);
+	if($self->is_inside($doc)) {
+		$_->trigger_event('DOMNodeInsertedIntoDocument')
+		  for $new_node, $new_node->descendants;
+	}
+	$_->trigger_event('DOMSubtreeModified')
+	  for _nearest_common_parent($old_parent, $self);
 
 	$doc->_modified;
 
@@ -289,18 +307,43 @@ sub replaceChild {
 		die new HTML::DOM::Exception NOT_FOUND_ERR,
 		'replaceChild\'s 2nd argument is not a child of this node';
 
-	$doc->_modified;
+	$old_node->trigger_event('DOMNodeRemoved',
+		rel_node => $self);
+	my $in_doc = $self->is_inside($doc);
+	if($in_doc) {
+		$_->trigger_event('DOMNodeRemovedFromDocument')
+		  for $old_node, $old_node->descendants;
+	}
+	my $old_parent = $new_node->parent;
+	$old_parent and $new_node->trigger_event('DOMNodeRemoved',
+		rel_node => $old_parent);
+	if($new_node->is_inside($doc) && !$new_node->is_inside($old_node)){
+		$_->trigger_event('DOMNodeRemovedFromDocument')
+		  for $new_node, $new_node->descendants;
+	}
 
 	# If the owner is not set explicitly inside the node, it will lose
 	# its owner.  The ownerDocument method  sets  it  if  it  is  not
 	# already set.
 	$old_node->ownerDocument;
 
-	$old_node->replace_with(
+	my $ret = $old_node->replace_with(
 		$new_node->isa('HTML::DOM::DocumentFragment')
 		? $new_node->childNodes
 		: $new_node
 	);
+
+	$new_node->trigger_event('DOMNodeInserted', rel_node => $self);
+	if($in_doc) {
+		$_->trigger_event('DOMNodeInsertedIntoDocument')
+		  for $new_node, $new_node->descendants;
+	}
+	$_->trigger_event('DOMSubtreeModified')
+	  for _nearest_common_parent($old_parent, $self);
+
+	$doc->_modified;
+
+	$ret;
 }
 
 sub removeChild {
@@ -317,9 +360,18 @@ sub removeChild {
 	# If the owner is not set explicitly inside the node, it will lose
 	# its owner.  The ownerDocument method  sets  it  if  it  is  not
 	# already set.
-	$child->ownerDocument;
+	my $doc = $child->ownerDocument;
+
+	$child->trigger_event('DOMNodeRemoved',
+		rel_node => $self);
+	if($child->is_inside($doc)) {
+		$_->trigger_event('DOMNodeRemovedFromDocument')
+		  for $child, $child->descendants;
+	}
 
 	$child->detach;
+
+	$self->trigger_event('DOMSubtreeModified');
 
 	{($self->ownerDocument||next)->_modified;}
 
@@ -345,13 +397,49 @@ sub appendChild {
 		die new HTML::DOM::Exception WRONG_DOCUMENT_ERR,
 		'The node to be inserted belongs to another document';
 
+	my $old_parent = $new_node->parent;
+	$old_parent and $new_node->trigger_event('DOMNodeRemoved',
+		rel_node => $old_parent);
+	if($new_node->is_inside($doc)) {
+		$_->trigger_event('DOMNodeRemovedFromDocument')
+		  for $new_node, $new_node->descendants;
+	}
+
 	$self->push_content($new_node->isa('HTML::DOM::DocumentFragment')
 		? $new_node->childNodes
 		: $new_node);
 
+	$new_node->trigger_event('DOMNodeInserted', rel_node => $self);
+	if($self->is_inside($doc)) {
+		$_->trigger_event('DOMNodeInsertedIntoDocument')
+		  for $new_node, $new_node->descendants;
+	}
+	$_->trigger_event('DOMSubtreeModified')
+	  for _nearest_common_parent($old_parent, $self);
+
 	$doc->_modified;
 
 	$new_node;
+}
+
+# This is used to determine who gets a DOMSubtreeModified event. Despite
+# its name, it may choose one of the two nodes passed to it if one is the
+# parent of the other. If neither of the nodes is in the same tree, they
+# are both returned. The first arg may be undef, in which case the 2nd
+# is returned.
+sub _nearest_common_parent {
+	my ($node1,$node2)=@_;
+	!defined $node1 and return $node2;
+	$node1->root != $node2->root and return $node1, $node2;
+	my $addr1 = $node1->address;
+	my $addr2 = $node2->address;
+	while(substr $addr1, 0, length $addr2, ne $addr2 and
+	      substr $addr2, 0, length $addr1, ne $addr1) {
+		s/\.[^.]*\z// for $addr1, $addr2;
+	}
+	$node2->address(
+	  length $addr1 < length $addr2 ? $addr1 : $addr2
+	)
 }
 
 sub hasChildNodes {
@@ -537,27 +625,82 @@ sub dispatchEvent { # This is where all the work is.
 	return !cancelled $event;
 }
 
-=item trigger_event($event)
+=item trigger_event($event, ...)
 
 Here is another non-DOM method. C<$event> can be an event object or simply 
 an event name. This method triggers an
 event for real, first calling C<dispatchEvent> and then running the default
 action for the event unless an event listener cancels it.
 
+=begin comment
+The interface for this is very clunky, so I’m keeping it private for now.
+It only exists for the sake of the implementation, anyway. Actually, I’ve
+changed it so that it’s DOMActivate_default => \&sub instead of default =>
+{ DOMActivate => \&sub }, because that makes it easier for multiple classes
+to say SUPER::trigger_event($evnt, ..._default => ) without clobbering each
+other.
+
+It can take named args following the C<$event> arg. The C<default> arg, if
+present, must be a hash of subroutines to be called if C<dispatchEvent>
+returns true. The keys of the hash are event names. Whichever applies will
+be used. If omitted, the
+default event handler associated with the document will be used. Certain
+HTML elements override C<trigger_event> to provide their
+own default event handler (this is where HTML::DOM's
+default_event_handler_for business comes into play), but if you specify a
+default it will override.
+
+The rest
+of the arguments (which are ignored if C<$event> is an event object)
+are the same as those passed to an event object's C<init> method. Any
+omitted args will be filled in with reasonable defaults.
+
+=end comment
+
+It can take named args following the C<$event> arg. These are passed to the
+event object's C<init> method. Any
+omitted args will be filled in with reasonable defaults. These are
+completely ignored if C<$event> is an event object.
+
+When C<$event> is an event name, C<trigger_event> automatically chooses the
+right event class and a set of default args for that event name, so you can
+supply just a few. E.g.,
+
+  $elem->trigger_event('click',  shift => 1, button => 1);
+
 =cut
 
 sub trigger_event { # non-DOM method
-	# ~~~ Should I document the C<$default> arg? (If I do, I need explicit tests for it.)
-	my ($target, $event, $default) = @_;
+# ~~~ When I implement mutation events, I need, for efficiency’s sake, to
+#     skip creating the event object here, and have dispatchEvent (or
+#    _dispatch_event or some such) create the object on demand.
+	my ($target, $event, %args) = @_;
 	my $doc;
-	defined blessed $event and $event->isa('HTML::DOM::Event') or do {
-		my $type = $event;
-		$event = ($doc = $target->ownerDocument)
-			->createEvent;
-		$event->initEvent($type,1,1);
+	my $type;
+	defined blessed $event && $event->isa('HTML::DOM::Event')
+	? $type =  $event->type 
+	: do {
+		$type = $event;
+		require HTML'DOM'Event;
+		$event = ($doc = $target->ownerDocument||$target)
+			->createEvent((
+				my (undef, @init_args) =
+					HTML'DOM'Event'defaults($type)
+			)[0]);
+		$event->init(
+			type=>$type,
+			@init_args,
+			$event->can('view')
+				? ( view =>
+					($target->ownerDocument||$target)
+						->defaultView
+				):(),
+			%args
+		);
 	};
+
 	$target->dispatchEvent($event) and &{
-		$default ||
+		$args{"$type\_default"} ||
 		($doc || $target->ownerDocument)->default_event_handler
 		|| return
 	}($event);

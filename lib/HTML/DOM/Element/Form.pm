@@ -13,7 +13,7 @@ require HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 #require HTML::DOM::Collection::Elements;
 
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 our @ISA = qw'HTML::DOM::Element HTML::Form';
 
 use overload fallback => 1,
@@ -70,18 +70,21 @@ sub target        { shift->attr('target'         => @_)    }
 
 sub submit { shift->trigger_event('submit') }
 
-sub reset { #$_->_reset for shift->elements
+sub reset {
 	shift->trigger_event('reset');
 }
 
 sub trigger_event {
 	my ($a,$evnt) = (shift,shift);
-	my $name = ref $evnt && eval{$evnt->type} || $evnt;
 	$a->SUPER::trigger_event(
 		$evnt,
-		$name =~ /^(?:rese|submi)t\z/i
-		 && $a->ownerDocument->default_event_handler_for($name)
-		 || @_
+		submit_default =>
+			$a->ownerDocument->
+				default_event_handler_for('submit'),
+		reset_default => sub {
+			$_->_reset for shift->target->elements
+		},
+		@_,
 	);
 }
 
@@ -310,7 +313,7 @@ package HTML::DOM::NodeList::Radio; # solely for HTML::Form compatibility
 use Carp 'croak';
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 our @ISA = qw'HTML::DOM::NodeList HTML::Form::Input';
 
 sub type { 'radio' }
@@ -393,7 +396,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 
 require HTML::DOM::Collection;
 our @ISA = 'HTML::DOM::Collection';
@@ -522,9 +525,13 @@ L<HTML::DOM::Node/Other Methods>.)
 
 =item reset
 
-This triggers the form's 'reset' event. It is up to the default event
-handler actually to reset the form's field's values. (Later, if I get time,
-I plan to make it do this itself.)
+This triggers the form's 'reset' event.
+
+=item trigger_event
+
+This class overrides the superclasses' method to trigger the default event
+handler for form submissions,when the submit event occurs, and reset the
+form when a reset event occurs.
 
 =back
 
@@ -564,7 +571,7 @@ L<HTML::Form>
 # ------- HTMLSelectElement interface ---------- #
 
 package HTML::DOM::Element::Select;
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 our @ISA = 'HTML::DOM::Element';
 
 use overload fallback=>1, '@{}' => sub { shift->options };
@@ -638,6 +645,8 @@ sub remove {
 
 sub blur { shift->trigger_event('blur') }
 sub focus { shift->trigger_event('focus') }
+sub _reset {  (my $self = shift)->_reset_sel_index;
+               $_->_reset for $self->options  }
 
 
 package HTML::DOM::Collection::Options;
@@ -645,7 +654,7 @@ package HTML::DOM::Collection::Options;
 use strict;
 use warnings;
 
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 
 use Carp 'croak';
 use constant::lexical sel => 5; # must not conflict with super
@@ -736,7 +745,7 @@ sub form_name_value
 # ------- HTMLOptGroupElement interface ---------- #
 
 package HTML::DOM::Element::OptGroup;
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 our @ISA = 'HTML::DOM::Element';
 
 sub label  { shift->attr( label => @_) }
@@ -746,7 +755,7 @@ sub label  { shift->attr( label => @_) }
 # ------- HTMLOptionElement interface ---------- #
 
 package HTML::DOM::Element::Option;
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
 
 use Carp 'croak';
@@ -849,6 +858,8 @@ sub name {
 	shift->look_up(_tag => 'select')->name
 }
 
+sub _reset { delete shift->{_HTML_DOM_sel} }
+
 *AUTOLOAD = \& HTML::DOM::NodeList::Radio::AUTOLOAD;
 *DESTROY = \&HTML::DOM::Element::Form::DESTROY;
 
@@ -870,7 +881,7 @@ sub form_name_value
 # ------- HTMLInputElement interface ---------- #
 
 package HTML::DOM::Element::Input;
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
@@ -942,6 +953,11 @@ sub value        {
 	no warnings;
 	return "$ret";
 }
+sub _reset {
+	my $self = shift;
+	$self->checked($self->defaultChecked);
+	$self->value($self->defaultValue);
+}
 
 *blur = \&HTML::DOM::Element::Select::blur;
 *focus = \&HTML::DOM::Element::Select::focus;
@@ -960,11 +976,18 @@ sub trigger_event {
 	my $input_type = $a->type;
 	$a->SUPER::trigger_event(
 		$evnt,
-		(ref $evnt && eval{$evnt->type} || $evnt) =~ /^click\z/i
-		 && $input_type =~ /^(submi|rese)t\z/
-		 && $a->ownerDocument->default_event_handler_for(
-			"$input_type\_button")
-		 || @_
+		$input_type =~ /^(?:(submi)|rese)t\z/
+			?( DOMActivate_default =>
+				# I’m not using a closure here, because we
+				# don’t want the overhead of cloning it
+				# when it might not even be used.
+				(sub { (shift->target->form||return)
+					->trigger_event('submit') },
+				 sub { (shift->target->form||return)
+					->trigger_event('reset') })
+				  [!$1]
+			) :(),
+		@_
 	);
 }
 
@@ -1071,7 +1094,7 @@ sub content {
 # ------- HTMLTextAreaElement interface ---------- #
 
 package HTML::DOM::Element::TextArea;
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
 
 sub defaultValue { # same as HTML::DOM::Element::Title::text
@@ -1108,6 +1131,11 @@ sub value        {
 *focus = \&HTML::DOM::Element::Select::focus;
 *select = \&HTML::DOM::Element::Input::select;
 
+sub _reset {
+	my $self = shift;
+	$self->value($self->defaultValue);
+}
+
 sub form_name_value
 # ~~~ to be deleted when my patch to HTML::Form is applied
 {
@@ -1126,7 +1154,7 @@ sub form_name_value
 # ------- HTMLButtonElement interface ---------- #
 
 package HTML::DOM::Element::Button;
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1141,7 +1169,7 @@ sub value      { shift->attr( value       => @_) }
 # ------- HTMLLabelElement interface ---------- #
 
 package HTML::DOM::Element::Label;
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1151,7 +1179,7 @@ sub htmlFor { shift->attr( for       => @_) }
 # ------- HTMLFieldSetElement interface ---------- #
 
 package HTML::DOM::Element::FieldSet;
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1159,7 +1187,7 @@ our @ISA = qw'HTML::DOM::Element';
 # ------- HTMLLegendElement interface ---------- #
 
 package HTML::DOM::Element::Legend;
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;

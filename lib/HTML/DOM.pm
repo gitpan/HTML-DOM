@@ -15,13 +15,12 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
 require         HTML::DOM::Comment;
 require HTML::DOM::DocumentFragment;
-require            HTML::DOM::Event;
 require  HTML::DOM::Implementation;
 require         HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
@@ -46,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.015 (alpha)
+Version 0.016 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -67,8 +66,7 @@ notice.
            $dom_tree->createElement('input')
   );
   
-  print $dom_tree->documentElement->as_HTML, "\n";
-  # (inherited from HTML::Element)
+  print $dom_tree->innerHTML, "\n";
 
   my $text = $dom_tree->createTextNode('text');
   $text->data;              # get attribute
@@ -86,14 +84,16 @@ The following DOM modules are currently supported:
   -------      -------------------
   HTML         2.0
   Core         2.0
-  Events       2.0 (partially)
+  Events       2.0
+  UIEvents     2.0
+  MouseEvents  2.0
   StyleSheets  2.0
   CSS          2.0 (partially)
   CSS2         2.0
   Views        2.0
 
 StyleSheets, CSS and CSS2 are actually provided by L<CSS::DOM>. This list
-corresponds to CSS::DOM version 0.02.
+corresponds to CSS::DOM versions 0.02 to 0.04.
 
 =head1 METHODS
 
@@ -233,7 +233,7 @@ The TB object used for innerHTML can probably be cached and re-used.
 		    "self, text, is_cdata, offset"); # numbers for scripts
 		$tb->handler(start => "start",
 		  "self, tagname, attr, attrseq, offset, tokenpos");
-		$tb->handler((declaration=>)x2, 'self,tagname,tokens');
+		$tb->handler((declaration=>)x2,'self,tagname,tokens,text');
 
 		$tb->{_HTML_DOM_tweakall} = $tb->{'_tweak_*'};
 
@@ -317,14 +317,18 @@ The TB object used for innerHTML can probably be cached and re-used.
 
 		my $self = shift;
 		my $pos = $self->{_pos};
-		$self->SUPER::end(@_);
+		my @ret = $self->SUPER::end(@_);
 		$self->{_pos} = $pos
-			if ($self->{_pos}||return)->{_tag} eq '~doc';
+			if ($self->{_pos}||return @ret)->{_tag} eq '~doc';
+		@ret; # TB relies on this retval
 	}
 
 	sub declaration {
-		my($self,$tagname,$tokens) = @_;
-		return unless $tagname eq 'doctype' and @$tokens > 3;
+		my($self,$tagname,$tokens,$source) = @_;
+		return unless $tagname eq 'doctype';
+		$self->{_HTML_DOM_doctype} = $source
+			unless defined $self->{_HTML_DOM_doctype};
+		return unless @$tokens > 3;
 		for ($self->{_HTML_DOM_version} = $tokens->[3]){
 			s/^['"]// and s/['"]\z//;
 		}
@@ -355,19 +359,6 @@ sub new {
 	$self->push_content(new HTML::DOM::TreeBuilder);
 	$self->{_HTML_DOM_view} = new HTML::DOM::View $self;
 	$self->{_HTML_DOM_cs} = $opts{charset};
-
-	$self->default_event_handler_for(
-		submit_button => sub {
-			(shift->target->form||return)
-				->trigger_event('submit')
-		}
-	);
-	$self->default_event_handler_for(
-		reset_button => sub {
-			(shift->target->form||return)
-				->trigger_event('reset')
-		}
-	);
 
 	$self;
 }
@@ -1058,12 +1049,16 @@ sub getElementsByName {
 
 # ---------- DocumentEvent interface -------------- #
 
-=item createEvent
+=item createEvent ( $category )
 
 Creates a new event object, believe it or not.
 
-This currently ignores its args. Later the arg passed to it will determine
-into which class the newly-created event object is blessed.
+The C<$category> is the DOM event category, which determines what type of
+event object will be returned. The currently supported event categories
+are MouseEvents and UIEvents.
+
+You can omit the C<$category> to create an instance of the event base class
+(not officially part of the DOM).
 
 =cut
 
@@ -1071,6 +1066,8 @@ sub createEvent {
 	my $class = HTML::DOM::Event::class_for($_[1] || '');
 	defined $class or die new HTML::DOM::Exception NOT_SUPPORTED_ERR,
 		"The event category '$_[1]' is not supported";
+	(my $path =$class) =~ s/::/\//g;
+	require "$path.pm";
 	$class->new
 }
 
@@ -1091,8 +1088,6 @@ sub defaultView { shift->{_HTML_DOM_view} }
 Returns a L<CSS::DOM::StyleSheetList> of the document's style sheets, or a
 simple list in list context.
 
-=back
-
 =cut
 
 sub styleSheets {
@@ -1108,6 +1103,23 @@ sub styleSheets {
 	);
 	wantarray ? @$ret : $ret;
 }
+
+=item innerHTML
+
+Serialises and returns the HTML document.
+
+=cut
+
+sub innerHTML  {
+	return join '' , $_[0]->documentElement->{_HTML_DOM_doctype}||'',
+		map innerHTML $_, shift->content_list;
+}
+
+
+=back
+
+=cut
+
 
 # ---------- OVERRIDDEN NODE METHODS -------------- #
 
@@ -1159,9 +1171,9 @@ S<< C<< $doc->forms->{yayaya} >> >>.
 =head1 EVENT HANDLING
 
 HTML::DOM supports both the DOM Level 2 event model and the HTML 4 event
-model (at least in part, so far [in particular, the Event base class is
-implemented, but none of its subclasses; no events are triggered 
-automatically yet]).
+model (at least in part; the MutationEvent and HTMLEvent interfaces are
+not yet implemented; DOM attributes corresponding to HTML 4 events don't
+exist yet, either).
 
 An event listener (aka handler) is a coderef, an object with a 
 C<handleEvent>
@@ -1170,6 +1182,11 @@ any classes that provide a C<handleEvent> method, but will support any
 object that has one.
 
 =head2 Default Actions
+
+Default actions that HTML::DOM is capable of handling internally (such as
+triggering a DOMActivate event when an element is clicked, and triggering a
+form's submit event when the submit button is activated) are dealt with
+automatically. You don't have to worry about those. For others, read on....
 
 To specify the default actions associated with an event, provide a
 subroutine (in this case, it not being part of the DOM, you can't use an
@@ -1181,10 +1198,8 @@ With the former, you can specify the
 default action to be taken when a particular type of event occurs. The
 currently supported types are:
 
-  link           triggered when a link is clicked
-  submit_button  when a submit button is clicked
-  reset_button   when a reset button is clicked
   submit         when a form is submitted
+  link           called when a link is activated (DOMActivate event)
 
 Pass the type of event as the first argument and a code ref as the second
 argument. When the code ref is called, its sole argument will
@@ -1195,11 +1210,6 @@ be the event object. For instance:
          go_to( $event->target->href );
   });
   sub go_to { ... }
-
-The C<submit_button> and C<reset_button> event types by default already
-have subroutines
-associated with them that triggers a submit or reset event on the button's 
-form.
 
 C<default_event_handler_for> with just one argument returns the 
 currently 
@@ -1413,8 +1423,8 @@ machine-readable list of standard methods.)
       DOM::Collection::Elements
       DOM::Collection::Options
   DOM::Event                              Event
-     [DOM::Event::UI                      UIEvent]
-     [DOM::Event::Mouse                   MouseEvent]
+      DOM::Event::UI                      UIEvent
+          DOM::Event::Mouse               MouseEvent
      [DOM::Event::Mutation                MutationEvent]
   DOM::View                               AbstractView, [ViewCSS]
 
@@ -1499,7 +1509,7 @@ HTTP::Headers::Util :-).
 HTML::Form 1.054 or later if any of the methods provided for
 WWW::Mechanize compatibility are called.
 
-CSS::DOM 0.03 or later is required if you use any of the style sheet 
+CSS::DOM 0.04 or later is required if you use any of the style sheet 
 features.
 
 Scalar::Util 1.14 or later
@@ -1532,7 +1542,7 @@ B<To report bugs,> please e-mail the author.
 
 =head1 AUTHOR, COPYRIGHT & LICENSE
 
-Copyright (C) 2007 Father Chrysostomos
+Copyright (C) 2007-8 Father Chrysostomos
 
   $text = new HTML::DOM ->createTextNode('sprout');
   $text->appendData('@');

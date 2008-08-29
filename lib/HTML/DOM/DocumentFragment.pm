@@ -5,7 +5,7 @@ use strict;
 use HTML::DOM::Node 'DOCUMENT_FRAGMENT_NODE';
 
 our @ISA = 'HTML::DOM::Node';
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 
 sub new {
 	SUPER::new{shift} '~frag';

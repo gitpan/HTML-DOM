@@ -40,30 +40,31 @@ sub test_attr {
 	is $obj->$attr,$new_val,     ,     "get $attr_name again";
 }
 
-my $doc;
 {
 	my ($evt,$targ);
-	($doc = new HTML::DOM)
-	 ->default_event_handler(sub{
+	my $eh = sub{
 		($evt,$targ) = ($_[0]->type, shift->target);
-	});
+	};
 	
 	sub test_event {
 		my($obj, $event) = @_;
 		($evt,$targ) = ();
 		my $class = (ref($obj) =~ /[^:]+\z/g)[0];
+		$obj->addEventListener($event=>$eh);
 		is_deeply [$obj->$event], [],
 			"return value of $class\'s $event method";
 		is $evt, $event, "$class\'s $event method";
 		is refaddr $targ, refaddr $obj, 
-			"$class\'s $event event is on target"
+			"$class\'s $event event is on target";
+		$obj->removeEventListener($eh);
 	}
 }
-	
+
+my $doc = new HTML::DOM;	
 my $form;
 
 # -------------------------#
-use tests 30; # HTMLFormElement
+use tests 31; # HTMLFormElement
 
 {
 	is ref(
@@ -101,8 +102,26 @@ use tests 30; # HTMLFormElement
 	is $form->length, 3, '$form->length';
 	is $elements->length, 3., '$elements->length';
 
+	# These two test that the event actually occurs:
 	test_event $form, 'submit';
 	test_event $form, 'reset';
+
+	# These check for the default behaivour (reset doesn’t work yet):
+	my $which;
+	$form	->appendChild(my $el = $doc->createElement('input'))
+		->type('submit');
+	$form->addEventListener(submit => sub { $which .= '-form submit'});
+	$form->addEventListener(reset => sub { $which .= '-form reset'});
+	$el->addEventListener(click => sub { $which .= '-button'});
+	$el->addEventListener(DOMActivate => sub { $which .= '-activate'});
+	$el->click();
+	$el->attr(type=>'reset');
+	$el->click;
+	is $which,
+	   '-button-activate-form submit-button-activate-form reset',
+		'default actions for form events';
+	# ~~~ I need tests to make sure that form elements are actually
+	#     reset. Currently they are not.
 }
 
 # -------------------------#
@@ -336,7 +355,7 @@ use tests 69; # HTMLInputElement
 	is $elem->attr('value'), '$6.00',
 		'modifying input->value leaves the value attr alone';
 
-	$doc->default_event_handler_for(submit_button=>undef);
+	$doc->default_event_handler_for(click=>undef);
 	test_event($elem,$_) for qw/ blur focus select click /;
 }
 
@@ -503,6 +522,60 @@ use tests 7; # HTML::DOM::Collection::Elements
 		'the nodelist returned by the collection continues to ' .
 		'work when the nodelist is out of scope';
 		# I mistakenly had a misplaced weaken() during development.
+}
+
+# -------------------------#
+use tests 7; # reset
+
+{
+	my $doc = new HTML::DOM;
+	$doc->write('
+		<title></title>
+		<form name=f>
+			<input type=radio name=foo checked id=foo1>
+			<input type=radio name=foo id=foo2>
+			<input type=checkbox checked name=chek1>
+			<input type=checkbox name=chek2>
+			<input type=text name=tekxt value=defufou>
+			<input type=password name=etet value=",fdbjq">
+			<select name=multi multiple>
+				<option selected>
+				<option selected>
+				<option>
+				<option>
+			</select>
+			<select name=cyngle>
+				<option>
+				<option selected>
+				<option>
+				<option>
+			</select>
+		</form>
+	');
+	$doc->close();
+
+	my $form = $doc->{f};
+	$form->{foo}[1]->checked(1);
+	$form->{chek1}->checked(0);
+	$form->{chek2}->checked(1);
+	$form->{tekxt}->value('onhoen');
+	$form->{etet}->value('-ontotneh');
+	for($form->{multi}) {
+		$_->[1]->selected(0);
+		$_->[3]->selected(1);
+	}
+	$form->{cyngle}->selectedIndex(2);
+
+	$form->reset; # Wham!
+
+	ok $form->{foo}[0]->checked,                      'A whole buncha';
+	ok $form->{chek1}->checked,                        ' tests that';
+	ok !$$form{chek2}->checked,                         ' see whether';
+	is $$form{tekxt}->value, 'defufou',                 ' the various';
+	is $$form{etet}->value, ',fdbjq',                  ' formies were';
+	is join(',', grep selected $_, @{$$form{multi}}),
+	   join(',', @{$$form{multi}}[0,1]),             ' reset properly';
+	is $$form{cyngle}->selectedIndex, 1;
 }
 
 # ~~~ I need to write tests for HTML::DOM::Collection::Elements’s namedItem

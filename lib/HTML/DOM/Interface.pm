@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 
 =head1 NAME
 
@@ -165,6 +165,9 @@ gory details, look at the source code. In fact, here it is:
   	'HTML::DOM::Collection::Options' => 'HTMLOptionsCollection',
   	'HTML::DOM::Event' => 'Event',
   	'HTML::DOM::View' => 'AbstractView',
+  	'HTML::DOM::Event::Mouse' => 'MouseEvent',
+  	'HTML::DOM::Event::UI' => 'UIEvent',
+  	'HTML::DOM::Event::Mutation' => 'MutationEvent',
   	 DOMException => {
   		code => NUM | READONLY,
   		_constants => [qw[
@@ -301,8 +304,8 @@ gory details, look at the source code. In fact, here it is:
   		namedItem => METHOD | OBJ,
   	 },
   	 HTMLOptionsCollection => {
-		_hash => 0,
-		_array => 0,
+		_hash => 1,
+		_array => 1,
   		length => NUM,
   		item => METHOD | OBJ,
   		namedItem => METHOD | OBJ,
@@ -959,6 +962,46 @@ gory details, look at the source code. In fact, here it is:
   		stopPropagation => METHOD | VOID,
   		preventDefault => METHOD | VOID,
   		initEvent => METHOD | VOID,
+  	 },
+  	 UIEvent => {
+		_isa => 'Event',
+		_hash => 0,
+		_array => 0,
+  		view => OBJ | READONLY,
+  		detail => NUM | READONLY,
+  		initUIEvent => METHOD | VOID,
+  	 },
+  	 MouseEvent => {
+		_isa => 'UIEvent',
+		_hash => 0,
+		_array => 0,
+  		screenX => NUM | READONLY,
+  		screenY => NUM | READONLY,
+  		clientX => NUM | READONLY,
+  		clientY => NUM | READONLY,
+  		ctrlKey => BOOL | READONLY,
+  		shiftKey => BOOL | READONLY,
+  		altKey => BOOL | READONLY,
+  		metaKey => BOOL | READONLY,
+  		button => NUM | READONLY,
+  		relatedTarget => OBJ | READONLY,
+  		initMouseEvent => METHOD | VOID,
+  	 },
+  	 MutationEvent => {
+		_isa => 'Event',
+		_hash => 0,
+		_array => 0,
+  		_constants => [qw[
+  			HTML::DOM::Event::Mutation::MODIFICATION
+  			HTML::DOM::Event::Mutation::ADDITION
+  			HTML::DOM::Event::Mutation::REMOVAL
+  		]],
+  		relatedNode => OBJ | READONLY,
+  		prevValue => STR | READONLY,
+  		newValue => STR | READONLY,
+  		attrName => STR | READONLY,
+  		attrChange => NUM | READONLY,
+  		initMutationEvent => METHOD | VOID,
   	 },
   	 AbstractView => {
 		_hash => 0,

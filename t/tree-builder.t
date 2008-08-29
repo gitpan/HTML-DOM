@@ -34,3 +34,17 @@ use tests 1; # implicit tbody
 ',
 		'implicit tbody';
 }
+
+# -------------------------#
+use tests 1; # make sure <td><td> doesn’t try to insert an extra <tr>
+{            # inside the current <tr>. Version 0.011 broke this, and
+             # 0.016 fixed it.
+	my $doc = new HTML::DOM;
+	$doc->write('<table><tr><td>a<td>b</table>');
+	$doc->close;
+	is $doc->documentElement->as_HTML,
+	   '<html><head></head><body>'
+	  ."<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>"
+	  ."</body></html>\n",
+		'<td><td>';
+}

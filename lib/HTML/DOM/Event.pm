@@ -1,6 +1,6 @@
 package HTML::DOM::Event;
 
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 
 
 use strict;
@@ -48,25 +48,174 @@ sub _set_target        { $_[0]{target    } = $_[1] }
 sub _set_currentTarget { $_[0]{cur_target} = $_[1] }
 
 sub initEvent {
-	my $event = shift;
+	shift->init(
+		type => shift,
+		propagates_up => shift,
+		cancellable => shift,
+	);
+}
+
+sub init {
+	my($event, %args) = @_;
 	return if defined $event->eventPhase;
-	@$event{qw/name froth cancelable/} = @_;
-	return
+	@$event{qw/name froth cancelable/}
+		= @args{qw/ type propagates_up cancellable /};
+	return;
 }
 
 # ----------- OTHER STUFF ------------- #
 
-# ~~~ Should I document class_for?
+# ~~~ Should I document these?
+# ~~~ If I do make these public, I probably ought to rename them to make
+#     some distinction between the arg types; the arg to class_for is a DOM
+#     event module name, and the arg to defaults is an event type.
 
 my %class_for = (
 	'' => __PACKAGE__,
-	#UIEvents => 'HTML::DOM::Event::UIEvent', # not yetimplemnedeteted
-	# etc.
+	UIEvents => 'HTML::DOM::Event::UI',
+	MouseEvents => 'HTML::DOM::Event::Mouse',
+	MutationEvents => "HTML::DOM::Event::Mutation",
+	# ~~~ etc.
 );
 
 sub class_for {
 	$class_for{$_[0]}
 }
+
+# ~~~ The DOM 2 spec lists mouseover and -out as cancellable. Firefox has
+#     the cancelable property set to true, but preventDefault does nothing.
+#     The DOM 3 spec also lists mousemove as cancellable. None of this
+#     makes any sense.
+my %defaults = (
+	domfocusin  => [ UIEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+	domfocusout => [ UIEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+	domactivate => [ UIEvents =>
+		propagates_up => 1,
+		cancellable => 1,
+		detail => 1,
+	],
+	click       => [ MouseEvents =>
+		propagates_up => 1,
+		cancellable => 1,
+		detail => 1,
+		screen_x => 0,
+		screen_y => 0,
+		client_x => 0,
+		client_y => 0,
+		ctrl => 0,
+		alt => 0,
+		shift => 0,
+		meta => 0,
+		button => 1,
+	],
+	mousedown   => [ MouseEvents =>
+		propagates_up => 1,
+		cancellable => 1,
+		detail => 1,
+		screen_x => 0,
+		screen_y => 0,
+		client_x => 0,
+		client_y => 0,
+		ctrl => 0,
+		alt => 0,
+		shift => 0,
+		meta => 0,
+		button => 1,
+	],
+	mouseup     => [ MouseEvents =>
+		propagates_up => 1,
+		cancellable => 1,
+		detail => 1,
+		screen_x => 0,
+		screen_y => 0,
+		client_x => 0,
+		client_y => 0,
+		ctrl => 0,
+		alt => 0,
+		shift => 0,
+		meta => 0,
+		button => 1,
+	],
+	mouseover   => [ MouseEvents =>
+		propagates_up => 1,
+		cancellable => 1,
+		screen_x => 0,
+		screen_y => 0,
+		client_x => 0,
+		client_y => 0,
+		ctrl => 0,
+		alt => 0,
+		shift => 0,
+		meta => 0,
+	],
+	mousemove   => [ MouseEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+		screen_x => 0,
+		screen_y => 0,
+		client_x => 0,
+		client_y => 0,
+		ctrl => 0,
+		alt => 0,
+		shift => 0,
+		meta => 0,
+	],
+	mouseout    => [ MouseEvents =>
+		propagates_up => 1,
+		cancellable => 1,
+		screen_x => 0,
+		screen_y => 0,
+		client_x => 0,
+		client_y => 0,
+		ctrl => 0,
+		alt => 0,
+		shift => 0,
+		meta => 0,
+	],
+	domsubtreemodified  => [ MutationEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+	domnodeinserted  => [ MutationEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+	domnoderemoved  => [ MutationEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+	domnoderemovedfromdocument  => [ MutationEvents =>
+		propagates_up => 0,
+		cancellable => 0,
+	],
+	domnodeinsertedintodocument  => [ MutationEvents =>
+		propagates_up => 0,
+		cancellable => 0,
+	],
+	domattrmodified  => [ MutationEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+	domcharacterdatamodified  => [ MutationEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+);
+
+sub defaults {
+	my $evnt_name = lc $_[0];
+	return exists $defaults{$evnt_name}
+		? @{$defaults{$evnt_name}}
+		: (''=>propagates_up=>1,cancellable=>1);
+}
+
+# ($event_category, @args) = HTML'DOM'Event'defaults foo;
 
 1;
 __END__
@@ -89,15 +238,22 @@ HTML::DOM::Event - A Perl class for HTML DOM Event objects
        1,      # whether it propagates up the hierarchy
        0,      # whether it can be cancelled
   );
+  # OR:
+  $event->init(
+      type => 'click',
+      propagates_up => 1,
+      cancellable => 0,
+  );
 
-  $doc->body->dispatchEvent($event);
+  $doc->body->dispatchEvent($event); # fake event (run the handlers)
+  $doc->body->trigger_event($event); # real event
 
 =head1 DESCRIPTION
 
 This class provides event objects for L<HTML::DOM>, which objects are
 passed to event handlers when they are triggered. It implements the W3C 
 DOM's Event interface and serves as a base class for more specific event
-classes (or at least it will, when those are implemented).
+classes.
 
 =head1 METHODS
 
@@ -132,7 +288,7 @@ event propagation.
 
 This attribute returns a list of C<Bubble> objects, each of which has a
 C<diameter> and a C<wobbliness>, which can be retrieved by the
-corresponding get_* method. :-)
+corresponding get_* methods. :-)
 
 Actually, this strangely-named method returns true if the event propagates 
 up the 
@@ -178,6 +334,16 @@ the default action is not to be taken.
 
 =over
 
+=item init
+
+This is a nice alternative to C<initEvent>. It takes named args:
+
+  $event->init(
+      type => 'click',
+      propagates_up => 1,
+      cancellable => 1,
+  );
+
 =item cancelled
 
 Returns true if C<preventDefault> has been called.
@@ -208,5 +374,9 @@ The following node type constants are exportable, individually or with
 =over 4
 
 L<HTML::DOM>
+
+L<HTML::DOM::Event::UI>
+
+L<HTML::DOM::Event::UI::Mouse>
 
 L<HTML::DOM::Node>

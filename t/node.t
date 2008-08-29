@@ -176,7 +176,8 @@ cmp_ok ownerDocument $frag, '==', $doc, 'ownerDocument';
 	my $dock = new HTML::DOM;
 	ok eval{
 	    $dock->insertBefore($dock->createComment('unoeunoth'),undef); 1
-	}, '$doc->insertBefore doesn’t produce an invalid wrong doc error';
+	}, '$doc->insertBefore doesn’t produce an invalid wrong doc error'
+	  or diag $@;
 }
 
 # -------------------------#

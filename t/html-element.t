@@ -12,8 +12,9 @@
 
 use strict; use warnings;
 
-use Test::More tests => 555;
-
+use lib 't';
+use HTML::DOM;
+use tests();
 
 sub test_attr {
 	my ($obj, $attr, $val, $new_val) = @_;
@@ -28,38 +29,36 @@ sub test_attr {
 
 
 # -------------------------#
-# Test 1: load the module
-
-BEGIN { use_ok 'HTML::DOM'; }
-
-# -------------------------#
-# Test 2: document constructor
+use tests 1; # document constructor
 
 my $doc = new HTML::DOM;
 isa_ok $doc, 'HTML::DOM';
 
 {
 	my ($evt,$targ);
-	$doc->default_event_handler(sub{
+	my $eh = sub{
 		($evt,$targ) = ($_[0]->type, shift->target);
-	});
+	};
 	
 	sub test_event {
 		my($obj, $event) = @_;
 		($evt,$targ) = ();
 		my $class = (ref($obj) =~ /[^:]+\z/g)[0];
+		$obj->addEventListener($event=>$eh);
 		is_deeply [$obj->$event], [],
 			"return value of $class\'s $event method";
 		is $evt, $event, "$class\'s $event method";
 		is refaddr $targ, refaddr $obj, 
-			"$class\'s $event event is on target"
+			"$class\'s $event event is on target";
+		$obj->removeEventListener($eh);
 	}
 }
 	
 
 
 # -------------------------#
-# Tests 3-45: Element types that just use the HTMLElement interface
+use tests 48; # Element types that just use the HTMLElement interface
+              # (and general tests for that interface)
 
 for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
          samp kbd var cite acronym abbr dd dt noframes noscript
@@ -83,10 +82,31 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	is $elem->className,'ssalc',               ,     'get className';
 	is $elem->className('taxis'),       'ssalc', 'set/get className';
 	is $elem->className,'taxis',               , 'get className again';
+
+	test_event $elem => $_ for qw/click/;
+	my $thing;
+	$elem->addEventListener(click => sub { $thing.='click' });
+	$elem->addEventListener(DOMActivate => sub { $thing.='activate' });
+	$elem->click();
+	is $thing, 'clickactivate', 'click triggers DOMActivate';
+
+	($elem = $doc->createElement("a"))->setAttribute("foo"=>"bar");
+	$elem->appendChild($_) for
+		$doc->createTextNode('baz'),
+		$doc->createElement('br'),
+		$doc->createTextNode('teette');
+	like $elem->innerHTML, qr/
+		<(?i:a\s*foo)\s*=\s*(['"]?)bar\1\s*>
+			baz
+			<(?i:br)\s*>
+			teette
+		<\/[aA]\s*>
+	/x, 'innerHTML serialisation';
+
 }
 
 # -------------------------#
-# Tests 46-9: HTMLHtmlElement
+use tests 4; # HTMLHtmlElement
 
 {
 	is ref(
@@ -100,7 +120,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 50-3: HTMLHeadElement
+use tests 4; # HTMLHeadElement
 
 {
 	is ref(
@@ -114,7 +134,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 54-81: HTMLLinkElement
+use tests 28; # HTMLLinkElement
 
 {
 	is ref(
@@ -145,7 +165,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 82-5: HTMLTitleElement
+use tests 4; # HTMLTitleElement
 
 {
 	is ref(
@@ -158,7 +178,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 86-98: HTMLMetaElement
+use tests 13; # HTMLMetaElement
 
 {
 	is ref(
@@ -180,7 +200,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 99-105: HTMLBaseElement
+use tests 7; # HTMLBaseElement
 
 {
 	is ref(
@@ -196,7 +216,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 106-11: HTMLIsIndexElement
+use tests 6; # HTMLIsIndexElement
 
 {
 	is ref(
@@ -216,7 +236,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 112-21: HTMLStyleElement
+use tests 10; # HTMLStyleElement
 
 {
 	is ref(
@@ -235,7 +255,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 122-40: HTMLBodyElement
+use tests 19; # HTMLBodyElement
 
 {
 	is ref(
@@ -259,7 +279,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 141-7: HTMLUListElement
+use tests 7; # HTMLUListElement
 
 {
 	is ref(
@@ -276,7 +296,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 148-57: HTMLOListElement
+use tests 10; # HTMLOListElement
 
 {
 	is ref(
@@ -296,7 +316,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 158-61: HTMLDListElement
+use tests 4; # HTMLDListElement
 
 {
 	is ref(
@@ -312,7 +332,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 162-5: HTMLDirectoryElement
+use tests 4; # HTMLDirectoryElement
 
 {
 	is ref(
@@ -328,7 +348,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 166-9: HTMLMenuElement
+use tests 4; # HTMLMenuElement
 
 {
 	is ref(
@@ -344,7 +364,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 170-6: HTMLLIElement
+use tests 7; # HTMLLIElement
 
 {
 	is ref(
@@ -360,7 +380,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 177-80: HTMLDivElement
+use tests 4; # HTMLDivElement
 
 {
 	is ref(
@@ -374,7 +394,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 181-9: HTMLHeadingElement
+use tests 9; # HTMLHeadingElement
 
 {
 	my $elem;
@@ -390,7 +410,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 190-4: HTMLQuoteElement
+use tests 5; # HTMLQuoteElement
 
 {
 	my $elem;
@@ -406,7 +426,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 195-8: HTMLPreElement
+use tests 4; # HTMLPreElement
 
 {
 	my $elem;
@@ -421,7 +441,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 199-202: HTMLBRElement
+use tests 4; # HTMLBRElement
 
 {
 	my $elem;
@@ -436,7 +456,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 203-12: HTMLBaseFontElement
+use tests 10; # HTMLBaseFontElement
 
 {
 	my $elem;
@@ -458,7 +478,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 213-22: HTMLFontElement
+use tests 10; # HTMLFontElement
 
 {
 	my $elem;
@@ -478,7 +498,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 223-35: HTMLHRElement
+use tests 13; # HTMLHRElement
 
 {
 	my $elem;
@@ -501,7 +521,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 236-43: HTMLModElement
+use tests 8; # HTMLModElement
 
 {
 	my $elem;
@@ -519,7 +539,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 244-89: HTMLAnchorElement
+use tests 43; # HTMLAnchorElement
 
 {
 	my $elem;
@@ -555,11 +575,11 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	test_attr $elem, qw 2 target    bull's-eye      whatever    2;
 	test_attr $elem, qw 2 type      application/pdf text/html   2;
 
-	test_event $elem => $_ for qw/blur focus click/;
+	test_event $elem => $_ for qw/blur focus/;
 }
 
 # -------------------------#
-# Tests 290-326: HTMLImageElement
+use tests 37; # HTMLImageElement
 
 {
 	my $elem;
@@ -599,7 +619,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 327-81: HTMLObjectElement
+use tests 55; # HTMLObjectElement
 
 {
 	my $elem;
@@ -657,7 +677,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 382-95: HTMLParamElement
+use tests 13; # HTMLParamElement
 
 {
 	my $elem;
@@ -679,7 +699,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 396-428: HTMLAppletElement
+use tests 33; # HTMLAppletElement
 
 {
 	my $elem;
@@ -714,7 +734,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 429-34: HTMLMapElement
+use tests 6; # HTMLMapElement
 
 {
 	my $elem;
@@ -741,7 +761,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 435-59: HTMLAreaElement
+use tests 25; # HTMLAreaElement
 
 {
 	my $elem;
@@ -775,7 +795,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 460-84: HTMLAreaElement
+use tests 25; # HTMLScriptElement
 
 {
 	my $elem;
@@ -813,7 +833,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 485-91: HTMLFrameSetElement
+use tests 7; # HTMLFrameSetElement
 
 {
 	my $elem;
@@ -833,7 +853,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 491-518: HTMLFrameElement
+use tests 28; # HTMLFrameElement
 
 {
 	my $elem;
@@ -874,7 +894,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 519-51: HTMLIFrameElement
+use tests 33; # HTMLIFrameElement
 
 {
 	my $elem;
@@ -917,7 +937,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 }
 
 # -------------------------#
-# Tests 554-5: HTMLParagraphElement
+use tests 4; # HTMLParagraphElement
 
 {
 	is ref(

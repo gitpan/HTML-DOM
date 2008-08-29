@@ -3,14 +3,16 @@ package HTML::DOM::Implementation;
 use strict;
 use warnings;
 
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 
 our $it = bless do{\my$x};
 
 my %features = (
 	html => { '1.0' => 1, '2.0' => 1 },
 	core => { '1.0' => 1, '2.0' => 1 },
-#	events => { '2.0' => 1 },
+	events => { '2.0' => 1 },
+	uievents => { '2.0' => 1 },
+	mouseevents => { '2.0' => 1},
 	views => { '2.0' => 1 },
 #	stylesheets => { '2.0' => 1 },
 #       css => { '2.0' => 1 },

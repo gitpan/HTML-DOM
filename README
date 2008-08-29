@@ -1,4 +1,4 @@
-HTML::DOM, version 0.015
+HTML::DOM, version 0.016
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -7,31 +7,26 @@ interfaces have been implemented, and some of the level-2 event and
 style sheet interfaces.
 
 
-RECENT CHANGES
+CHANGES IN THIS RELEASE
 
-0.015:
-• Removed every last reference to CSS::DOM::StyleDecl, which was
-  renamed in 0.03.
-
-0.014:
-• Fixed the Makefile.PL so it installs properly and doesn’t downgrade
-  CSS::DOM after installing 0.03.
-• HTML::DOM->createEvent now dies if the arg passed to it is an unsup-
-  ported event category.
-
-0.013:
-New features:
-• HTML::DOM::Interface now indicates which members have UTF-16
-  equivalents.
-• Changes to conform to the Level-2 HTML DOM module (see the
-  Changes file).
-• HTML::DOM::Exception now has a ‘code’ method. I don’t know how I
-  missed this.
-• The brand new shiny default_event_handler_for method has been added.
-  It makes it less cumbersome to provide default behaviours for diffe-
-  rent event types.
-• All HTML elements now have a click method--something from HTML 5 (I
-  seem to be getting ahead of myself).
+• The UIEvent,  MouseEvent  and  MutationEvent  interfaces have been
+  added. (Mutation events for attributes and character data modified
+  are not yet automatically triggered.)
+• Events now have an init method that works like initEvent, but takes
+  named args.
+• trigger_event has been extended to allow named args specifying the
+  event type and which default action to take.  It also chooses  the
+  right event class and  reasonable  defaults  for  the  event  name
+  passed to it.
+• default_event_handler_for’s submit_button  and  reset_button  event
+  types have been removed, and default default event handlers for spe-
+  cific event types (i.e., default event handlers already in place by
+  default)  have been replaced by another mechanism  (not part of the
+  public API).
+• The innerHTML has been added to HTML::DOM and HTML::DOM::Element. It
+  is currently read-only.
+• Triggering a form’s reset event (or calling its reset method, which
+  in turn triggers the event) now actually resets the form.
 Bug fixes — see the Changes file
 
 
@@ -40,9 +35,7 @@ TO DO
 - Finish Level 2 Events support
 - Finish Level 2 CSS support
 - Finish DOM Level 0 event support (add event properties)
-- Provide support for multiple default event handers, each assigned
-  to a different type of event
-- innerHTML (and outerHTML?)
+- Finish innerHTML (and outerHTML?)
 - Other DOM interfaces (the rest of level 2, and level 3)
 - Support callback routines for creating DOM objects for frames.
 - HTML 5 stuff
@@ -80,7 +73,7 @@ Perl modules:
 - HTTP::Headers::Util is required for writing cookies.
 - HTML::Form 1.054 is required if any of the methods provided for
   WWW::Mechanize compatibility are to be used.
-- CSS::DOM 0.03 or later
+- CSS::DOM 0.04 or later
 - HTML::Encoding is required if the parse_file method is to be used.
 - constant::lexical
 
@@ -99,7 +92,7 @@ Or try using man (it's faster, in my experience):
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2007 Father Chrysostomos
+Copyright (C) 2007-8 Father Chrysostomos
 
 This program is free software; you may redistribute it and/or modify
 it under the same terms as perl.
