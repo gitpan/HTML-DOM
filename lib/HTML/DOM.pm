@@ -15,7 +15,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.016 (alpha)
+Version 0.017 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -80,20 +80,21 @@ as the document class.
 
 The following DOM modules are currently supported:
 
-  Feature      Version (aka level)
-  -------      -------------------
-  HTML         2.0
-  Core         2.0
-  Events       2.0
-  UIEvents     2.0
-  MouseEvents  2.0
-  StyleSheets  2.0
-  CSS          2.0 (partially)
-  CSS2         2.0
-  Views        2.0
+  Feature         Version (aka level)
+  -------         -------------------
+  HTML            2.0
+  Core            2.0
+  Events          2.0
+  UIEvents        2.0
+  MouseEvents     2.0
+  MutationEvents  2.0 (partially)
+  StyleSheets     2.0
+  CSS             2.0 (partially)
+  CSS2            2.0
+  Views           2.0
 
 StyleSheets, CSS and CSS2 are actually provided by L<CSS::DOM>. This list
-corresponds to CSS::DOM versions 0.02 to 0.04.
+corresponds to CSS::DOM versions 0.02 to 0.05.
 
 =head1 METHODS
 
@@ -147,36 +148,8 @@ C<response>.
 =cut
 
 {
-	# This HTML::DOM::TreeBuilder package is currently only for the
-	# documentElement. Later it will be used for innerHTML as well.
-
-=begin tangential-comment
-
-Here are some notes on how to implement
-innerHTML:
-
-$elem->innerHTML('stuff')
-
-if $elem is the documentElement, the stuff should be parsed with $elem
-->ownerDocument->write, otherwise:
-
-Create a new HTML::DOM::TreeBuilder
-set its _implicit to false
-set _pos to $elem
-set the _head and _body attributes
-feed stuff to the TB
-
-$document->write will have to be changed to support calls from within
-innerHTML
-$document->close and ->open I think will need to be no-ops when called from
-innerHTML (or from ->write, for that matter). I need to see what
-other browsers do.
-
-The TB object used for innerHTML can probably be cached and re-used.
-
-=end tangential-comment
-
-=cut
+	# This HTML::DOM::TreeBuilder package is represents the
+	# documentElement. It is also used as a parser for innerHTML.
 
 	package HTML::DOM::TreeBuilder;
 	our @ISA = qw' HTML::DOM::Element::HTML HTML::TreeBuilder';
@@ -1063,12 +1036,8 @@ You can omit the C<$category> to create an instance of the event base class
 =cut
 
 sub createEvent {
-	my $class = HTML::DOM::Event::class_for($_[1] || '');
-	defined $class or die new HTML::DOM::Exception NOT_SUPPORTED_ERR,
-		"The event category '$_[1]' is not supported";
-	(my $path =$class) =~ s/::/\//g;
-	require "$path.pm";
-	$class->new
+	require HTML'DOM'Event;
+	HTML'DOM'Event'create_event($_[1]||'');
 }
 
 # ---------- DocumentView interface -------------- #
@@ -1106,13 +1075,24 @@ sub styleSheets {
 
 =item innerHTML
 
-Serialises and returns the HTML document.
+Serialises and returns the HTML document. If you pass an argument, it will
+set the contents of the document via C<open>, C<write> and C<close>,
+returning a serialisation of the old contents.
 
 =cut
 
 sub innerHTML  {
-	return join '' , $_[0]->documentElement->{_HTML_DOM_doctype}||'',
-		map innerHTML $_, shift->content_list;
+	my $self = shift;
+	my $old;
+	$old = join '' , $self->documentElement->{_HTML_DOM_doctype}||'',
+		map substr(as_HTML $_, 0, -1), $self->content_list
+	  if defined wantarray;
+	if(@_){
+		$self->open();
+		$self->write(shift);
+		$self->close();
+	}
+	$old
 }
 
 
@@ -1171,9 +1151,9 @@ S<< C<< $doc->forms->{yayaya} >> >>.
 =head1 EVENT HANDLING
 
 HTML::DOM supports both the DOM Level 2 event model and the HTML 4 event
-model (at least in part; the MutationEvent and HTMLEvent interfaces are
-not yet implemented; DOM attributes corresponding to HTML 4 events don't
-exist yet, either).
+model (at least in part; the HTMLEvent interface is
+not yet implemented; MutationEvents are not always triggered when they
+should be [see L</BUGS>, below]).
 
 An event listener (aka handler) is a coderef, an object with a 
 C<handleEvent>
@@ -1418,26 +1398,45 @@ machine-readable list of standard methods.)
       DOM::NodeList::Radio
   DOM::NodeList::Magic                    NodeList
   DOM::NamedNodeMap                       NamedNodeMap
-  DOM::Attr                               Node, Attr
+  DOM::Attr                               Node, Attr, EventTarget
   DOM::Collection                         HTMLCollection
       DOM::Collection::Elements
       DOM::Collection::Options
   DOM::Event                              Event
       DOM::Event::UI                      UIEvent
           DOM::Event::Mouse               MouseEvent
-     [DOM::Event::Mutation                MutationEvent]
+      DOM::Event::Mutation                MutationEvent
   DOM::View                               AbstractView, [ViewCSS]
-
-Although HTML::DOM::Node inherits from HTML::Element, the interface is not
-entirely compatible, so don't rely on any HTML::Element methods.
-
-Note also that HTML::Element's C<delete> method is not necessary, because
-HTML::DOM uses weak references (for 'upward' references in the object
-tree).
 
 The EventListener interface is not implemented by HTML::DOM, but is 
 supported.
 See L</EVENT HANDLING>, above.
+
+Not listed above is L<HTML::DOM::EventTarget>, which is a base class both
+for L<HTML::DOM::Node> and L<HTML::DOM::Attr>. The format I'm using above
+doesn't allow for multiple inheritance, so I probably need to redo it.
+
+Although HTML::DOM::Node inherits from HTML::Element, the interface is not
+entirely compatible. In particular:
+
+=over
+
+=item *
+
+Any methods that expect text nodes to be just strings are unreliable. See
+the note under L<HTML::Element/objectify_text>.
+
+=item *
+
+HTML::Element's tree-manipulation methods don't trigger mutation events.
+
+=item *
+
+HTML::Element's C<delete> method is not necessary, because
+HTML::DOM uses weak references (for 'upward' references in the object
+tree).
+
+=back
 
 =head1 IMPLEMENTATION NOTES
 
@@ -1491,33 +1490,29 @@ the time as returned by Perl’s built-in C<time> function.
 
 =head1 PREREQUISITES
 
-perl 5.8.2 or later
+L<perl> 5.8.2 or later
 
-Exporter 5.57 or later
+L<Exporter> 5.57 or later
 
-HTML::TreeBuilder and HTML::Element (both part of the HTML::Tree
+L<HTML::TreeBuilder> and L<HTML::Element> (both part of the HTML::Tree
 distribution) (tested with 3.23)
 
-URI.pm (tested with 1.35)
+L<URI.pm|URI> (tested with 1.35)
 
-HTTP::Headers::Util is required if you pass an argument to the C<cookie>
-method after passing an HTTP::Response and a cookie jar to the constructor 
-(in which case you most certainly already have 
-HTTP::Headers::Util :-). 
-(tested with 1.13)
+L<LWP> 5.13 or later (for the C<cookie> method and a form's C<make_request> 
+method to work)
 
-HTML::Form 1.054 or later if any of the methods provided for
-WWW::Mechanize compatibility are called.
-
-CSS::DOM 0.04 or later is required if you use any of the style sheet 
+L<CSS::DOM 0.05> or later is required if you use any of the style sheet 
 features.
 
-Scalar::Util 1.14 or later
+L<Scalar::Util> 1.14 or later
 
-HTML::Encoding is required if a file name is passed to 
+L<HTML::Encoding> is required if a file name is passed to 
 C<parse_file>.
 
-constant::lexical
+L<constant::lexical>
+
+L<Hash::Util::FieldHash::Compat>
 
 =head1 BUGS
 
@@ -1526,17 +1521,14 @@ constant::lexical
 (See also BUGS in 
 L<HTML::DOM::Element::Option/BUGS|HTML::DOM::Element::Option>)
 
-=begin comment
-
 =over 4
 
 =item -
 
-blah blah blah
+DOMAttrModified events are not currently triggered by shorthand methods for
+accessing HTML attributes (aka the DOM Level 0 interface).
 
 =back
-
-=end comment
 
 B<To report bugs,> please e-mail the author.
 

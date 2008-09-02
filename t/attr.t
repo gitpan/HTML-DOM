@@ -1,7 +1,8 @@
 #!/usr/bin/perl -T
 
-# This script contains a full test of the Node interface, since H:D:Attr
-# implements it itself, and does not inherit from H:D:Node.
+# This script contains a full test of the Node and EventTarget interfaces,
+# since H:D:Attr implements them itself, and does not inherit
+# from H:D:Node.
 
 use strict; use warnings; use lib 't';
 
@@ -9,7 +10,7 @@ use Scalar::Util 'refaddr';
 use HTML::DOM;
 
 # -------------------------#
-use tests 4; # constructors
+use tests 5; # constructors
 
 my $doc = new HTML::DOM;
 isa_ok $doc, 'HTML::DOM';
@@ -22,6 +23,7 @@ $elem->setAttribute(href => 'about:blank');
 my $attr = $elem->getAttributeNode('href');
 isa_ok $attr, 'HTML::DOM::Attr';
 ok $attr->DOES('HTML::DOM::Node'), '$attr does HTML::DOM::Node';
+isa_ok $attr, 'HTML::DOM::EventTarget', '$attr';
 
 
 # -------------------------#
@@ -292,3 +294,13 @@ use tests 2; # isSupported
 
 ok $attr->isSupported('hTML', '1.0'), 'isSupported';
 ok!$attr->isSupported('onfun') ,'isn’tSupported';
+
+# -------------------------#
+use tests 2; # relationship to the child text node (bug fixed in 0.017)
+{
+	is refaddr $attr->firstChild->parentNode, refaddr $attr,
+	  "an attr's text node's parent is the attr after replaceChild";
+	$attr = $doc->createAttribute('foo');
+	is refaddr $attr->firstChild->parentNode, refaddr $attr,
+		"a new attr's text node's parent is the attr";
+}

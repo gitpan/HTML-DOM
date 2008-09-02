@@ -7,12 +7,12 @@
 # doesn't have any methods of its own,  but only those  in  inherits
 # from Node.
 
-# There are also tests in here for as_text and as_HTML, which are overrid-
-# den by HTML::DOM::Node.
+# There are also tests in here for HTML::Element’s methods that are over-
+# ridden by HTML::DOM::Node.
 
 use strict; use warnings;
 
-use Test::More tests => scalar reverse '301';
+use Test::More tests => scalar reverse '401';
 
 
 # -------------------------#
@@ -478,4 +478,11 @@ ok !$frag->hasAttributes, 'hasAttributes (non-Element node)';
 
 ok $frag->isSupported('hTML', '1.0'), 'isSupported';
 ok!$frag->isSupported('onfun') ,'isn’tSupported';
+
+# -------------------------#
+# Test 104: push_content on an empty node
+
+ok eval{$doc->createElement('foo')->push_content()},
+	'push_content with no args on an empty node doesn\'t die';
+	# broken in 0.012; fixed in 0.017
 

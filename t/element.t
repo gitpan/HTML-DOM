@@ -44,12 +44,16 @@ is $elem->getAttribute('href'),'http://www.synodinresistance.org/',
 	'result of setAttribute';
 
 # -------------------------#
-use tests 2; # removeAttribute
+use tests 3; # removeAttribute
 
 is scalar(()=removeAttribute $elem 'href'),
 	0, 'removeAttribute';
 is $elem->getAttribute('href'),'',
 	'result of removeAttribute';
+
+$elem->setAttribute('href', bless[]);
+ok eval{$elem->removeAttribute("href");1},
+ 'removeAttribute doesn\'t die when removing an object other than an attr';
 
 $elem->attr('href' => 'about:blank'); # still need an attr with which to
                                       # experiment
@@ -68,7 +72,7 @@ is $attr->nodeValue, 'about:blank',
 	'value of attr returned by getAttributeNode';
 
 # -------------------------#
-use tests 9; # setAttributeNode
+use tests 10; # setAttributeNode
 
 (my $new_attr = $doc->createAttribute('href'))
 	->value('1.2.3.4');
@@ -106,6 +110,14 @@ isa_ok $@, 'HTML::DOM::Exception',
 cmp_ok $@, '==', HTML::DOM::Exception::INUSE_ATTRIBUTE_ERR,
     'setAttributeNode with an attribute that is in use throws the ' .
     'appropriate error';
+
+$elem2->removeAttribute('href');
+$elem2->setAttribute('href',bless[]);
+ok eval{
+	my $attr = $doc->createAttribute('href');
+	$elem2->setAttributeNode($attr);
+	1
+}, 'setAttributeNode doesn\'t die when the attr is set to some random obj';
 
 # -------------------------#
 use tests 11; # removeAttributeNode

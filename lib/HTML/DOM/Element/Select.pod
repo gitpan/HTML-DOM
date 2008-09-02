@@ -99,7 +99,7 @@ These each trigger the corresponding event.
 
 =back
 
-In addition, the following methods are provided for compatibility with C<HTML::Form>:
+In addition, the following methods are provided for compatibility with L<WWW::Mechanize>:
 
 =over 4
 

@@ -12,7 +12,7 @@ use Scalar::Util qw'blessed weaken';
 require HTML::DOM::Node;
 
 our @ISA = 'HTML::DOM::Node';
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 
 
 sub   surrogify($);
@@ -22,7 +22,12 @@ sub desurrogify($);
 # ~comment and ~text pseudo-elements (see HTML::Element) store the
 # character data in the 'text' attribute.
 sub data {
-	$_[0]->attr('text', @_ > 1 ? $_[1] :() );
+	my $old = (my $self = shift)->attr('text');
+	if(@_) {
+		$self->attr(text => $_[0]);
+		$self->_modified($old,$_[0]);
+	}
+	$old
 }
 
 sub length {
@@ -68,7 +73,8 @@ sub substringData16 { # obj, offset, length
 }
 
 sub appendData {
-	$_[0]->attr(text => $_[0]->attr('text').$_[1]);
+	my $old = $_[0]->attr(text => my $new = $_[0]->attr('text').$_[1]);
+	$_[0]->_modified($old, $new);
 	return # nothing
 }
 
@@ -82,7 +88,8 @@ sub insertData { # obj, offset, string to insert
 	    "insertData: $off is greater than the length of the text")
 		if $off > CORE::length $text;
 	substr($text, $off, 0) = $insert;	
-	$self->attr(text => $text);
+	my $old = $self->attr(text => $text);
+	$self->_modified($old,$text);
 	return # nothing
 }
 
@@ -96,7 +103,8 @@ sub insertData16 { # obj, offset, string to insert
 	    "insertData: $off is greater than the length of the text")
 		if $off > CORE::length $text;
 	substr($text, $off, 0) = $insert;	
-	$self->attr(text => desurrogify $text);
+	my $old = $self->attr(text => desurrogify $text);
+	$self->_modified($old,$text);
 	return # nothing
 }
 
@@ -116,7 +124,8 @@ sub deleteData { # obj, offset, length
 	undef(defined $len
 		? substr( $text, $off, $len)
 		: substr $text, $off, );	
-	$_[0]->attr(text => $text);
+	my $old = $_[0]->attr(text => $text);
+	$self->_modified($old,$text);
 	return # nothing
 }
 
@@ -136,7 +145,8 @@ sub deleteData16 { # obj, offset, length
 	undef( defined $len
 		? substr( $text, $off, $len)
 		: substr $text, $off, );
-	$self->attr(text => desurrogify $text);
+	my $old = $self->attr(text => desurrogify $text);
+	$self->_modified($old,$text);
 	return # nothing
 }
 
@@ -153,7 +163,8 @@ sub replaceData { # obj, offset, length, replacement
 	    "replaceData: $off is greater than the length of the text")
 		if $off > CORE::length $text;
 	substr($text, $off, $len) = $subst;
-	$self->attr(text => $text);
+	my $old = $self->attr(text => $text);
+	$self->_modified($old,$text);
 	return # nothing
 }
 
@@ -170,9 +181,19 @@ sub replaceData16 { # obj, offset, length, replacement
 	    "replaceData: $off is greater than the length of the text")
 		if $off > CORE::length $text;
 	substr($text, $off, $len) = $subst;
-	$self->attr(text => desurrogify $text);
+	my $old = $self->attr(text => desurrogify $text);
+	$self->_modified($old,$text);
 	return # nothing
 }
+
+sub _modified {
+	my $self = shift;
+	$_[0] eq $_[1] or $self->trigger_event(
+		'DOMCharacterDataModified',
+		prev_value => $_[0],
+		new_value => $_[1],
+	);
+};
 
 #------- UTILITY FUNCTIONS ---------#
 

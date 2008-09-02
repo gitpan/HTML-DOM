@@ -1,39 +1,48 @@
 package HTML::DOM::Attr;
 
-# ~~~ Eventually I need to add event-handling methods to Attr.
-
 use warnings;
 use strict;
 
 # attribute constants (array elems)
-sub _doc () { 0 }
-sub _elem() { 1 }
-sub _name() { 2 }
-sub _val () { 3 } # _val actually contains an array with one element, so
-sub _list() { 4 } # that nodelists can work efficiently
+no constant 1.03 ();
+use constant::lexical +{ do {
+	my $x; map +($_=>$x++), qw[
+		_doc _elem _name _val _list _styl _evnt _capt
+	]
+}};
+# The internal fields are:
+#  _doc   # owner document
+#  _elem  # owner element
+#  _name
+#  _val   # actually contains an array with one element, so
+#  _list  # node list  # that nodelists can work efficiently
+#  _styl  # style obj
+
 
 use overload fallback => 1,
-	'""' => sub { my $val = ${+shift}[_val][0];
-	              ref $val ? $val->data : $val; },
+	'""' => sub { shift->value },
 	'bool' => \&_elem;
 
 use HTML::DOM::Exception qw'NOT_FOUND_ERR NO_MODIFICATION_ALLOWED_ERR
                             HIERARCHY_REQUEST_ERR WRONG_DOCUMENT_ERR';
 use HTML::DOM::Node 'ATTRIBUTE_NODE';
-use Scalar::Util qw'weaken blessed';
+use Scalar::Util qw'weaken blessed refaddr';
 
+require HTML::DOM::EventTarget;
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.016';
+our @ISA = 'HTML::DOM::EventTarget';
+
+our $VERSION = '0.017';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 
-sub new { # $_[1] contains the nayme
+sub new { # @_[1..2] contains the nayme & vallew
 # ~~~ INVALID_CHARACTER_ERR is meant to be raised if the specified name contains an invalid character.
 	my @self;
-	@self[_name,_val] = ($_[1],['']); # value should be an empty
-	                                # string, not undef
-	bless \@self, shift;	
+	@self[_name,_val] = ($_[1],[defined$_[2]?$_[2]:'']);
+	                        # value should be an empty
+	bless \@self, shift;         # string, not undef
 }
 
 
@@ -65,8 +74,79 @@ sub _val_as_node { # turns the attribute's value into a text node if it is
 	my $val = $_[0][_val][0];
 	defined blessed $val && $val->isa('HTML::DOM::Text')
 	    ? $val
-	    : ($_[0][_val][0] = $_[0]->ownerDocument->createTextNode($val))
+	    : do {
+	        my $val = $_[0][_val][0] =
+	          $_[0]->ownerDocument->createTextNode(
+		    $_[0][_styl] ? $_[0][_styl]->cssText : $val
+		  );
+	        $val->{_parent}=($_[0]);
+	        $val
+	      }
 }
+
+# ~~~ Should I make this public? This actually allows a style object to be
+#     attached to any attr node, not just a style attr. Is this useful?
+#     (Actually, it would be problematic for event attributes, unless some-
+#     one really wants to run css code :-)
+sub style {
+	my $self = shift;
+	$self->[_styl] ||= do{
+		require CSS::DOM::Style,
+		my $ret = CSS::DOM::Style::parse(my $val = $self->value);
+		$ret->modification_handler(my $cref = sub {
+			if(ref(my $text = $self->_value)) {
+				# We can’t use ->data here because it will
+				# trigger chardatamodified  (see sub new),
+				# which sets cssText, which calls this.
+				$text->attr('text', shift->cssText)
+			}
+			$self->_modified;
+		});
+		weaken $self;
+		my $css_code = $ret->cssText;
+		if($val ne $css_code) { &$cref($ret) }
+		$ret;
+	};
+}
+
+sub _modified {
+	my $self = shift;
+	my ($old_val,$new) = @_;
+	my $element = $self->[_elem] || return;
+	defined $new or $new = value $self;
+	if ($self->[_name] =~ /^on(.*)/is
+	    and my $listener_maker = $self->ownerDocument
+			->event_attr_handler
+	) {
+		my $eavesdropper = &$listener_maker(
+			$element, my $evt_name = lc $1, $new
+		);
+		defined $eavesdropper
+			and $element-> _add_attr_event(
+				$evt_name, $eavesdropper
+			);
+	}
+
+	$element->trigger_event(
+		DOMAttrModified =>
+		attr_name => $self->[_name],
+		attr_change_type => 1,
+		prev_value => defined $old_val?$old_val:$new,
+		new_value  => $new,
+		rel_node => $self,
+	)
+}
+
+sub _text_node_modified {
+	my $self = shift;
+	if($$self[_styl]) {
+		$$self[_styl]->cssText(shift->newValue)
+	}
+	else {
+		$self->_modified($_[0]->prevValue,$_[0]->newValue);
+	}
+}
+
 
 # ----------- ATTR-ONLY METHODS ---------- #
 
@@ -75,22 +155,31 @@ sub name {
 }
 
 sub value {
+	if(my $style = $_[0][_styl]) {
+		shift;
+		return $style->cssText(@_);
+	}
 	if(@_ > 1){
 		my $old = $_[0][_val][0];
-		$_[0][_val][0] = "$_[1]" ;
-		if ($_[0][_name] =~ /^on(.*)/is
-		    and my $listener_maker = $_[0]->ownerDocument
-				->event_attr_handler
-		    and my $element = $_[0][_elem]) {
-			my $eavesdropper = &$listener_maker(
-				$element, my $name = lc $1, $_[1]
-			);
-			defined $eavesdropper
-				and $element-> _add_attr_event(
-					$name, $eavesdropper
-				);
+		if(ref $old) {
+			$old = $old->data;
+			$_[0][_val][0]->data($_[1]);
 		}
-		return ref $old ? $old->data : $old;
+		elsif((my $new_val = $_[0][_val][0] = "$_[1]") ne $old) {
+			if($_[0]->get_event_listeners(	
+				'DOMCharacterDataModified'
+			)) {
+				$_[0]->firstChild->trigger_event(
+					'DOMCharacterDataModified',
+					prev_value => $old,
+					new_value => $new_val
+				)
+			}
+			else {
+				$_[0]->_modified($old,$new_val);
+			}
+		}
+		return $old;
 	}
 	my $val = $_[0][_val][0];
 	ref $val ? $val->data : $val;
@@ -153,7 +242,34 @@ sub replaceChild {
 	$self->ownerDocument == $new_node->ownerDocument or
 		die new HTML::DOM::Exception WRONG_DOCUMENT_ERR,
 		'The node to be inserted belongs to another document';
+
+	$old_node->trigger_event('DOMNodeRemoved',
+		rel_node => $self);
+	my $in_doc = $self->[_elem] && $self->[_elem]->is_inside(
+		$self->[_doc]
+	);
+	if($in_doc) {
+		$old_node->trigger_event('DOMNodeRemovedFromDocument')
+	}
+	my $old_parent = $new_node->parent;
+	$old_parent and $new_node->trigger_event('DOMNodeRemoved',
+		rel_node => $old_parent);
+	if($new_node->is_inside($self->[_doc])){
+		$new_node->trigger_event('DOMNodeRemovedFromDocument')
+	}
+
 	($_[0][_val][0] = $new_node)->detach;
+	$new_node->{_parent}=($self);
+	$old_node->parent(undef);
+
+	$new_node->trigger_event('DOMNodeInserted', rel_node => $self);
+	if($in_doc) {
+		$new_node->trigger_event('DOMNodeInsertedIntoDocument')
+	}
+	$_->trigger_event('DOMSubtreeModified')
+	  for grep defined, $old_parent, $self;
+	$self->_modified($old_node->data, $new_node->data);
+
 	$old_node;
 }
 
@@ -169,8 +285,6 @@ sub cloneNode {
 	#     the ‘deep’ option.
 	my($self,$deep) = @_;
 	my $clone = bless [@$self], ref $self;
-	# ~~~ When I start supporting ‘specified,’ I need to set it to true
-	#     here.
 	weaken $$clone[_doc];
 	delete $$clone[$_] for _elem, _list;
 	$$clone[_val] = ["$$clone[_val][0]"]; # copy the single-elem array
@@ -184,9 +298,10 @@ sub hasAttributes { !1 }
 
 sub isSupported {
 	my $self = shift;
-	return !1 if lc $_[0] eq 'events';
+	return !1 if $_[0] =~ /events\z/i;
 	$HTML::DOM::Implementation::it->hasFeature(@_)
 }
+
 
 1
 
@@ -216,7 +331,8 @@ HTML::DOM::Attr - A Perl class for representing attribute nodes in an HTML DOM t
 
 This class is used for attribute nodes in an HTML::DOM tree. It implements 
 the Node and 
-Attr DOM interfaces. An attribute node stringifies to its value. As a
+Attr DOM interfaces and inherits from L<HTML::DOM::EventTarget>. An 
+attribute node stringifies to its value. As a
 boolean it is true, even if its value is false.
 
 =head1 METHODS
@@ -241,7 +357,8 @@ Returns the constant C<HTML::DOM::Node::ATTRIBUTE_NODE>.
 
 =item value
 
-These both return the attribute's value.
+These both return the attribute's value, setting it if there is an 
+argument.
 
 =item specified
 
@@ -333,3 +450,5 @@ L<HTML::DOM>
 L<HTML::DOM::Node>
 
 L<HTML::DOM::Element>
+
+L<HTML::DOM::EventTarget>

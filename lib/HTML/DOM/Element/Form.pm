@@ -1,6 +1,3 @@
-# suppress some nasty @INC warnings:
-eval 'pack' . 'age HTML::Form; pack' . 'age HTML::Form::Input';
-
 package HTML::DOM::Element::Form;
 
 use strict;
@@ -13,8 +10,8 @@ require HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 #require HTML::DOM::Collection::Elements;
 
-our $VERSION = '0.016';
-our @ISA = qw'HTML::DOM::Element HTML::Form';
+our $VERSION = '0.017';
+our @ISA = qw'HTML::DOM::Element';
 
 use overload fallback => 1,
 '@{}' => sub { shift->elements },
@@ -90,17 +87,6 @@ sub trigger_event {
 
 # ------ HTML::Form compatibility methods ------ #
 
-sub AUTOLOAD { # so we don't have to load it unnecessarily
-	require HTML::Form;
-	VERSION HTML::Form 1.054; # ~~~ to be increased when my patch is
-                                  #     applied and a newer version
-	                          #     is released
-	my $meth = 'HTML::Form::' . (our $AUTOLOAD =~ /([^:]+)\z/)[0];
-
-	shift->$meth(@_);
-}
-sub DESTROY {}
-
 sub inputs {
 	my @ret;
 	my %pos;
@@ -142,7 +128,17 @@ sub click  # 22/Sep/7: stolen from HTML::Form and modified (particularly
     $self->trigger_event('submit');
 }
 
-# ~~~ These few can be deleted when/if my patch for HTML::Form is applied:
+# These three were shamelessly stolen from HTML::Form:
+sub value
+{
+    my $self = shift;
+    my $key  = shift;
+    my $input = $self->find_input($key);
+    Carp::croak("No such field '$key'") unless $input;
+    local $Carp::CarpLevel = 1;
+    $input->value(@_);
+}
+
 
 sub find_input
 {
@@ -177,6 +173,70 @@ sub find_input
 	    return $_;
 	}
 	return undef;
+    }
+}
+
+sub param {
+	package
+		HTML::Form;
+    my $self = shift;
+    if (@_) {
+        my $name = shift;
+        my @inputs;
+        for ($self->inputs) {
+            my $n = $_->name;
+            next if !defined($n) || $n ne $name;
+            push(@inputs, $_);
+        }
+
+        if (@_) {
+            # set
+            die "No '$name' parameter exists" unless @inputs;
+	    my @v = @_;
+	    @v = @{$v[0]} if @v == 1 && ref($v[0]);
+            while (@v) {
+                my $v = shift @v;
+                my $err;
+                for my $i (0 .. @inputs-1) {
+                    eval {
+                        $inputs[$i]->value($v);
+                    };
+                    unless ($@) {
+                        undef($err);
+                        splice(@inputs, $i, 1);
+                        last;
+                    }
+                    $err ||= $@;
+                }
+                die $err if $err;
+            }
+
+	    # the rest of the input should be cleared
+	    for (@inputs) {
+		$_->value(undef);
+	    }
+        }
+        else {
+            # get
+            my @v;
+            for (@inputs) {
+		if (defined(my $v = $_->value)) {
+		    push(@v, $v);
+		}
+            }
+            return wantarray ? @v : $v[0];
+        }
+    }
+    else {
+        # list parameter names
+        my @n;
+        my %seen;
+        for ($self->inputs) {
+            my $n = $_->name;
+            next if !defined($n) || $seen{$n}++;
+            push(@n, $n);
+        }
+        return @n;
     }
 }
 
@@ -232,6 +292,7 @@ sub _apply_charset {
 # ~~~ This does not take non-ASCII file names into account, but I can’t
 #     really do that yet, since perl itself doesn’t support those properly
 #     yet, either.
+# This one was stolen from HTML::Form but then modified extensively.
 sub make_request
 {
     my $self = shift;
@@ -313,8 +374,8 @@ package HTML::DOM::NodeList::Radio; # solely for HTML::Form compatibility
 use Carp 'croak';
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.016';
-our @ISA = qw'HTML::DOM::NodeList HTML::Form::Input';
+our $VERSION = '0.017';
+our @ISA = qw'HTML::DOM::NodeList';
 
 sub type { 'radio' }
 
@@ -363,19 +424,8 @@ sub disabled {
 	return 1
 }
 
-sub AUTOLOAD { # so we don't have to load it unnecessarily
-	require HTML::Form;
-	VERSION HTML::Form 1.054; # ~~~ to be increased when my patch is
-                                  #     applied and a newer version
-	                          #     is released
-	my $meth = 'HTML::Form::Input::'.(our $AUTOLOAD =~ /([^:]+)\z/)[0];
-#Test::More::diag Carp::longmess('aaaaa') , ' ',ref $_[0] if $1 eq 'item';
-	shift->$meth(@_);
-}
-*DESTROY = \&HTML::DOM::Element::Form::DESTROY;
-
 sub form_name_value
-# ~~~ to be deleted when my patch to HTML::Form is applied
+# Pilfered from HTML::Form with slight changes.
 {
     package
 	HTML::Form::Input;
@@ -396,7 +446,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 
 require HTML::DOM::Collection;
 our @ISA = 'HTML::DOM::Collection';
@@ -472,8 +522,9 @@ are shorthand for
 S<<< C<< $form->elements->[0] >> >>> and
 S<< C<<< $form->elements->{name} >>> >>, respectively.
 
-This class also inherits from L<HTML::Form>, but is not entirely compatible
-with its interface. See L</HTML::Form COMPATIBILITY>, below.
+This class also tries to mimic L<HTML::Form>, but is not entirely 
+compatible
+with its interface. See L</WWW::Mechanize COMPATIBILITY>, below.
 
 =head1 DOM METHODS
 
@@ -517,11 +568,11 @@ will be returned.
 
 This triggers the form's 'submit' event, calling the default event handler
 (see L<HTML::DOM/EVENT HANDLING>). It is up to the default event handler to
-take any further action. The form's C<make_request> method (inherited from
-L<HTML::Form>) may come in handy.
+take any further action. The form's C<make_request> method may come in 
+handy.
 
 This method is actually just short for $form->trigger_event('submit'). (See
-L<HTML::DOM::Node/Other Methods>.)
+L<HTML::DOM::EventTarget>.)
 
 =item reset
 
@@ -537,14 +588,15 @@ form when a reset event occurs.
 
 =head1 WWW::Mechanize COMPATIBILITY
 
-In order to work with L<WWW::Mechanize>, this module inherits from, and is 
+In order to work with L<WWW::Mechanize>, this module mimics, and is 
 partly compatible with the
 interface of, L<HTML::Form>.
 
-HTML::Form's class methods B<do not> work with this module. If you call
-C<< HTML::DOM::Element::Form->parse >>, for instance, you will wreak havoc.
+HTML::Form's class methods do not apply. If you call
+C<< HTML::DOM::Element::Form->parse >>, for instance, you'll just get an
+error, because it doesn't exist.
 
-The C<dump> and C<try_others> methods do not currently work.
+The C<dump> and C<try_others> methods do not exist either.
 
 The C<click> method behaves differently from HTML::Form's, in that it does
 not call C<make_request>, but triggers a 'click' event if there is a
@@ -571,7 +623,7 @@ L<HTML::Form>
 # ------- HTMLSelectElement interface ---------- #
 
 package HTML::DOM::Element::Select;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 
 use overload fallback=>1, '@{}' => sub { shift->options };
@@ -654,13 +706,13 @@ package HTML::DOM::Collection::Options;
 use strict;
 use warnings;
 
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 
 use Carp 'croak';
 use constant::lexical sel => 5; # must not conflict with super
 
 require HTML::DOM::Collection;
-our @ISA = qw'HTML::DOM::Collection HTML::Form::Input';
+our @ISA = qw'HTML::DOM::Collection';
 
 sub new {
 	my $self = shift->SUPER::new(shift);
@@ -724,28 +776,13 @@ sub length { # override
 	$self->SUPER::length;
 }
 
-*AUTOLOAD = \& HTML::DOM::NodeList::Radio::AUTOLOAD;
-*DESTROY = \&HTML::DOM::Element::Form::DESTROY;
-
-sub form_name_value
-# ~~~ to be deleted when my patch to HTML::Form is applied
-{
-    package
-	HTML::Form::Input;
-    my $self = shift;
-    my $name = $self->name;
-    return unless defined $name && length $name;
-    return if $self->disabled;
-    my $value = $self->value;
-    return unless defined $value;
-    return ($name => $value);
-}
+*form_name_value = \& HTML::DOM::NodeList::Radio::form_name_value;
 
 
 # ------- HTMLOptGroupElement interface ---------- #
 
 package HTML::DOM::Element::OptGroup;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 
 sub label  { shift->attr( label => @_) }
@@ -755,8 +792,8 @@ sub label  { shift->attr( label => @_) }
 # ------- HTMLOptionElement interface ---------- #
 
 package HTML::DOM::Element::Option;
-our $VERSION = '0.016';
-our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
+our $VERSION = '0.017';
+our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
 
@@ -860,28 +897,13 @@ sub name {
 
 sub _reset { delete shift->{_HTML_DOM_sel} }
 
-*AUTOLOAD = \& HTML::DOM::NodeList::Radio::AUTOLOAD;
-*DESTROY = \&HTML::DOM::Element::Form::DESTROY;
-
-sub form_name_value
-# ~~~ to be deleted when my patch to HTML::Form is applied
-{
-    package
-	HTML::Form::Input;
-    my $self = shift;
-    my $name = $self->name;
-    return unless defined $name && length $name;
-    return if $self->disabled;
-    my $value = $self->value;
-    return unless defined $value;
-    return ($name => $value);
-}
+*form_name_value = \& HTML::DOM::NodeList::Radio::form_name_value;
 
 
 # ------- HTMLInputElement interface ---------- #
 
 package HTML::DOM::Element::Input;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
@@ -1008,16 +1030,13 @@ sub form_name_value
                    "${name}y" => $self->{_HTML_DOM_clicked}[1]
         }
     }
-    require HTML::Form;
     return $type eq 'file'
-#        ? $self->HTML::Form::FileInput::form_name_value(@_)
-#        : $self->HTML::Form::Input::form_name_value(@_);
         ? $self->HTML_Form_FileInput_form_name_value(@_)
         : $self->HTML_Form_Input_form_name_value(@_);
 }
 
+# These two were stolen from HTML::Form with a few tweaks:
 sub HTML_Form_Input_form_name_value
-# ~~~ to be deleted when my patch to HTML::Form is applied
 {
     package
 	HTML::Form::Input;
@@ -1031,7 +1050,6 @@ sub HTML_Form_Input_form_name_value
 }
 
 sub HTML_Form_FileInput_form_name_value {
-# ~~~ hame sere
     package
 	HTML::Form::ListInput;
     my($self, $form) = @_;
@@ -1094,8 +1112,8 @@ sub content {
 # ------- HTMLTextAreaElement interface ---------- #
 
 package HTML::DOM::Element::TextArea;
-our $VERSION = '0.016';
-our @ISA = qw'HTML::DOM::Element HTML::Form::Input';
+our $VERSION = '0.017';
+our @ISA = qw'HTML::DOM::Element';
 
 sub defaultValue { # same as HTML::DOM::Element::Title::text
 	($_[0]->firstChild or
@@ -1136,25 +1154,13 @@ sub _reset {
 	$self->value($self->defaultValue);
 }
 
-sub form_name_value
-# ~~~ to be deleted when my patch to HTML::Form is applied
-{
-    package
-	HTML::Form::Input;
-    my $self = shift;
-    my $name = $self->name;
-    return unless defined $name && length $name;
-    return if $self->disabled;
-    my $value = $self->value;
-    return unless defined $value;
-    return ($name => $value);
-}
+*form_name_value = \& HTML::DOM::NodeList::Radio::form_name_value;
 
 
 # ------- HTMLButtonElement interface ---------- #
 
 package HTML::DOM::Element::Button;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1169,7 +1175,7 @@ sub value      { shift->attr( value       => @_) }
 # ------- HTMLLabelElement interface ---------- #
 
 package HTML::DOM::Element::Label;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1179,7 +1185,7 @@ sub htmlFor { shift->attr( for       => @_) }
 # ------- HTMLFieldSetElement interface ---------- #
 
 package HTML::DOM::Element::FieldSet;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1187,7 +1193,7 @@ our @ISA = qw'HTML::DOM::Element';
 # ------- HTMLLegendElement interface ---------- #
 
 package HTML::DOM::Element::Legend;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;

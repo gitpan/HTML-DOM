@@ -3,12 +3,12 @@ package HTML::DOM::Text;
 use warnings;
 use strict;
 
-use HTML::DOM::Node 'TEXT_NODE';
+use HTML::DOM::Node qw 'TEXT_NODE ATTRIBUTE_NODE';
 
 require HTML::DOM::CharacterData;
 
 our @ISA = 'HTML::DOM::CharacterData';
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 
 
 =head1 NAME
@@ -86,6 +86,26 @@ sub splitText16 { # UTF-16 version
 
 sub nodeName { '#text' }
 *nodeType = \&TEXT_NODE;
+
+
+# --------- OVERRIDDEN EVENT TARGET METHOD -------- #
+
+sub trigger_event {
+	my ($n,$evnt) = (shift,shift);
+	my $p = $n->parent;
+	$n->SUPER::trigger_event(
+		$evnt,
+		$p && $p->nodeType == ATTRIBUTE_NODE
+		  ?(
+			DOMCharacterDataModified_default =>sub {
+				$_[0]->target->parent->_text_node_modified(
+					$_[0]
+				)
+			},
+		  ):(),
+		@_,
+	);
+}
 
 1
 __END__

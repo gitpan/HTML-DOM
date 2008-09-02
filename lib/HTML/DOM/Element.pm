@@ -6,7 +6,7 @@ use warnings;
 use HTML::DOM::Exception qw 'INVALID_CHARACTER_ERR WRONG_DOCUMENT_ERR
                              INUSE_ATTRIBUTE_ERR NOT_FOUND_ERR';
 use HTML::DOM::Node 'ELEMENT_NODE';
-use Scalar::Util qw'refaddr blessed';
+use Scalar::Util qw'refaddr blessed weaken';
 
 require HTML::DOM;
 require HTML::DOM::Attr;
@@ -17,7 +17,7 @@ require HTML::DOM::Node;
 require HTML::DOM::NodeList::Magic;
 
 our @ISA = qw'HTML::DOM::Node';
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 
 
 {
@@ -200,14 +200,11 @@ of the 'style' HTML attribute.
 
 sub style {
 	my $self = shift;
-	$self->{_HTML_DOM_style} ||= do{
-		require CSS::DOM::Style,
-		CSS::DOM::Style::parse(''.($self->attr('style')||''));
-		# ~~~ I shouldn’t need to stringify it here. I should prob-
-		#     ably add that to CSS::DOM.
-	};
+	($self->getAttributeNode('style') || do {
+		$self->setAttribute('style','');
+		$self->getAttributeNode('style');
+	}) -> style;
 }
-
 =back
 
 And there is also the following non-DOM attribute:
@@ -307,57 +304,91 @@ my %attr_defaults = (
 #       stores Attr objects for implicit attributes in this list.
 
 sub getAttribute {
-	if ($_[1] eq 'style' and $_[0]{_HTML_DOM_style}) {
-		$_[0]{_HTML_DOM_style}->cssText
-	} else {
-		''.($_[0]->attr($_[1])||do{
-			my $tag = $_[0]->tag;
-			return '' unless exists $attr_defaults{$tag}
-				and exists $attr_defaults{$tag}{$_[1]}
-				or $tag eq 'html' and $_[1] eq 'version'
-				   and exists $_[0]->{_HTML_DOM_version};
-			$_[1] eq 'version'
-				? $_[0]->{_HTML_DOM_version}
-				: $attr_defaults{$tag}{$_[1]}
-		})
-	}
+	''.($_[0]->attr($_[1])||do{
+		my $tag = $_[0]->tag;
+		return '' unless exists $attr_defaults{$tag}
+			and exists $attr_defaults{$tag}{$_[1]}
+			or $tag eq 'html' and $_[1] eq 'version'
+			   and exists $_[0]->{_HTML_DOM_version};
+		$_[1] eq 'version'
+			? $_[0]->{_HTML_DOM_version}
+			: $attr_defaults{$tag}{$_[1]}
+	})
 }
 
 sub setAttribute {
 # ~~~ INVALID_CHARACTER_ERR
+	my $self = shift;
 
 	# If the current value is an Attr object, we have to modify that
 	# instead of just assigning to the attribute.
-	my $attr = $_[0]->attr($_[1]);
+	my $attr = $self->attr($_[0]);
 	if(defined blessed $attr && $attr->isa('HTML::DOM::Attr')){
-		$attr->value($_[2]);
+		$attr->value($_[1]);
 	}else{
-		$_[0]->attr(@_[1..2]);
+		my $old = $self->attr(my($name,$val) = @_);
+		no warnings 'uninitialized';
+		$old ne $val and $self->trigger_event('DOMAttrModified',
+			auto_viv => sub {
+				require HTML'DOM'Event'Mutation;
+				attr_name => $name,
+				attr_change_type =>
+				  defined $old
+				  ? &HTML'DOM'Event'Mutation'MODIFICATION
+				  : &HTML'DOM'Event'Mutation'ADDITION,
+				prev_value => $old,
+				new_value => $val,
+				rel_node => $self->getAttributeNode($name),
+			}
+		);
 	}
 
 	# possible event handler
-	if ($_[1] =~ /^on(.*)/is and my $listener_maker = $_[0]->
+	if ($_[0] =~ /^on(.*)/is and my $listener_maker = $self->
 	     ownerDocument->event_attr_handler) {
 		my $eavesdropper = &$listener_maker(
-			$_[0], my $name = lc $1, $_[2]
+			$self, my $name = lc $1, $_[1]
 		);
-		defined $eavesdropper and $_[0]-> _add_attr_event(
+		defined $eavesdropper and $self-> _add_attr_event(
 			$name, $eavesdropper
 		);
 	}
-
-	lc $_[1] eq 'style' and delete $_[0]->{_HTML_DOM_style};
 
 	return # nothing;
 }
 
 sub removeAttribute {
-	# So the attr node can be reused:
-	my $attr_node = $_[0]->attr($_[1]);
-	defined blessed $attr_node and $attr_node->_element(undef);
+	my $old = (my $self = shift)->attr(my $name = shift);
+	$self->attr($name => undef);
+	if(defined blessed $old and $old->isa('HTML::DOM::Attr')) {
+		# So the attr node can be reused:
+		$old->_element(undef);
 
-	$_[0]->attr($_[1] => undef);
-	lc $_[1] eq 'style' and delete $_[0]{_HTML_DOM_style};
+		$self->trigger_event('DOMAttrModified',
+			attr_name => $_[2],
+			attr_change_type => 2,
+			 prev_value =>
+			(new_value => ($old->value) x 2)[-1..1],
+			rel_node => $old,
+		);
+	}
+	else {
+		return unless defined $old;
+		$self->trigger_event('DOMAttrModified',
+			auto_viv => sub {
+				(my $attr =
+					$self->ownerDocument
+						->createAttribute($name)
+				)->value($old);
+				attr_name => $name,
+				attr_change_type => 3,
+				prev_value => $old,
+				new_value => $old,
+				rel_node => $attr,
+			}
+		);
+	}
+
 	return # nothing;
 }
 
@@ -367,7 +398,6 @@ sub getAttributeNode {
 
 	my $attr = $elem->attr($name);
 	unless(defined $attr
-		or $name eq 'style' and $elem->{_HTML_DOM_style}
 	) { # check to see whether it has a default value
 		my $tag = $elem->tag;
 		return $elem->{_HTML_DOM_unspecified}{$name} ||= do{
@@ -387,18 +417,10 @@ sub getAttributeNode {
 
 	if(!ref $attr) {
 		$elem->attr($name, my $new_attr =
-			HTML::DOM::Attr->new($name));
+			HTML::DOM::Attr->new($name, $attr));
 		$new_attr->_set_ownerDocument($elem->ownerDocument);
 		$new_attr->_element($elem);
-		$new_attr->value(
-			$name eq 'style' && $elem->{_HTML_DOM_style}
-			? $elem->{_HTML_DOM_style}->cssText
-			: $attr
-		);
 		return $new_attr;
-	} elsif ($name eq 'style') {
-		$attr->value($elem->{_HTML_DOM_style}->cssText)
-			if $elem->{_HTML_DOM_style};
 	}
 	$attr;
 }
@@ -419,8 +441,6 @@ sub setAttributeNode {
 	my $old = $_[0]->attr(my $name = $_[1]->nodeName, $_[1]);
 	$_[1]->_element($_[0]);
 
-	lc $name eq 'style' and delete $_[0]->{_HTML_DOM_style};
-
 	# possible event handler
 	if ($name =~ /^on(.*)/is and my $listener_maker = $_[0]->
 	     ownerDocument->event_attr_handler) {
@@ -438,19 +458,37 @@ sub setAttributeNode {
 		);
 	}
 
+	my $ret;
 	if(defined $old) {
-		if(ref $old) {
+		if(defined blessed $old and $old->isa("HTML::DOM::Attr")) {
 			$old->_element(undef);
-			return $old;
+			$ret = $old;
 		} else {
-			my $ret =
+			$ret =
 				HTML::DOM::Attr->new($name);
 			$ret->_set_ownerDocument($doc);
 			$ret->_element($_[0]);
 			$ret->value($old);
-			return $ret;
 		}			
 	}
+
+	defined $ret and $_[0]->trigger_event('DOMAttrModified',
+		attr_name => $name,
+		attr_change_type => 3,
+		 prev_value =>
+		(new_value => ($ret->value) x 2)[-1..1],
+		rel_node => $ret,
+	);
+	$_[0]->trigger_event('DOMAttrModified',
+		attr_name => $_[1]->name,
+		attr_change_type => 2,
+		 prev_value =>
+		(new_value => ($_[1]->value) x 2)[-1..1],
+		rel_node => $_[1],
+	);
+
+	return $ret if defined $ret;
+
 	return # nothing;
 }
 
@@ -468,7 +506,16 @@ sub removeAttributeNode {
 	$elem->attr($name, undef);
 	delete $elem->{_HTML_DOM_unspecified}{$name};
 	$attr->_element(undef);
-	lc $name eq 'style' and delete $elem->{_HTML_DOM_style};
+
+	$elem->trigger_event('DOMAttrModified',
+		attr_name => $name,
+		attr_change_type => 3,
+		 prev_value =>
+		(new_value => ($attr->value) x 2)[-1..1],
+		rel_node => $attr,
+	);
+
+
 	return $attr
 }
 
@@ -506,7 +553,20 @@ sub _attr_specified { defined shift->attr(shift) }
 sub click { shift->trigger_event('click') }
 
 sub innerHTML {
-	shift->as_HTML
+	my $self = shift;
+	my $old = join '', map substr($_->as_HTML,0,-1),$self->content_list
+	  if defined wantarray;
+	if(@_) {
+		require HTML'DOM; # paranoia
+		(my $tb = new HTML::DOM::TreeBuilder)
+		  ->_set_ownerDocument($self->ownerDocument);
+		$tb->parse(shift);
+		$tb->eof();
+		$_->implicit(1) for $tb, $tb->content_list; # more paranoia
+		$self->delete_content;
+		$self->push_content($tb->guts);
+	}
+	$old;
 }
 
 sub starttag {
@@ -560,6 +620,12 @@ sub trigger_event {
 	);
 }
 
+sub _add_attr_event {
+	my ($self,$name,$listener) = @_;
+	$self->${\"on\L$name"}($listener);
+	return;
+}
+
 
 =head1 SEE ALSO
 
@@ -578,21 +644,21 @@ L<HTML::DOM/CLASSES AND DOM INTERFACES>
 # ------- HTMLHtmlElement interface ---------- #
 
 package HTML::DOM::Element::HTML;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub version { shift->attr('version' => @_) }
 
 # ------- HTMLHeadElement interface ---------- #
 
 package HTML::DOM::Element::Head;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub profile { shift->attr('profile' => @_) }
 
 # ------- HTMLLinkElement interface ---------- #
 
 package HTML::DOM::Element::Link;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub disabled {
 	if(@_ > 1) {
@@ -650,7 +716,7 @@ sub removeAttributeNode {
 # ------- HTMLTitleElement interface ---------- #
 
 package HTML::DOM::Element::Title;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 # This is what I call FWP (no lexical vars):
 sub text {
@@ -665,7 +731,7 @@ sub text {
 # ------- HTMLMetaElement interface ---------- #
 
 package HTML::DOM::Element::Meta;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub content   { shift->attr('content'    => @_) }
 sub httpEquiv { shift->attr('http-equiv' => @_) }
@@ -675,7 +741,7 @@ sub scheme    { shift->attr('scheme'     => @_) }
 # ------- HTMLBaseElement interface ---------- #
 
 package HTML::DOM::Element::Base;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *href =\& HTML::DOM::Element::Link::href;
 *target =\& HTML::DOM::Element::Link::target;
@@ -683,7 +749,7 @@ our @ISA = 'HTML::DOM::Element';
 # ------- HTMLIsIndexElement interface ---------- #
 
 package HTML::DOM::Element::IsIndex;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub form     { (shift->look_up(_tag => 'form'))[0] || () }
 sub prompt   { shift->attr('prompt'  => @_) }
@@ -691,7 +757,7 @@ sub prompt   { shift->attr('prompt'  => @_) }
 # ------- HTMLStyleElement interface ---------- #
 
 package HTML::DOM::Element::Style;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *disabled = \&HTML::DOM::Element::Link::disabled;
 *media =\& HTML::DOM::Element::Link::media;
@@ -711,7 +777,7 @@ sub sheet {
 # ------- HTMLBodyElement interface ---------- #
 
 package HTML::DOM::Element::Body;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub aLink      { shift->attr( aLink      => @_) }
 sub background { shift->attr( background => @_) }
@@ -729,7 +795,7 @@ sub vLink      { shift->attr('vlink'     => @_) }
 # ------- HTMLUListElement interface ---------- #
 
 package HTML::DOM::Element::UL;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub compact { shift->attr( compact => @_) }
 sub type { lc shift->attr( type => @_) }
@@ -737,7 +803,7 @@ sub type { lc shift->attr( type => @_) }
 # ------- HTMLOListElement interface ---------- #
 
 package HTML::DOM::Element::OL;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub start { shift->attr( start => @_) }
 *compact=\&HTML::DOM::Element::UL::compact;
@@ -746,28 +812,28 @@ sub start { shift->attr( start => @_) }
 # ------- HTMLDListElement interface ---------- #
 
 package HTML::DOM::Element::DL;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *compact=\&HTML::DOM::Element::UL::compact;
 
 # ------- HTMLDirectoryElement interface ---------- #
 
 package HTML::DOM::Element::Dir;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *compact=\&HTML::DOM::Element::UL::compact;
 
 # ------- HTMLMenuElement interface ---------- #
 
 package HTML::DOM::Element::Menu;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *compact=\&HTML::DOM::Element::UL::compact;
 
 # ------- HTMLLIElement interface ---------- #
 
 package HTML::DOM::Element::LI;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *type =\& HTML::DOM::Element::Link::type;
 sub value { shift->attr( value => @_) }
@@ -775,49 +841,49 @@ sub value { shift->attr( value => @_) }
 # ------- HTMLDivElement interface ---------- #
 
 package HTML::DOM::Element::Div;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub align { lc shift->attr( align => @_) }
 
 # ------- HTMLParagraphElement interface ---------- #
 
 package HTML::DOM::Element::P;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *align =\& HTML::DOM::Element::Div::align;
 
 # ------- HTMLHeadingElement interface ---------- #
 
 package HTML::DOM::Element::Heading;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *align =\& HTML::DOM::Element::Div::align;
 
 # ------- HTMLQuoteElement interface ---------- #
 
 package HTML::DOM::Element::Quote;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub cite { shift->attr( cite => @_) }
 
 # ------- HTMLPreElement interface ---------- #
 
 package HTML::DOM::Element::Pre;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub width { shift->attr( width => @_) }
 
 # ------- HTMLBRElement interface ---------- #
 
 package HTML::DOM::Element::Br;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub clear { lc shift->attr( clear => @_) }
 
 # ------- HTMLBaseFontElement interface ---------- #
 
 package HTML::DOM::Element::BaseFont;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub color { shift->attr( color => @_) }
 sub face  { shift->attr( face  => @_) }
@@ -826,7 +892,7 @@ sub size  { shift->attr( size  => @_) }
 # ------- HTMLBaseFontElement interface ---------- #
 
 package HTML::DOM::Element::Font;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *color =\& HTML::DOM::Element::BaseFont::color;
 *face =\& HTML::DOM::Element::BaseFont::face;
@@ -835,7 +901,7 @@ our @ISA = 'HTML::DOM::Element';
 # ------- HTMLHRElement interface ---------- #
 
 package HTML::DOM::Element::HR;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *align =\& HTML::DOM::Element::Div::align;
 sub noShade  { shift->attr( noshade  => @_) }
@@ -845,7 +911,7 @@ sub noShade  { shift->attr( noshade  => @_) }
 # ------- HTMLModElement interface ---------- #
 
 package HTML::DOM::Element::Mod;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *cite =\& HTML::DOM::Element::Quote::cite;
 sub dateTime  { shift->attr( datetime  => @_) }
@@ -853,7 +919,7 @@ sub dateTime  { shift->attr( datetime  => @_) }
 # ------- HTMLAnchorElement interface ---------- #
 
 package HTML::DOM::Element::A;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub accessKey  { shift->attr(               accesskey  => @_) }
 *   charset    =\&HTML::DOM::Element::Link::charset           ;
@@ -886,7 +952,7 @@ sub trigger_event {
 # ------- HTMLImageElement interface ---------- #
 
 package HTML::DOM::Element::Img;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub lowSrc  { shift->attr(               lowsrc  => @_) }
 *   name  = \&HTML::DOM::Element::Meta::name            ;
@@ -905,7 +971,7 @@ sub vspace   { shift->attr(              vspace   => @_) }
 # ------- HTMLObjectElement interface ---------- #
 
 package HTML::DOM::Element::Object;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *form=\&HTML::DOM::Element::IsIndex::form;
 sub code  { shift->attr(               code  => @_) }
@@ -930,7 +996,7 @@ sub contentDocument{}
 # ------- HTMLParamElement interface ---------- #
 
 package HTML::DOM::Element::Param;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *name=\&HTML::DOM::Element::Meta::name;
 *type=\&HTML::DOM::Element::Link::type;
@@ -940,7 +1006,7 @@ sub valueType{lc shift->attr(valuetype=>@_)}
 # ------- HTMLAppletElement interface ---------- #
 
 package HTML::DOM::Element::Applet;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 * align    = \ & HTML::DOM::Element::Div::align       ;
 * alt      = \ & HTML::DOM::Element::Img::alt         ;
@@ -957,7 +1023,7 @@ sub object { shift -> attr ( object => @_ ) }
 # ------- HTMLMapElement interface ---------- #
 
 package HTML::DOM::Element::Map;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub areas { # ~~~ I need to make this cache the resulting collection obj
 	my $self = shift;
@@ -978,7 +1044,7 @@ sub areas { # ~~~ I need to make this cache the resulting collection obj
 # ------- HTMLAreaElement interface ---------- #
 
 package HTML::DOM::Element::Area;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 * accessKey = \ & HTML::DOM::Element::A::accessKey     ;
 * alt       = \ & HTML::DOM::Element::Img::alt         ;
@@ -992,7 +1058,7 @@ sub noHref { shift -> attr ( nohref => @_ ) }
 # ------- HTMLScriptElement interface ---------- #
 
 package HTML::DOM::Element::Script;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 * text    = \ &HTML::DOM::Element::Title::text   ;
 sub htmlFor { shift -> attr ( for   => @_ )      }
@@ -1005,7 +1071,7 @@ sub defer   { shift -> attr ( defer => @_ )      }
 # ------- HTMLFrameSetElement interface ---------- #
 
 package HTML::DOM::Element::FrameSet;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub rows { shift -> attr ( rows   => @_ )      }
 sub cols   { shift -> attr ( cols => @_ )      }
@@ -1013,7 +1079,7 @@ sub cols   { shift -> attr ( cols => @_ )      }
 # ------- HTMLFrameElement interface ---------- #
 
 package HTML::DOM::Element::Frame;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 sub frameBorder { lc shift -> attr ( frameBorder  => @_ )      }
 sub longDesc    { shift -> attr ( longdesc     => @_ )      }
@@ -1028,7 +1094,7 @@ sub contentDocument{ shift->{_HTML_DOM_doc} ||= new HTML::DOM }
 # ------- HTMLIFrameElement interface ---------- #
 
 package HTML::DOM::Element::IFrame;
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 our @ISA = 'HTML::DOM::Element';
 *align  = \&HTML::DOM::Element::Div::align;
 *frameBorder = \&HTML::DOM::Element::Frame::frameBorder;

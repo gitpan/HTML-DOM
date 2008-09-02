@@ -57,7 +57,7 @@ isa_ok $doc, 'HTML::DOM';
 
 
 # -------------------------#
-use tests 48; # Element types that just use the HTMLElement interface
+use tests 52; # Element types that just use the HTMLElement interface
               # (and general tests for that interface)
 
 for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
@@ -90,19 +90,32 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$elem->click();
 	is $thing, 'clickactivate', 'click triggers DOMActivate';
 
-	($elem = $doc->createElement("a"))->setAttribute("foo"=>"bar");
-	$elem->appendChild($_) for
+	
+	(my$subelem= $doc->createElement("a"))->setAttribute("foo"=>"bar");
+	$subelem->appendChild($_) for
 		$doc->createTextNode('baz'),
 		$doc->createElement('br'),
 		$doc->createTextNode('teette');
-	like $elem->innerHTML, qr/
+	$elem = $doc->createElement('div');
+	$elem->push_content($subelem);
+	like $elem->innerHTML, qr/^
 		<(?i:a\s*foo)\s*=\s*(['"]?)bar\1\s*>
 			baz
 			<(?i:br)\s*>
 			teette
 		<\/[aA]\s*>
-	/x, 'innerHTML serialisation';
+	\z/x, 'innerHTML serialisation';
 
+	my $html = $elem->innerHTML;
+	is $elem->innerHTML('<div><p>foo<b>bar</b></div>'), $html,
+		'return value of innerHTML with argument';
+	is $elem->innerHTML, '<div><p>foo<b>bar</b></div>',
+		'result of setting innerHTML';
+	$elem->innerHTML('<body><head><br></html>'); # :-)
+	is $elem->innerHTML,'<br>', 'innerHTML(mangled stuff)';
+
+	$elem->innerHTML('');
+	is $elem->childNodes->length, 0, 'innerHTML("")';
 }
 
 # -------------------------#

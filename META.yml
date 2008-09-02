@@ -1,7 +1,7 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         HTML-DOM
-version:      0.016
+version:      0.017
 version_from: lib/HTML/DOM.pm
 installdirs:  site
 requires:
@@ -9,12 +9,12 @@ requires:
     constant:                      1.03
     constant::lexical:             0
     CSS::DOM:                      0.03
-    CSS::DOM::Style:               0.04
+    CSS::DOM::Style:               0.05
     CSS::DOM::StyleSheetList:      0
     Exporter:                      5.57
+    Hash::Util::FieldHash::Compat: 0
     HTML::Element:                 0
     HTML::Encoding:                0
-    HTML::Form:                    1.054
     HTML::Parser:                  3
     HTML::TreeBuilder:             0
     HTTP::Headers::Util:           0

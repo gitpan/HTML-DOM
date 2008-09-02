@@ -1,103 +1,24 @@
 #!/usr/bin/perl -T
 
-# This script tests the DocumentEvent, EventTarget and Event interfaces,
-# and also the event-related methods of HTML::DOM and  HTML::DOM::Node.
-
-# There is a separate event-target.t script, and a lot of the tests are
-# repeated here, but that’s probably a good thing, since that test script
-# does not use nodes, but is more generic.
-
-use strict; use warnings;
+use strict; use warnings; no warnings qw 'utf8 parenthesis';
 
 use lib 't';
 use HTML::DOM;
+use HTML::DOM::EventTarget;
 use HTML::DOM::Event ':all';
 
-# -------------------------#
-use tests 1; # constructor
-
 my $doc = new HTML::DOM;
-isa_ok $doc, 'HTML::DOM';
-
-my $grandchild =
-	(my $child = $doc->appendChild($doc->createElement('div')))
-	 ->appendChild($doc->createElement('div'));
-
-# -------------------------#
-use tests 7; # DocumentEvent::createEvent
-
-my $event = $doc->createEvent;
-isa_ok $event, 'HTML::DOM::Event';
 {
-	my $event = $doc->createEvent('UIEvents');
-	isa_ok $event, 'HTML::DOM::Event::UI';
-	$event = $doc->createEvent('MouseEvents');
-	isa_ok $event, 'HTML::DOM::Event::Mouse';
-	$event = $doc->createEvent('MutationEvents');
-	isa_ok $event, 'HTML::DOM::Event::Mutation';
+	package MyEventTarget;
+	our @ISA = HTML::DOM::EventTarget::;
+
+	sub event_parent {
+		${+shift}
+	}
 }
 
-ok !eval{$doc->createEvent('bleeblaabloo');1},
-	'createEvent dies with invalid arg';
-isa_ok $@, 'HTML::DOM::Exception', 'what createEvent dies';
-cmp_ok $@, '==', &HTML::DOM::Exception::NOT_SUPPORTED_ERR,
-	'createEvent\'s error\'s code';
-
-# -------------------------#
-use tests 12; # HTML::DOM::default_event_handler(_for) accessors
-
-{
-	my $coderef = sub{};
-	my $coderef2 = sub{};
-	is scalar $doc->default_event_handler($coderef), undef,
-		'1st assignment to default_event_handler returns undef';
-	is $doc->default_event_handler($coderef2), $coderef,
-		'2nd assignment to default_event_handler returns old sub';
-	is $doc->default_event_handler, $coderef2,
-		'2nd assignment did assign the new sub';
-	is $doc->default_event_handler, $coderef2,
-	    'simply getting the default_event_handler doesn\'t change it';
-	$doc->default_event_handler(undef);
-	is $doc->default_event_handler, undef,
-		'default event handlers can be deleted';
-
-	is scalar $doc->default_event_handler_for('link',$coderef), undef,
-		'1st assignment to dehf returns undef';
-	is $doc->default_event_handler_for('link',$coderef2), $coderef,
-		'2nd assignment to dehf returns old sub';
-	is $doc->default_event_handler_for('link'), $coderef2,
-		'2nd assignment to dehf did assign the new sub';
-	is $doc->default_event_handler_for('link'), $coderef2,
-	    'simply getting the dehf doesn\'t change it';
-	$doc->default_event_handler_for('link',undef);
-	is $doc->default_event_handler('link'), undef,
-		'def evt handlers for specific event types can be deleted';
-
-	$doc->default_event_handler_for('link'=>$coderef);
-	is $doc->default_event_handler_for('submit', $coderef2), undef,
-		'first arg to dehf is not ignored';
-	is $doc->default_event_handler_for('submit'), $coderef2,
-		'asignement to dffirenet event types works';
-}
-
-# -------------------------#
-use tests 5; # HTML::DOM::event_attr_handler
-
-{
-	my $coderef = sub{};
-	my $coderef2 = sub{};
-	is scalar $doc-> event_attr_handler($coderef), undef,
-		'1st assignment to event_attr_handler returns undef';
-	is $doc-> event_attr_handler($coderef2), $coderef,
-		'2nd assignment to event_attr_handler returns old sub';
-	is $doc-> event_attr_handler, $coderef2,
-		'2nd assignment did assign the new sub';
-	is $doc-> event_attr_handler, $coderef2,
-	    'simply getting the event_attr_handler doesn\'t change it';
-	$doc-> event_attr_handler(undef);
-	is $doc-> event_attr_handler, undef,
-		'event attribute handlers can be deleted';
-}
+my $child = bless \do{my $x}, MyEventTarget=>;
+my $grandchild = bless \do{my $x = $child}, 'MyEventTarget';
 
 # -------------------------#
 use tests 8; # (add|remove)EventListener and get_event_listeners
@@ -145,7 +66,6 @@ use tests 8; # (add|remove)EventListener and get_event_listeners
 # Let's clean up after ourselves:
 clear_event_listeners($child, 'click', 'focus');
 
-# ~~~ maybe I should make this a method of HTML::DOM::Node
 sub clear_event_listeners {
 	my $target = shift;
 	for my $type(@_) {
@@ -156,61 +76,16 @@ sub clear_event_listeners {
 	}
 }
 
-# -------------------------#
-# (event accessor method tests are sprinkled throughout the next
-#  few sections)
-
-# -------------------------#
-use tests 24; # event initialisation (initEvent and init)
-
-is $event->type, undef, 'event type before init';
-is $event->eventPhase, undef, 'eventPhase before init';
-ok!$event->bubbles, 'event is flat before init';
-ok!$event->cancelable, 'event is not cancelable before init';
-is scalar $event->currentTarget, undef, 'no currentTarget before init';
-is scalar $event->target, undef, 'no target before init';
-
-my $event2;
-{
-	my $prin = time;
-	$event2 = $doc->createEvent;
-	my $meta = time;
-	my $stamp = timeStamp $event2;
-	ok $stamp <= $meta && $stamp >= $prin, 'timeStamp';
-}
-
-is_deeply [initEvent $event click => 1, 1], [],
-	'initEvent returns nothing';
-initEvent $event2 focus => 0, 0;
-
-ok bubbles $event, 'event is bubbly after initEvent';
-ok!bubbles $event2, 'event is flat after initEvent';
-ok cancelable $event, 'event is cancelable after initEvent';
-ok!cancelable $event2, 'event is uncancelable after initEvent';
-is scalar $event->currentTarget, undef, 'no currentTarget after initEvent';
-is scalar $event->target, undef, 'no target after initEvent';
-is $event->eventPhase, undef, 'eventPhase after initEvent';
-is $event->type, 'click', 'event type after initEvent';
-
-$event = $doc->createEvent;
-$event2 = $doc->createEvent;
-init $event type => click => cancellable => 1 => propagates_up => 1;
-init $event2 type => focus => cancellable => 0 => propagates_up => 0;
-
-ok bubbles $event, 'event is bubbly after init';
-ok!bubbles $event2, 'event is flat after init';
-ok cancelable $event, 'event is cancelable after init';
-ok!cancelable $event2, 'event is uncancelable after init';
-is scalar $event->currentTarget, undef, 'no currentTarget after init';
-is scalar $event->target, undef, 'no target after init';
-is $event->eventPhase, undef, 'eventPhase after init';
-is $event->type, 'click', 'event type after init';
-
 
 # -------------------------#
 use tests 3; # event dispatch:
 # First we'll make sure that the events are triggered in the right order,
 # and for the right event type.
+
+my $event = $doc->createEvent;
+my $event2 = $doc->createEvent;
+init $event type => click => cancellable => 1 => propagates_up => 1;
+init $event2 type => focus => cancellable => 0 => propagates_up => 0;
 
 our $e;
 
@@ -260,13 +135,8 @@ clear_event_listeners($grandchild, 'click', 'focus');
 
 
 # -------------------------#
-use tests 4; # event dispatch:
+use tests 1; # event dispatch:
 # Now we need to see whether eventPhase is set correctly.
-
-# Let's just check the constants first:
-is CAPTURING_PHASE, 1, 'CAPTURING_PHASE';
-is AT_TARGET,       2, 'AT_TARGET';
-is BUBBLING_PHASE,  3, 'BUBBLING_PHASE';
 
 ($event = $doc->createEvent)->initEvent(click => 1, 1);
 $child->addEventListener(click => sub { $e .= $_[0]->eventPhase }, 1);
@@ -285,7 +155,7 @@ clear_event_listeners($grandchild, 'click');
 
 
 # -------------------------#
-use tests 5; # event dispatch: stopPropagation
+use tests 3; # event dispatch: stopPropagation
 
 {
 	# I put stopPropagation in both listeners for each phase, since
@@ -293,13 +163,11 @@ use tests 5; # event dispatch: stopPropagation
 	# the other handler at the same level is still called *after* the
 	# first one has called stopPropagation.
 	$child->addEventListener(click => my $capture1 = sub {
-		is scalar $_[0]->stopPropagation, undef,
-			'return value of stopPropagation';
+		$_[0]->stopPropagation;
 		$e .= '-'
 	}, 1);
 	$child->addEventListener(click => my $capture2 = sub {
-		is scalar $_[0]->stopPropagation, undef,
-			'return value of stopPropagation';
+		$_[0]->stopPropagation;
 		$e .= '-'
 	}, 1);
 	$grandchild->addEventListener(click => my $at_target1 = sub {
@@ -372,10 +240,7 @@ $child->addEventListener(cliCk => sub {
 		'"target" attr while froth is rising';
 });
 
-($event = $doc->createEvent)->initEvent(submit => 0, 0);
- $event                     ->initEvent(click => 1, 1);
-# $event is inited twice so we can make sure later that the second call
-# to initEvent takes precendence.
+($event = $doc->createEvent)->initEvent(click => 1, 1);
 
 ok! $grandchild->dispatchEvent($event),
 	'preventDefault makes dispatchEvent return false';
@@ -429,167 +294,55 @@ cmp_ok $@, '==', HTML::DOM::Exception::UNSPECIFIED_EVENT_TYPE_ERR,
 
 
 # -------------------------#
-use tests 10; # trigger_event and default_event_handler(_for)
+use tests 5; # trigger_event and default_event_handler(_for)
 
 clear_event_listeners($grandchild, 'click');
 
-# We have to use the non-standard ‘clink’ here, because click has its own
-# magic handling (triggering DOMActivate).
 $grandchild->addEventListener(clink => sub {
 	$_[0]->preventDefault
 });
 
-$doc-> default_event_handler(sub {
+my @def = (default => sub {
 	$e = $_[0];
 });
 
 $e = '';
 ($event = $doc->createEvent)->initEvent(clink => 1, 1);
-$grandchild->trigger_event($event);
+$grandchild->trigger_event($event, @def);
 is $e, '', 'event objects passed to trigger_event can be stopped';
 
-$grandchild->trigger_event('clink');
+$grandchild->trigger_event('clink', @def);
 is $e, '', 'event names passed to trigger_event can be stopped';
 
 $e = '';
 ($event = $doc->createEvent)->initEvent(clink => 1, 0);
-$grandchild->trigger_event($event);
+$grandchild->trigger_event($event, @def);
 is $e, $event,
     'the default event was run when an obj was passed to trigger_event';
 
 clear_event_listeners($grandchild, 'clink');
 $e = '';
-$grandchild->trigger_event('clink');
+$grandchild->trigger_event('clink', @def);
 is $e->type, 'clink',
 	'$event->type when an event name is passed to trigger_event';
 is $e->target, $grandchild,
 	'$event->target when an event name is passed to trigger_event';
 
-{
-	my $which = '';
-	$doc->default_event_handler(sub { $which = 'default' });
-	$doc->default_event_handler_for(link =>
-		sub { $which = 'link' }
-	);
-	$doc->default_event_handler_for(submit =>
-		sub { $which = 'submit' }
-	);
-
-	$doc->createElement('a')->trigger_event("DOMActivate");
-	is $which, 'link', 'dehf link';
-	$doc->default_event_handler_for('link' => undef);
-	$doc->createElement('a')->trigger_event("DOMActivate");
-	is $which, 'default', 'link fallback to default';
-
-	$doc->createElement('form')->submit();
-	is $which, 'submit', 'dehf submit';
-	$doc->default_event_handler_for('submit' => undef);
-	$doc->createElement('form')->submit();
-	is $which, 'default', 'submit fallback to default';
-}
-
-ok eval{new HTML::DOM +()=>->trigger_event("foo");1},
-	'$doc->trigger_event(string) doesn\'t die';
-
 
 # -------------------------#
-use tests 10; # even laster: make sure event_attr_handler is actually used
+use tests 1; # error_handler
+# This doesn’t test $target->ownerDocument->error_handler; event-basics.t
+# takes care of that.
 
 {
-	$doc->close;
-	my @__;
-	$doc->event_attr_handler(sub {
-		push @__, [@_, my $foo = sub { @__ }];
-		$foo
-	});
-
-	$doc->write('
-		<form name=foo onsubmit="die">
-			<input Onclick="print q/foo/">
-		</form>
-	');
-	$doc->close;
-	
-	isa_ok $__[0][0], 'HTML::Element',
-		'1st arg to the event attr handler';
-	is $__[1][1], 'submit',
-		'event name is passed to the event attr handler';
-	is $__[1][2], 'die', 'code is passed to the event attr handler';
-	is $__[1][3], 27, 'offset is passed ...';
-	is $__[0][3], 52, '... to the event attr handler';
-
-	is_deeply [$doc->forms->[0]->get_event_listeners('submit')],
-	   [$__[1][4]],
-	  'coderef returned by event attr handler becomes an eavesdropper';
-	is_deeply [$doc->forms->[0]->elements->[0]
-	              ->get_event_listeners('click')],
-	          [$__[0][4]],
-	          'same when on is spelt On';
-
-	$doc->forms->[0]->setAttribute('onsubmit' => 'live');
-	is $__[2][1], 'submit',
-		'setAttribute triggers the event attr handler';
-	is_deeply [$doc->forms->[0]->get_event_listeners('submit')],
-	   [$__[2][-1]],
-	  're-assigning to an event attr can replace an existing listener';
-
-	@__=();
-	$doc->forms->[0]->getAttributeNode('onsubmit')->firstChild->data(
-		"foo"
-	);
-	is @__, 1, 'changes to an event attr’s text node call eah';
-}
-
-# -------------------------#
-use tests 5; # HTML::DOM::error_handler access
-
-{
-	my $coderef = sub{};
-	my $coderef2 = sub{};
-	is scalar $doc-> error_handler($coderef), undef,
-		'1st assignment to error_handler returns undef';
-	is $doc-> error_handler($coderef2), $coderef,
-		'2nd assignment to error_handler returns old sub';
-	is $doc-> error_handler, $coderef2,
-		'2nd assignment did assign the new sub';
-	is $doc-> error_handler, $coderef2,
-	    'simply getting the error_handler doesn\'t change it';
-	$doc-> error_handler(undef);
-	is $doc-> error_handler, undef,
-		'error handlers can be deleted';
-}
-
-# -------------------------#
-use tests 1; # use of HTML::DOM::error_handler
-
-{
+	no warnings 'once';
 	my $e;
-	my $coderef = sub { $e = $@ };
-	$doc->error_handler($coderef);
-	$doc->write('');
-	$doc->close;
-	for($doc->documentElement){
-		$_->addEventListener(foo => sub { die "67\n" });
-		$_->trigger_event('foo');
-	}
+	local *MyEventTarget'error_handler = sub{ sub{ $e = $@ }};
+	$grandchild->addEventListener(foo => sub { die "67\n" });
+	$grandchild->trigger_event('foo');
 	is $e, "67\n", 'error_handler gets called';
 }
 
-# -------------------------#
-use tests 1; # modification of Attr objects for event attributes
-#         (bug in 0.012 and earlier)
 
-{
-	my $accum;
-	my $h = new HTML::DOM;
-	$h->event_attr_handler( sub { my $n = $_[2]; sub{$accum .= $n}});
-	my $b = $h->body;
-	$b->setAttribute("onclick","foo");
-	$b->trigger_event("click");
-	$b->getAttributeNode("onclick")->value("bar");
-	$b->trigger_event("click");
-	is $accum, 'foobar',
-	  'modification of Attr objects corresponding to event attributes';
-}
-
-
+# ~~~ explicit tests for event attribute event listener attribute methods
+#     (How’s that for excessive attributive use of nouns?)

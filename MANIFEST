@@ -66,6 +66,7 @@ lib/HTML/DOM/Event/Mouse.pm
 lib/HTML/DOM/Event/Mutation.pm
 lib/HTML/DOM/Event/UI.pm
 lib/HTML/DOM/Event.pm
+lib/HTML/DOM/EventTarget.pm
 lib/HTML/DOM/Exception.pm
 lib/HTML/DOM/Implementation.pm
 lib/HTML/DOM/Interface.pm
@@ -89,6 +90,7 @@ t/document.t
 t/dustbin-man.t
 t/element.t
 t/event-basics.t
+t/event-target.t
 t/exception.t
 t/form-charset.t
 t/form-element.t

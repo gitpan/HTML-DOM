@@ -17,13 +17,14 @@ WriteMakefile(
          constant                  => 1.03, # multiple at once
          constant::lexical         => 0,
         'CSS::DOM'                 => 0.03,
-        'CSS::DOM::Style'          => 0,
-        'CSS::DOM::StyleSheetList' => 0,
+        'CSS::DOM::Style'          => 0.05, # modification_handler
+                                            # and ::Style::parse’s
+        'CSS::DOM::StyleSheetList' => 0,    # stringification
          Exporter                  => 5.57, # for use Exporter 'import'
+         Hash'Util'FieldHash'Compat=> 0,
         'HTML::TreeBuilder'        => 0,
         'HTML::Element'            => 0,
 	'HTML::Encoding'           => 0,
-        'HTML::Form'               => 1.054,
          HTML::Parser              => 3,
          HTTP::Message             => eval('require HTTP::Message;
                                             VERSION HTTP::Message') == 5.81
@@ -37,8 +38,6 @@ WriteMakefile(
          URI                       => 0,
          warnings                  => 0,
 # used only in the tests:
-        'CSS::DOM::Style'          => 0.04, # setProperty when ::Parser is
-                                            # not loaded
          Scalar::Util              => 1.14, # refaddr with ties
         'Test::More'               => 0,
 	 utf8                      => 0,

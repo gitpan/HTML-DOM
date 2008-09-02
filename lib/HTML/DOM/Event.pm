@@ -1,6 +1,6 @@
 package HTML::DOM::Event;
 
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 
 
 use strict;
@@ -11,6 +11,7 @@ sub	CAPTURING_PHASE  (){             1,}
 sub	AT_TARGET             (){ 2,}
 	sub BUBBLING_PHASE             (){       3,}	
 
+use HTML::DOM::Exception 'NOT_SUPPORTED_ERR';
 use Exporter 5.57 'import';
 
 our @EXPORT_OK = qw'
@@ -22,6 +23,15 @@ our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
 sub new {
 	bless {time => time}, $_[0];
+}
+
+sub create_event {
+	my $class = class_for($_[0]);
+	defined $class or die new HTML::DOM::Exception NOT_SUPPORTED_ERR,
+		"The event category '$_[0]' is not supported";
+	(my $path =$class) =~ s/::/\//g;
+	require "$path.pm";
+	$class->new
 }
 
 # ----------- ATTRIBUTE METHODS ------------- #
@@ -79,7 +89,7 @@ my %class_for = (
 );
 
 sub class_for {
-	$class_for{$_[0]}
+	$class_for{$_[0]};
 }
 
 # ~~~ The DOM 2 spec lists mouseover and -out as cancellable. Firefox has

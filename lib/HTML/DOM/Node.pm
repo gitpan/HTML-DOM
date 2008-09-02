@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 
 
 use strict;
@@ -21,7 +21,6 @@ use constant {
 	NOTATION_NODE               => 12,
 };
 
-use Carp 'croak';
 use Exporter 5.57 'import';
 use HTML::DOM::Event;
 use HTML::DOM::Exception qw'NO_MODIFICATION_ALLOWED_ERR NOT_FOUND_ERR
@@ -29,12 +28,13 @@ use HTML::DOM::Exception qw'NO_MODIFICATION_ALLOWED_ERR NOT_FOUND_ERR
                                  UNSPECIFIED_EVENT_TYPE_ERR';
 use Scalar::Util qw'refaddr weaken blessed';
 
+require HTML::DOM::EventTarget;
 require HTML::DOM::Implementation;
 require HTML::DOM::NodeList;
 require HTML::Element;
 
-our @ISA = 'HTML::Element'; # No, a node isn't an HTML element, but
-                            # HTML::Element has some nice tree-handling
+our @ISA =('HTML::Element', # No,  a node  isn't  an  HTML  element,  but
+ 'HTML::DOM::EventTarget'); # HTML::Element has some nice tree-handling
                             # methods (and, after all, TreeBuilder's
                             # pseudo-elements aren't elements either).
 
@@ -75,8 +75,9 @@ HTML::DOM::Node - A Perl class for representing the nodes of an HTML DOM tree
 =head1 DESCRIPTION
 
 This is the base class for all nodes in an HTML::DOM tree. (See
-L<HTML::DOM/CLASSES AND DOM INTERFACES>.) It implements the Node and 
-EventTarget DOM interfaces.
+L<HTML::DOM/CLASSES AND DOM INTERFACES>.) It implements the Node
+interface, and, indirectly, the EventTarget interface (see 
+L<HTML::DOM::EventTarget>.
 
 =head1 METHODS
 
@@ -490,221 +491,25 @@ sub isSupported {
 	$HTML::DOM::Implementation::it->hasFeature(@_)
 }
 
-# ----------- EventTarget INTERFACE ------------- #
+# ----------- EVENT STUFF ------------- #
 
-=item addEventListener($event_name, $listener, $capture)
+=item trigger_event
 
-The C<$listener> should be either a coderef or an object with a
-C<handleEvent> method. (HTML::DOM does not implement any such object since
-it would just be a wrapper around a coderef anyway, but has support for
-them.) An object with C<&{}> overloading will also do.
-
-C<$capture> is a boolean indicating whether this is to be triggered during
-the 'capture' phase.
-
-=cut
-
-sub addEventListener {
-	my ($self,$name,$listener, $capture) = @_;
-	$$self{'_HTML_DOM_' . ('capture_' x !!$capture) . 'events'}
-		{lc $name}{refaddr $listener} = $listener;
-	return;
-}
-
-# Though this only applies to elements, I'm putting it here, since only
-# H:D:N is supposed to access _HTML_DOM_events.
-sub _add_attr_event { # special secret method that keys the event listener
-                      # by the string 'attr', rather than by its refaddr
-	my ($self,$name,$listener) = @_;
-	$$self{'_HTML_DOM_events'}{lc $name}{attr} = $listener;
-	return;
-}
-
-=item removeEventListener($event_name, $listener, $capture)
-
-The C<$listener> should be the same reference passed to 
-C<addEventListener>.
-
-=cut
-
-sub removeEventListener {
-	my ($self,$name,$listener, $capture) = @_;
-	$name = lc $name;
-	my $key = '_HTML_DOM_' . ('capture_' x !!$capture) . 'events';
-	exists $$self{$key} && exists $$self{$key}{$name} &&
-		delete $$self{$key}{$name}{refaddr $listener};
-	return;
-}
-
-=item get_event_listeners($event_name, $capture)
-
-This is not a DOM method (hence the underscores in the name). It returns a
-list of all event listeners for the given event name. C<$capture> is a
-boolean that indicates which list to return, either 'capture' listeners or
-normal ones.
-
-=cut
-
-sub get_event_listeners { # uses underscores because it is not a DOM method
-	my($self,$name,$capture) = @_;
-	$name = lc $name;
-	my $key = '_HTML_DOM_' . ('capture_' x !!$capture) . 'events';
-	exists $$self{$key} && exists $$self{$key}{$name}
-		? values %{$$self{$key}{$name}}
-		: ()
-}
-
-=item dispatchEvent($event_object)
-
-$event_object is an object returned by HTML::DOM's C<createEvent> method,
-or any object that implements the interface documented in 
-L<HTML::DOM::Event>.
-
-C<dispatchEvent> does not automatically call the handler passed to the
-document's C<default_event_handler>. It is expected that the code that
-calls this method will do that (see also L</trigger_event>).
-
-The return value is a boolean indicating whether the default action
-should be taken (i.e., whether preventDefault was I<not> called).
-
-=cut
-
-sub dispatchEvent { # This is where all the work is.
-	my ($target, $event) = @_;
-	my $name = $event->type;
-
-	die HTML::DOM::Exception->new(UNSPECIFIED_EVENT_TYPE_ERR,
-		'The type of event has not been specified')
-		unless defined $name and length $name;
-	
-	# Basic event flow is as follows:
-	# 1.  The  'capturing'  phase:  Go through the  node's  ancestors,
-	#     starting from the top of the tree. For each one, trigger any
-	#     capture events it might have.
-	# 2.  Trigger events on the $target.
-	# 3. 'Bubble-blowing' phase: Trigger events on the target's ances-
-	#     tors in reverse order (top last).
-
-	my $eh = ($target->ownerDocument || $target)->error_handler;
-
-	$event->_set_target($target);
-
-	my @lineage = lineage $target; # $lineage[-1] is the root
-
-	$event->_set_eventPhase(HTML::DOM::Event::CAPTURING_PHASE);
-	for (reverse @lineage) { # root first
-		$event-> _set_currentTarget($_);
-		eval {
-			defined blessed $_ && $_->can('handleEvent') ?
-				$_->handleEvent($event) : &$_($event);
-			1
-		} or $eh and &$eh() for($_->get_event_listeners($name, 1));
-		return !cancelled $event if $event->propagation_stopped;
-	}
-
-	$event->_set_eventPhase(HTML::DOM::Event::AT_TARGET);
-	$event->_set_currentTarget($target);
-	eval {
-		defined blessed $_ && $_->can('handleEvent') ?
-			$_->handleEvent($event) : &$_($event);
-		1
-	} or $eh and &$eh() for $target->get_event_listeners($name);
-	return !cancelled $event if $event->propagation_stopped
-	                         or!$event->bubbles;
-
-	$event->_set_eventPhase(HTML::DOM::Event::BUBBLING_PHASE);
-	for (@lineage) { # root last
-		$event-> _set_currentTarget($_);
-		eval {
-			defined blessed $_ && $_->can('handleEvent') ?
-				$_->handleEvent($event) : &$_($event);
-			1
-		} or $eh and &$eh() for($_->get_event_listeners($name));
-		return !cancelled $event if $event->propagation_stopped;
-	}
-	return !cancelled $event;
-}
-
-=item trigger_event($event, ...)
-
-Here is another non-DOM method. C<$event> can be an event object or simply 
-an event name. This method triggers an
-event for real, first calling C<dispatchEvent> and then running the default
-action for the event unless an event listener cancels it.
-
-=begin comment
-The interface for this is very clunky, so I’m keeping it private for now.
-It only exists for the sake of the implementation, anyway. Actually, I’ve
-changed it so that it’s DOMActivate_default => \&sub instead of default =>
-{ DOMActivate => \&sub }, because that makes it easier for multiple classes
-to say SUPER::trigger_event($evnt, ..._default => ) without clobbering each
-other.
-
-It can take named args following the C<$event> arg. The C<default> arg, if
-present, must be a hash of subroutines to be called if C<dispatchEvent>
-returns true. The keys of the hash are event names. Whichever applies will
-be used. If omitted, the
-default event handler associated with the document will be used. Certain
-HTML elements override C<trigger_event> to provide their
-own default event handler (this is where HTML::DOM's
-default_event_handler_for business comes into play), but if you specify a
-default it will override.
-
-The rest
-of the arguments (which are ignored if C<$event> is an event object)
-are the same as those passed to an event object's C<init> method. Any
-omitted args will be filled in with reasonable defaults.
-
-=end comment
-
-It can take named args following the C<$event> arg. These are passed to the
-event object's C<init> method. Any
-omitted args will be filled in with reasonable defaults. These are
-completely ignored if C<$event> is an event object.
-
-When C<$event> is an event name, C<trigger_event> automatically chooses the
-right event class and a set of default args for that event name, so you can
-supply just a few. E.g.,
-
-  $elem->trigger_event('click',  shift => 1, button => 1);
+This overrides L<HTML::DOM::EventTarget>'s (non-DOM) method of the same 
+name, so that
+the document's default event handler is called.
 
 =cut
 
 sub trigger_event { # non-DOM method
-# ~~~ When I implement mutation events, I need, for efficiency’s sake, to
-#     skip creating the event object here, and have dispatchEvent (or
-#    _dispatch_event or some such) create the object on demand.
-	my ($target, $event, %args) = @_;
-	my $doc;
-	my $type;
-	defined blessed $event && $event->isa('HTML::DOM::Event')
-	? $type =  $event->type 
-	: do {
-		$type = $event;
-		require HTML'DOM'Event;
-		$event = ($doc = $target->ownerDocument||$target)
-			->createEvent((
-				my (undef, @init_args) =
-					HTML'DOM'Event'defaults($type)
-			)[0]);
-		$event->init(
-			type=>$type,
-			@init_args,
-			$event->can('view')
-				? ( view =>
-					($target->ownerDocument||$target)
-						->defaultView
-				):(),
-			%args
-		);
-	};
-
-	$target->dispatchEvent($event) and &{
-		$args{"$type\_default"} ||
-		($doc || $target->ownerDocument)->default_event_handler
-		|| return
-	}($event);
-	return;
+	my ($n,$evnt) = (shift,shift);
+	my $doc = $n->ownerDocument||$n;
+	$n->SUPER::trigger_event(
+		$evnt,
+		default => $doc->default_event_handler,
+		view => $doc->defaultView,
+		@_,
+	);
 }
 
 =item as_text
@@ -728,6 +533,7 @@ sub as_HTML{
 
 sub push_content {
 	my $self  = shift; 
+	@_ or return $self;
 	my $count = ()=$self->content_list;
 	$self->SUPER::push_content(@_);
 	my $ary = $self->{_content};
@@ -809,3 +615,4 @@ The following node type constants are exportable:
 
 L<HTML::DOM>
 
+L<HTML::DOM::EventTarget>

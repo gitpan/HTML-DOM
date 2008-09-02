@@ -5,7 +5,7 @@
 
 use strict; use warnings; use utf8;
 
-use Test::More tests => 68;
+use Test::More tests => 70;
 
 
 # -------------------------#
@@ -311,7 +311,7 @@ is $doc->{fred}, $doc->forms->[0],           'hashness (1)';
 is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 
 # -------------------------#
-# Test 68: innerHTML
+# Tests 68-70: innerHTML
 {
 	my $doc = new HTML::DOM;
 	$doc->write('
@@ -334,6 +334,14 @@ is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 			|
 	), 'innerHTML serialisation'
 		or diag ("got " .$doc->innerHTML);
+
+	my $html = $doc->innerHTML;
+	is $doc->innerHTML('<title></title><div>foo</div>'),$html,
+		'retval of innerHTML with arg';
+	is $doc->innerHTML,
+	  '<html><head><title></title></head>'
+	 ."<body><div>foo</div></body></html>",
+	  'result of setting innerHTML';
 }
 
 

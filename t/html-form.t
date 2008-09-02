@@ -584,7 +584,7 @@ ok(!defined($form->param('multi_select_field')));
 is(j($form->param('multi_select_field')), '');
 ok(!defined($form->param('unknown')));
 is(j($form->param('unknown')), '');
-ok(!@warn);
+ok(!@warn, 'no warnings');
 
 # set
 $form->param('hidden_1', 'x');

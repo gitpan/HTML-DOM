@@ -119,9 +119,9 @@ sub gimme_a_test_doc {
 	$doc->write(
 		'<html id=h>' .
 		'<body id=b>' .
-		'<div id=d1><p id=p11><p id=p12><p id=p13></div>' .
-		'<div id=d2><p id=p21><p id=p22><p id=p23></div>' .
-		'<div id=d3><p id=p31><p id=p32><p id=p33></div>'
+		'<div id=d1><p id=p11>a<p id=p12>a<p id=p13>a</div>' .
+		'<div id=d2><p id=p21>a<p id=p22>a<p id=p23>a</div>' .
+		'<div id=d3><p id=p31>a<p id=p32>a<p id=p33>a</div>'
 	);
 	$doc->close;
 	my $scratch = [];
@@ -147,15 +147,21 @@ sub gimme_a_test_doc {
 				.'-'.(eval{$_[0]->target->parent->id}||'')
 		}) for qw ,domnodeinserted domnoderemoved,;
 		$e->addEventListener(domattrmodified => sub {
+			 no warnings 'uninitialized';
 			push @$scratch, "$id-".$_[0]->target->id
 			  ."-domattrmodified-".
-			  (eval{$_[0]->relatedNode->id}||'')."-".
+			  (eval{
+			    return join '',$_->name,$_->value
+			      for $_[0]->relatedNode
+			  }||'')."-".
 			  $_[0]->target->hasAttribute($_[0]->attrName)."-".
 			  join '-', map $_[0]->$_,
 			    attrName=>attrChange=>prevValue=>newValue=>;
 		});
 		$e->addEventListener(domcharacterdatamodified => sub {
-			push @$scratch, "$id-" . $_[0]->target->id.
+			push @$scratch, "$id-" .
+			  (eval{$_[0]->target->id} ||
+			    $_[0]->target->nodeName).
 			  "-domcharacterdatamodified-".
 			  join '-', map $_[0]->$_,
 			    =>prevValue=>newValue=>;
@@ -176,13 +182,14 @@ sub gimme_a_test_doc {
 #	event: nodeinsertedintodocument
 #	event: subtreemodified (nearest common parent)
 
-# The event handlers above push the following info on to @$scratch:
-#	current target id-target id-event name
-# possibly followed by more info (concatenated) based on the type of event:
-#	nodeinserted/removed:  -related node id-parent id
-#	attrmodfied:           -related node id-whether the attr exists
-#	                         -attr name-change type-prev value
-#	                         -new value
+# The event handlers above push the following info on to @$scratch, joined
+# with hypens:
+#	current target id, target id or nodeName, event name
+# possibly followed by more info based on the type of event:
+#	nodeinserted/removed:  related node id, parent id
+#	attrmodfied:           related node name and value,
+#                                whether the attr exists, attr name,
+#	                         change type, prev value, new value
 #	characterdatamodified: -prev value-new value
 
 
@@ -727,16 +734,306 @@ use tests 6; # $node->appendChild
 }
 
 
-# ~~~ setAttribute
-# ~~~ removeAttribute
-# ~~~ setAttributeNode
-# ~~~ removeAttributeNode
-# ~~~ appendData
-# ~~~ insertData
-# ~~~ insertData16
-# ~~~ deleteData
-# ~~~ deleteData16
-# ~~~ replaceData
-# ~~~ replaceData16
+# -------------------------#
+use tests 8; # Element attribute mutations
+{
+	my($doc, $scratch) = gimme_a_test_doc;
+	my $div = $doc->getElementById('d1');
 
-# ~~~ All the shorthand HTML properties.
+	$div->setAttribute("foo","bar");
+	is_deeply $scratch, [
+		'd1-d1-domattrmodified-foobar-1-foo-2--bar' ,
+		'b-d1-domattrmodified-foobar-1-foo-2--bar' ,
+		'h-d1-domattrmodified-foobar-1-foo-2--bar' ,
+	], 'setAttribute when the attr doesn\'t exist';
+
+	@$scratch = ();
+
+	# The presence of event listeners causes attr nodes to be autovivi-
+	# fied by events, so we need to reset it in order to test the right
+	# code path.
+	$div->attr("foo","bar");
+	$div->setAttribute("foo","barr");
+	is_deeply $scratch, [
+		'd1-d1-domattrmodified-foobarr-1-foo-1-bar-barr' ,
+		'b-d1-domattrmodified-foobarr-1-foo-1-bar-barr' ,
+		'h-d1-domattrmodified-foobarr-1-foo-1-bar-barr' ,
+	], 'setAttribute when the attr exists';
+
+	@$scratch = ();
+
+	$div->attr("foo","barr");
+	$div->removeAttribute("foo");
+	is_deeply $scratch, [
+		'd1-d1-domattrmodified-foobarr--foo-3-barr-barr' ,
+		'b-d1-domattrmodified-foobarr--foo-3-barr-barr' ,
+		'h-d1-domattrmodified-foobarr--foo-3-barr-barr' ,
+	], 'removeAttribute when the attr exists';
+
+	@$scratch = ();
+
+	$div->removeAttribute("foo");
+	is_deeply $scratch, [
+	], 'removeAttribute when the attr existeth not';
+
+	my $attr = $doc->createAttribute('foo');;
+	$attr->value('bar');	
+	$div->setAttributeNode($attr);
+	is_deeply $scratch, [
+		'd1-d1-domattrmodified-foobar-1-foo-2-bar-bar' ,
+		'b-d1-domattrmodified-foobar-1-foo-2-bar-bar' ,
+		'h-d1-domattrmodified-foobar-1-foo-2-bar-bar' ,
+	], 'setAttributeNode when the attribute doesn\'t exist';
+
+	@$scratch = ();
+
+	$attr = $doc->createAttribute('foo');;
+	$attr->value('barr');	
+	$div->setAttributeNode($attr);
+	is_deeply $scratch, [
+		'd1-d1-domattrmodified-foobar-1-foo-3-bar-bar' ,
+		'b-d1-domattrmodified-foobar-1-foo-3-bar-bar' ,
+		'h-d1-domattrmodified-foobar-1-foo-3-bar-bar' ,
+
+		'd1-d1-domattrmodified-foobarr-1-foo-2-barr-barr' ,
+		'b-d1-domattrmodified-foobarr-1-foo-2-barr-barr' ,
+		'h-d1-domattrmodified-foobarr-1-foo-2-barr-barr' ,
+	], 'setAttributeNode when the attribute exists';
+
+	@$scratch = ();
+
+	$div->removeAttributeNode($attr);
+	is_deeply $scratch, [
+		'd1-d1-domattrmodified-foobarr--foo-3-barr-barr' ,
+		'b-d1-domattrmodified-foobarr--foo-3-barr-barr' ,
+		'h-d1-domattrmodified-foobarr--foo-3-barr-barr' ,
+	], 'removeAttributeNode when the attr exists';
+
+	$div->setAttributeNode($attr);
+	@$scratch = ();
+
+	$attr->value("onettn");
+	is_deeply $scratch, [
+		'd1-d1-domattrmodified-fooonettn-1-foo-1-barr-onettn' ,
+		'b-d1-domattrmodified-fooonettn-1-foo-1-barr-onettn' ,
+		'h-d1-domattrmodified-fooonettn-1-foo-1-barr-onettn' ,
+	], 'modification of an attr node directly';
+	
+
+	# ~~~ All the shorthand HTML properties.
+}
+
+
+# -------------------------#
+use tests 8; # Character data mutations
+{
+	my($doc, $scratch) = gimme_a_test_doc;
+	my $node = $doc->getElementById('p11')->firstChild;
+
+	$node->data("stuff");
+	is_deeply $scratch, [
+		'p11-#text-domcharacterdatamodified-a-stuff' ,
+		'd1-#text-domcharacterdatamodified-a-stuff' ,
+		'b-#text-domcharacterdatamodified-a-stuff' ,
+		'h-#text-domcharacterdatamodified-a-stuff' ,
+	], 'data';
+
+	@$scratch = ();
+
+	$node->appendData("ing");
+	is_deeply $scratch, [
+		'p11-#text-domcharacterdatamodified-stuff-stuffing' ,
+		'd1-#text-domcharacterdatamodified-stuff-stuffing' ,
+		'b-#text-domcharacterdatamodified-stuff-stuffing' ,
+		'h-#text-domcharacterdatamodified-stuff-stuffing' ,
+	], 'appendData';
+
+	@$scratch = ();
+
+	$node->insertData(5,"er");
+	is_deeply $scratch, [
+		'p11-#text-domcharacterdatamodified-stuffing-stuffering' ,
+		'd1-#text-domcharacterdatamodified-stuffing-stuffering' ,
+		'b-#text-domcharacterdatamodified-stuffing-stuffering' ,
+		'h-#text-domcharacterdatamodified-stuffing-stuffering' ,
+	], 'insertData';
+
+	@$scratch = ();
+
+	$node->insertData16(5,"er");
+	is_deeply $scratch, [
+	  'p11-#text-domcharacterdatamodified-stuffering-stufferering' ,
+	  'd1-#text-domcharacterdatamodified-stuffering-stufferering' ,
+	  'b-#text-domcharacterdatamodified-stuffering-stufferering' ,
+	  'h-#text-domcharacterdatamodified-stuffering-stufferering' ,
+	], 'insertData16';
+
+	@$scratch = ();
+
+	$node->deleteData(5,2);
+	is_deeply $scratch, [
+	  'p11-#text-domcharacterdatamodified-stufferering-stuffering' ,
+	  'd1-#text-domcharacterdatamodified-stufferering-stuffering' ,
+	  'b-#text-domcharacterdatamodified-stufferering-stuffering' ,
+	  'h-#text-domcharacterdatamodified-stufferering-stuffering' ,
+	], 'appendData';
+
+	@$scratch = ();
+
+	$node-> deleteData16(1,1);
+	is_deeply $scratch, [
+		'p11-#text-domcharacterdatamodified-stuffering-suffering' ,
+		'd1-#text-domcharacterdatamodified-stuffering-suffering' ,
+		'b-#text-domcharacterdatamodified-stuffering-suffering' ,
+		'h-#text-domcharacterdatamodified-stuffering-suffering' ,
+	], 'deleteData16';
+
+	@$scratch = ();
+
+	$node->replaceData(4,5,'olk');
+	is_deeply $scratch, [
+		'p11-#text-domcharacterdatamodified-suffering-suffolk' ,
+		'd1-#text-domcharacterdatamodified-suffering-suffolk' ,
+		'b-#text-domcharacterdatamodified-suffering-suffolk' ,
+		'h-#text-domcharacterdatamodified-suffering-suffolk' ,
+	], 'replaceData';
+
+	@$scratch = ();
+
+	$node->replaceData16(0,1,"S");
+	is_deeply $scratch, [
+		'p11-#text-domcharacterdatamodified-suffolk-Suffolk' ,
+		'd1-#text-domcharacterdatamodified-suffolk-Suffolk' ,
+		'b-#text-domcharacterdatamodified-suffolk-Suffolk' ,
+		'h-#text-domcharacterdatamodified-suffolk-Suffolk' ,
+	], 'replaceData16';
+}
+
+# -------------------------#
+use tests 8; # Mutations affecting Attr nodes
+{
+	my($doc, $scratch) = gimme_a_test_doc;
+	my $div = $doc->getElementById('d1');
+
+	$div->setAttribute("foo","barr"); # We want an attribute that
+	                                  # already exists;
+	@$scratch = ();
+
+	my $attr = $div->getAttributeNode('foo');
+	$attr->addEventListener('DOMCharacterDataModified' => sub {
+		my $event = shift;
+		push @$scratch, join '-', 
+			$event->currentTarget->name,
+			$event->target->nodeName,
+			lc $event->type,
+	});
+	$attr->addEventListener($_ => sub {
+		my $event = shift;
+		push @$scratch, join '-', 
+			$event->currentTarget->name,
+			$event->target->nodeName,
+			lc $event->type,
+	}) for qw/ DOMNodeInserted DOMNodeInsertedIntoDocument
+	           DOMNodeRemoved  DOMNodeRemovedFromDocument
+	           DOMSubtreeModified /;
+
+	$attr->value("barr");
+	is_deeply $scratch, [
+	], 'attr->value(...) the same as the existing value';
+
+	$attr->nodeValue("barr");
+	is_deeply $scratch, [
+	], 'attr->nodeValue(...) the same as the existing value';
+
+	$attr->value("barrel");
+	is_deeply $scratch, [
+		'foo-#text-domcharacterdatamodified' ,
+		'd1-d1-domattrmodified-foobarrel-1-foo-1-barr-barrel' ,
+		'b-d1-domattrmodified-foobarrel-1-foo-1-barr-barrel' ,
+		'h-d1-domattrmodified-foobarrel-1-foo-1-barr-barrel' ,
+	], 'attr->value(new_value)';
+
+	@$scratch = ();
+
+	$attr->nodeValue("d barrel");
+	is_deeply $scratch, [
+	  'foo-#text-domcharacterdatamodified' ,
+	  'd1-d1-domattrmodified-food barrel-1-foo-1-barrel-d barrel' ,
+	  'b-d1-domattrmodified-food barrel-1-foo-1-barrel-d barrel' ,
+	  'h-d1-domattrmodified-food barrel-1-foo-1-barrel-d barrel' ,
+	], 'attr->nodeValue(new)';
+
+	@$scratch = ();
+
+	$attr->firstChild->data("foo");
+	is_deeply $scratch, [
+	  'foo-#text-domcharacterdatamodified' ,
+	  'd1-d1-domattrmodified-foofoo-1-foo-1-d barrel-foo' ,
+	  'b-d1-domattrmodified-foofoo-1-foo-1-d barrel-foo' ,
+	  'h-d1-domattrmodified-foofoo-1-foo-1-d barrel-foo' ,
+	], 'direct modification of the text node';
+
+	@$scratch = ();
+
+	my $tn1 = $attr->firstChild,
+	my $tn2 = $doc->createTextNode('led');
+	for my $n($tn1, $tn2) {
+		$n->addEventListener($_=>sub{
+			push@$scratch,(lc shift->type)
+		}) for map "domnode${_}document",
+			'insertedinto', 'removedfrom'
+	}
+
+	$attr->replaceChild($tn2,$tn1);
+	is_deeply $scratch, [
+	  'foo-#text-domnoderemoved' ,
+	  'domnoderemovedfromdocument' ,
+	  'foo-#text-domnodeinserted' ,
+	  'domnodeinsertedintodocument' ,
+	  'foo-foo-domsubtreemodified',
+	  'd1-d1-domattrmodified-fooled-1-foo-1-foo-led' ,
+	  'b-d1-domattrmodified-fooled-1-foo-1-foo-led' ,
+	  'h-d1-domattrmodified-fooled-1-foo-1-foo-led' ,
+	], 'attr->replaceChild still attached to the doc';
+
+	$div->detach;
+
+	@$scratch = ();
+
+	$attr->replaceChild($tn1,$tn2);
+	is_deeply $scratch, [
+	  'foo-#text-domnoderemoved' ,
+	  'foo-#text-domnodeinserted' ,
+	  'foo-foo-domsubtreemodified',
+	  'd1-d1-domattrmodified-foofoo-1-foo-1-led-foo' ,
+	], 'attr->replaceChild with its elem detached';
+
+	$doc->body->push_content($div);
+	$div->removeAttribute('foo');
+	@$scratch = ();
+
+	$attr->replaceChild($tn2,$tn1);
+	is_deeply $scratch, [
+	  'foo-#text-domnoderemoved' ,
+	  'foo-#text-domnodeinserted' ,
+	  'foo-foo-domsubtreemodified',
+	], 'attr->replaceChild, the attr itself detached';
+
+	# ~~~ need a test for moving a text node that is in use on to the
+	#     attr
+}
+
+# -------------------------#
+use tests 2; # Default event handlers triggered by mutation events
+             # (there’s special handling for this case [auto-vivacious
+{            # events] in EventTarget.pm/trigger_event)
+	my $doc = new HTML::DOM;
+	my $e;
+	$doc->default_event_handler(sub { $e = shift });
+
+	$doc->body->setAttribute("foo","bar");
+
+	isa_ok $e, 'HTML::DOM::Event',
+		'event auto-vivved solely for deh’s sake';
+	is $e->target, $doc->body, 'target is set correctly';
+}

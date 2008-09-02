@@ -1,6 +1,6 @@
 package HTML::DOM::Event::Mutation;
 
-our $VERSION = '0.016';
+our $VERSION = '0.017';
 
 use warnings; no warnings qw 'utf8 parenthesis';
 use strict;
@@ -8,7 +8,7 @@ use strict;
 require HTML::DOM::Event;
 our @ISA = HTML::DOM::Event::;
 
-use constant 1.01 { ADDITION=>2, MODIFICATION=>1, REMOVAL=>3 };
+use constant 1.03 { ADDITION=>2, MODIFICATION=>1, REMOVAL=>3 };
 
 use Exporter 5.57 'import';
 our @EXPORT_OK = qw 'ADDITION MODIFICATION REMOVAL';

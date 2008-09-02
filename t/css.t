@@ -11,7 +11,7 @@ use HTML::DOM;
 my $doc = new HTML::DOM;
 
 # -------------------------------- #
-use tests 9; # ElementCSSInlineStyle
+use tests 17; # ElementCSSInlineStyle
 
 {
 	(my $elem = $doc->createElement('div'))
@@ -45,6 +45,45 @@ use tests 9; # ElementCSSInlineStyle
 	$elem->removeAttributeNode($elem->getAttributeNode('style'));
 	like $elem->style->cssText, qr/^\s*\z/,
 		'removeAttributeNode erases the css data';
+
+	$elem->setAttribute('style' => '');
+	$attr = $elem->getAttributeNode('style');
+	(my $style = $elem->style)->marginTop('30px');
+	is $attr->value, 'margin-top: 30px',
+		'changes to the style obj are reflected in the attr node';
+	is $elem->style, $style,
+		'without the style object getting clobbered';
+	$attr->value('color:red');
+	is $elem->style->cssText, 'color: red',
+		'changes to the attr node are reflected in the style obj';
+	$attr->firstChild->data('hand-color:red');
+	is $elem->style->cssText, 'hand-color: red',
+	   'changes to the attr\'s child text node change the style obj';
+	
+	$elem->removeAttribute('style');
+	$elem->setAttribute('style', 'color:red');
+	$attr = $elem->getAttributeNode('style');
+	$elem->style->color('blue');
+	is $attr->value, 'color: blue',
+	   'style mods change the attr when attr was auto-vivved B4 style';
+	
+	my $new_attr = $doc->createAttribute('style');
+	$new_attr->value( "foo:bar");
+	$elem->setAttributeNode($new_attr);
+	is $elem->style->cssText, 'foo: bar',
+		'replacing the attr node clobbers the style obj';
+
+	$elem->removeAttribute('style');
+	$elem->setAttribute('style','color:red');
+	$attr = $elem->getAttributeNode('style');
+	$attr->style # auto-viv
+	   ->color('green');
+	is $attr->firstChild # auto-viv
+	    ->data, 'color: green',
+	 "an attr's text node auto-vivved after the style obj is in synch";
+
+	is $elem->getAttribute('style'), 'color: green',
+		'style attr nodes stringify properly';
 }
 
 # -------------------------------- #

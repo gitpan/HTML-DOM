@@ -19,8 +19,10 @@ use HTML::DOM;
 # -------------------------#
 use tests 1; # constructor
 
-our $c = createComment{new HTML::DOM}'comment contents';
-isa_ok $c, 'HTML::DOM::CharacterData';
+my $doc = new HTML::DOM; # We need this because the ownerDocument attri-
+                                     # bute holds a weak ref,  and muta-
+our $c = createComment{$doc}'comment contents';  # tion events will die
+isa_ok $c, 'HTML::DOM::CharacterData';                      # otherwise.
 
 # -------------------------#
 use tests 8; # attributes

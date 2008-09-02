@@ -1,5 +1,46 @@
 Revision history for HTML::DOM
 
+0.017   2 September, 2008
+        New features/miscellaneous changes:
+        • innerHTML is now writable.
+        • Mutation events are  now  triggered  automatic-
+          ally by  HTML::DOM::Element’s various get/set/
+          removeAttribute(node) methods. It does not yet
+          happen with the shorthand methods (those named
+          after  the  attributes;  aka  the  DOM Level 0
+          interface).
+        • Modification of the contents of a text or comment node now
+          triggers a DOMCharacterDataModified event.
+        • The EventTarget interface is now a separate module from
+          Node,  so that anything can inherit from it.
+        • Event attribute methods ($elem->onclick, etc.) have
+          been added.
+        • An Attr node can now be used as an EventTarget.
+        • Assigning a value to an Attr node now modifies its child
+          text node in place instead of replacing it.
+        Bug fixes:
+        • Modifying a style object (as returned by an element’s style
+          method)  now immediately causes the corresponding attribute
+          to be updated.  (It used only to be  updated  on  calls  to
+          getAttribute[Node]).
+        • Modifying an attribute node for the style attribute or its
+          child text node now updates the corresponding style object.
+        • The child text node of an attr node now has its parentNode
+          set correctly.
+        • HTML::DOM::Element’s removeAttribute and setAttributeNode
+          methods no longer die when the attribute is set to some ran-
+          dom object (e.g., $elem->setAttribute(foo => bless [])).
+        • An element’s innerHTML method no longer includes the tags of
+          the element itself (oops!);  nor does it have a  line  break
+          tacked on the end.
+        • A node’s push_content method no longer dies when called with
+          no arguments while the node is empty.
+        • Direct changes to an event attribute node’s text node  now
+          reset the event handler,  instead of leaving it as  it  is.
+          (For those who don’t understand  my  obtuse  jargon,  this
+          applies to $elem->getAttributeNode('onclick')->lastChild->
+          data("...").)
+
 0.016   28 August, 2008
         New features/miscellaneous changes:
         • The UIEvent, MouseEvent and MutationEvent interfaces have
