@@ -3,7 +3,7 @@
 # ~~~ I need a test that makes sure HTML::TreeBuilder doesn’t spit out
 #     warnings because of hash deref overloading.
 
-use strict; use warnings; use utf8;
+use strict; use warnings; use utf8; use lib 't';
 
 use Test::More tests => 31;
 

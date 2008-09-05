@@ -1,5 +1,23 @@
 Revision history for HTML::DOM
 
+0.018   4 September, 2008
+        New features/miscellaneous changes:
+        • HTML::DOM’s defaultView attribute is now writable.
+        • HTML::DOM::View is now an inside-out class, so anything can
+          subclass it; and its ‘document’ attribute is writable.  The
+          constructor has been removed.
+        • The location method has been added to HTML::DOM.
+        Bug fixes:
+        • innerHTML is now listed in %HTML::DOM::Interface.
+        • An element’s innerHTML now serialises text nodes that are
+          direct children of the element properly.
+        • When the removeAttribute method is called and the attribute
+          has previously been accessed as a node,  the  event  object
+          corresponding to the DOMAttrModified  event that occurs now
+          has its  attrName  set  to  the  attribute's  name,  rather
+          than undef,  and its  attrChange  set  to  REMOVAL,  rather
+          than ADDITION.
+
 0.017   2 September, 2008
         New features/miscellaneous changes:
         • innerHTML is now writable.

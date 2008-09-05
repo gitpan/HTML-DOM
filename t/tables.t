@@ -5,7 +5,7 @@
 # particularly ‘align’, have weird capitalisations of their values when
 # they are set. This is intentional.
 
-use strict; use warnings;
+use strict; use warnings; use lib 't';
 our $tests;
 BEGIN { ++$INC{'tests.pm'} }
 sub tests'VERSION { $tests += pop };

@@ -6,7 +6,7 @@ use overload fallback => 1, '@{}' => \&_get_tie;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.017';
+our $VERSION = '0.018';
 
 # Innards: {
 #	get => sub { ... }, # sub that gets the list

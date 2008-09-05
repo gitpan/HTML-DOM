@@ -10,12 +10,13 @@ use 5.008002;
 use strict;
 use warnings;
 
+use Carp 'croak';
 use HTML::DOM::Exception 'NOT_SUPPORTED_ERR';
 use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.017';
+our $VERSION = '0.018';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -27,7 +28,6 @@ require HTML::DOM::NodeList::Magic;
 require             HTML::DOM::Text;
 require                 HTML::Tagset;
 require             HTML::TreeBuilder;
-require                  HTML::DOM::View;
 
 use overload fallback => 1,
 '%{}' => sub {
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.017 (alpha)
+Version 0.018 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -330,7 +330,6 @@ sub new {
 	}
 	$self->{_HTML_DOM_jar} = $opts{cookie_jar}; # might be undef
 	$self->push_content(new HTML::DOM::TreeBuilder);
-	$self->{_HTML_DOM_view} = new HTML::DOM::View $self;
 	$self->{_HTML_DOM_cs} = $opts{charset};
 
 	$self;
@@ -1046,9 +1045,46 @@ sub createEvent {
 
 Returns the L<HTML::DOM::View> object associated with the document.
 
+B<Note>: Currently this has an object there by default, but this may
+change, since the object is fairly useless.
+
+Although it is supposed to be read-only according to the DOM, you can set
+this attribute by passing an argument to it, in which case you should not
+count on any meaningful return value. It C<is> still marked as read-only in
+L<C<%HTML::DOM::Interface>|HTML::DOM::Interface>.
+
+If you do set it, it is recommended that the object be a subclass of
+L<HTML::DOM::View>.
+
 =cut
 
-sub defaultView { shift->{_HTML_DOM_view} }
+# It says above that you can’t count on a meaningful return value because
+# of problems with autovivification.
+# ~~~ If I change it not to have a defaultView by default, then I can make
+#     this method act like all the others.
+
+sub defaultView {
+	my $self = shift;
+	if(@_) {
+		$self->{_HTML_DOM_view} = shift;
+		++$self->{_HTML_DOM_customview};
+	}
+	else {
+#.!!$self->{_HTML_DOM_customview};
+		return defined $self->{_HTML_DOM_view}
+		? $self->{_HTML_DOM_view}
+		: $self->{_HTML_DOM_customview}
+			? undef
+			: do {
+				require                  HTML::DOM::View;
+				bless(my $view
+				        = $self->{_HTML_DOM_view} = \my $x,
+				      HTML::DOM::View::);
+				$view->document($self);
+				$view;
+			};
+	}
+}
 
 # ---------- DocumentStyle interface -------------- #
 
@@ -1093,6 +1129,33 @@ sub innerHTML  {
 		$self->close();
 	}
 	$old
+}
+
+
+=item location
+
+=item set_location_object
+
+C<location> returns the location object, if you've put one there with
+C<set_location_object>. HTML::DOM doesn't actually implement such an object
+itself, but provides the appropriate magic to make
+C<< $doc->location($foo) >> translate into
+C<< $doc->location->href($foo) >>.
+
+BTW, the location object had better be true when used as a boolean, or
+HTML::DOM will think it doesn't exist.
+
+=cut
+
+sub location {
+	my $self = shift;
+	@_ and ($$self{_HTML_DOM_loc}||die "Can't assign to location"
+	                  ." without a location object")->href(@_);
+	$$self{_HTML_DOM_loc}||()
+}
+
+sub set_location_object {
+	$_[0]{_HTML_DOM_loc} = $_[1];
 }
 
 

@@ -1,8 +1,4 @@
 Changes
-idl/1-core2.idl
-idl/2-html2.idl
-idl/3-events2.idl
-idl/4-views2.idl
 lib/HTML/DOM/Attr.pm
 lib/HTML/DOM/CharacterData.pm
 lib/HTML/DOM/Collection/Elements.pod

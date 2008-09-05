@@ -4,19 +4,19 @@ use warnings;
 use strict;
 
 use Scalar::Util qw'weaken';
+use Hash::Util::FieldHash::Compat 'fieldhash';
 
-our $VERSION = '0.017';
+fieldhash my %doc;
 
-# -------- NON-DOM METHODS -------- #
-
-sub new {
-	weaken(my $thing = pop);
-	bless(\$thing, shift);
-}
+our $VERSION = '0.018';
 
 # -------- DOM ATTRIBUTES -------- #
 
-sub document { ${+shift} }
+sub document {
+	my $old = $doc{my $self = shift};
+	weaken($doc{$self} = shift) if @_;
+	$old
+}
 
 
 
@@ -32,25 +32,40 @@ HTML::DOM::View - A Perl class for representing an HTML Document's 'defaultView'
 
   use HTML::DOM;
   $doc = HTML::DOM->new;
-
+  
   $view = $doc->defaultView;
   $view->document; # returns $doc
+  
+  
+  package MyView;
+  @ISA = 'HTML::DOM::View';
+  use HTML::DOM::View;
+
+  sub new {
+      my $self = bless {}, shift; # doesn't have to be a hash
+      my $doc = shift;
+      $self->document($doc);
+      return $self
+  }
+
+  # ...
 
 =head1 DESCRIPTION
 
 This class is used for an HTML::DOM object's 'default view.' It implements 
 the AbstractView DOM interface.
 
+It is an inside-out class, so you can subclass it without being constrained
+to any particular object structure.
+
 =head1 METHODS
-
-=head2 $view = new HTML::DOM::View $doc;
-
-Normally you don't need to call this constructor, but it's listed here for
-completeness' sake.
 
 =head2 $view->document
 
 Returns the document associated with the view.
+
+You may pass an argument to set it, in which case the old value is 
+returned. This attribute holds a weak reference to the object.
 
 =head1 SEE ALSO
 

@@ -10,7 +10,7 @@
 # There are also tests in here for HTML::Element’s methods that are over-
 # ridden by HTML::DOM::Node.
 
-use strict; use warnings;
+use strict; use warnings; use lib 't';
 
 use Test::More tests => scalar reverse '401';
 

@@ -4,7 +4,7 @@
 # blessed into the HTML::DOM::CharacteData class, I am using a comment node
 # to test the interface.
 
-use strict; use warnings;
+use strict; use warnings; use lib 't';
 
 use strict; use warnings;
 our $tests;

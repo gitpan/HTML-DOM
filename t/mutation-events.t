@@ -735,7 +735,7 @@ use tests 6; # $node->appendChild
 
 
 # -------------------------#
-use tests 8; # Element attribute mutations
+use tests 9; # Element attribute mutations
 {
 	my($doc, $scratch) = gimme_a_test_doc;
 	my $div = $doc->getElementById('d1');
@@ -775,6 +775,17 @@ use tests 8; # Element attribute mutations
 	$div->removeAttribute("foo");
 	is_deeply $scratch, [
 	], 'removeAttribute when the attr existeth not';
+
+	$div->attr("foo","barr");	
+	$div->getAttributeNode('foo');
+	$div->removeAttribute("foo");
+	is_deeply $scratch, [
+		'd1-d1-domattrmodified-foobarr--foo-3-barr-barr' ,
+		'b-d1-domattrmodified-foobarr--foo-3-barr-barr' ,
+		'h-d1-domattrmodified-foobarr--foo-3-barr-barr' ,
+	], 'removeAttribute when the attr exists & is an auto-vivved node';
+
+	@$scratch = ();
 
 	my $attr = $doc->createAttribute('foo');;
 	$attr->value('bar');	

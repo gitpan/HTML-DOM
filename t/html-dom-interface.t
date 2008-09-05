@@ -8,7 +8,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 53;
+use Test::More tests => 56;
 
 
 # -------------------------#
@@ -123,3 +123,9 @@ ok $HTML::DOM::Interface{HTMLOptionsCollection}{_hash},
 	'options doess hash';
 ok $HTML::DOM::Interface{HTMLOptionsCollection}{_array},
 	'options doess ary';
+
+# -------------------------#
+# Tests 54-6: changes made in 0.018
+ok exists $HTML::DOM::Interface{HTMLDocument}{innerHTML},'doc->innerHTML';
+ok exists $HTML::DOM::Interface{HTMLElement}{innerHTML},'elem->innerHTML';
+ok exists $HTML::DOM::Interface{HTMLDocument}{location},'doc->location';

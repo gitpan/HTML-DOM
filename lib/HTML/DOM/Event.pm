@@ -1,6 +1,6 @@
 package HTML::DOM::Event;
 
-our $VERSION = '0.017';
+our $VERSION = '0.018';
 
 
 use strict;

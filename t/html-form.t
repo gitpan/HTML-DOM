@@ -4,7 +4,7 @@
 # are plagiarised from that module's tests (22/Sep/7), except for a few at
 # the bottom.
 
-use strict; use warnings;
+use strict; use warnings; use lib 't';
 
 use Test::More tests => 116+24+1;
 

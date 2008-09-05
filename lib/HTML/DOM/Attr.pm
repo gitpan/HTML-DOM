@@ -21,7 +21,7 @@ use constant::lexical +{ do {
 
 use overload fallback => 1,
 	'""' => sub { shift->value },
-	'bool' => \&_elem;
+	'bool' => sub{1};
 
 use HTML::DOM::Exception qw'NOT_FOUND_ERR NO_MODIFICATION_ALLOWED_ERR
                             HIERARCHY_REQUEST_ERR WRONG_DOCUMENT_ERR';
@@ -33,7 +33,7 @@ require HTML::DOM::NodeList;
 
 our @ISA = 'HTML::DOM::EventTarget';
 
-our $VERSION = '0.017';
+our $VERSION = '0.018';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 

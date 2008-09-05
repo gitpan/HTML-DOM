@@ -1,4 +1,4 @@
-HTML::DOM, version 0.017
+HTML::DOM, version 0.018
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,22 +10,17 @@ style sheet interfaces.
 CHANGES IN THIS RELEASE
 
 New features/miscellaneous changes:
-• innerHTML is now writable.
-• Mutation events are now  triggered  automatic-
-  ally by HTML::DOM::Element’s various  get/set/
-  removeAttribute(node) methods. It does not yet
-  happen with the shorthand methods (those named
-  after  the  attributes;  aka  the  DOM Level 0
-  interface).
-• Modification of the contents of a text or comment node now triggers
-  a DOMCharacterDataModified event.
-• The EventTarget interface is now a separate module from Node, so
-  that anything can inherit from it.
-• Event attribute methods ($elem->onclick, etc.) have been added.
-• An Attr node can now be used as an EventTarget.
-• Assigning a value to an Attr node now modifies its child text node
-  in place instead of replacing it.
-Bug fixes--see the Changes file.
+• HTML::DOM’s defaultView attribute is now writable.
+• HTML::DOM::View is now an inside-out class, so anything can subclass
+  it;  and its ‘document’  attribute is writable.  The constructor has
+  been removed.
+• The location method has been added to HTML::DOM.
+Bug fixes:
+• innerHTML is now listed in %HTML::DOM::Interface.
+• An element’s innerHTML now serialises text nodes that are direct
+  children of the element properly.
+• An obscure bug related to removeAttribute and DOMAttrModified
+  events, described more fully in the Changes file.
 
 
 TO DO

@@ -98,12 +98,14 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 		$doc->createTextNode('teette');
 	$elem = $doc->createElement('div');
 	$elem->push_content($subelem);
+	$elem->push_content($doc->createTextNode("tehdob"));
 	like $elem->innerHTML, qr/^
 		<(?i:a\s*foo)\s*=\s*(['"]?)bar\1\s*>
 			baz
 			<(?i:br)\s*>
 			teette
 		<\/[aA]\s*>
+		tehdob
 	\z/x, 'innerHTML serialisation';
 
 	my $html = $elem->innerHTML;

@@ -3,9 +3,9 @@
 # This script tests the HTMLDocument interface of HTML::DOM.
 # For the other features, see document.t and html-dom.t.
 
-use strict; use warnings; use utf8;
+use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => 70;
+use Test::More tests => 73;
 
 
 # -------------------------#
@@ -344,4 +344,17 @@ is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 	  'result of setting innerHTML';
 }
 
-
+# -------------------------#
+# Tests 71-3: location
+{
+	my $href;
+	no warnings 'once';
+	*MyLocation::href = sub { $href = $_[1] };
+	my $doc = new HTML::DOM;
+	is +()=$doc->location, 0, 'location returns nothing at first';
+	$doc->set_location_object(my $loc = bless[],MyLocation::);
+	is $doc->location, $loc,
+		'set_location_object does what its name says';
+	$doc->location('fooooooo');
+	is $href, 'fooooooo', 'location(arg) forwards to href';
+}

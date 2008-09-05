@@ -3,7 +3,7 @@
 # This script tests the Document interface of HTML::DOM. For the other fea-
 # tures, see html-dom.t.
 
-use strict; use warnings;
+use strict; use warnings; use lib 't';
 
 use Test::More tests => 109;
 

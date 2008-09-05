@@ -3,7 +3,7 @@
 # This script tests both the NodeList interface and the Perl overload
 # interface of both NodeList classes.
 
-use strict; use warnings;
+use strict; use warnings; use lib 't';
 
 use Scalar::Util qw'blessed refaddr';
 use Test::More tests => 0x13;

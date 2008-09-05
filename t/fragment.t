@@ -1,6 +1,6 @@
 #!/usr/bin/perl -T
 
-use strict; use warnings;
+use strict; use warnings; use lib 't';
 
 use Test::More tests => 6;
 
