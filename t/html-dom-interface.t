@@ -8,7 +8,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 56;
+use Test::More tests => 96;
 
 
 # -------------------------#
@@ -129,3 +129,28 @@ ok $HTML::DOM::Interface{HTMLOptionsCollection}{_array},
 ok exists $HTML::DOM::Interface{HTMLDocument}{innerHTML},'doc->innerHTML';
 ok exists $HTML::DOM::Interface{HTMLElement}{innerHTML},'elem->innerHTML';
 ok exists $HTML::DOM::Interface{HTMLDocument}{location},'doc->location';
+
+# -------------------------#
+# Tests 57-62: changes made in 0.019
+ok exists $HTML::DOM::Interface{EventTarget}, 'EventTarget';
+is $HTML::DOM::Interface{Node}{_isa}, 'EventTarget','Node isa EventTarget';
+ok !exists $HTML::DOM::Interface{Node}{addEventListener},
+	'Node no longer has addEventListener';
+ok !exists $HTML::DOM::Interface{Node}{dispatchEvent},
+	'Node no longer has dispatchEvent';
+ok !exists $HTML::DOM::Interface{Node}{removeEventListener},
+	'Node no longer has removeEventListener';
+is $HTML::DOM::Interface{'HTML::DOM::EventTarget'}, 'EventTarget',
+	'HTML::DOM::EventTarget';
+
+# -------------------------#
+# Tests 63-96: changes made in 0.019
+for(qw(
+	abort beforeunload blur change click contextmenu dblclick drag
+	dragend dragenter dragleave dragover dragstart drop error focus
+	hashchange keydown keypress keyup load message mousedown
+	mousemove mouseout mouseover mouseup mousewheel resize scroll
+	select storage submit unload 
+)) {
+	ok exists $HTML::DOM::Interface{EventTarget}{"on$_"}, "on$_";
+}

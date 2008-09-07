@@ -10,7 +10,7 @@ require HTML::DOM::Element;
 #require HTML::DOM::NodeList::Magic;
 
 our @ISA = qw'HTML::DOM::Element';
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 
 sub caption {
 	my $old = ((my $self = shift)->content_list)[0];
@@ -111,15 +111,15 @@ sub tBodies { # ~~~ I need to make this cache the resulting collection obj
 		$collection;
 	}
 }
-sub align       { lc shift->attr('align'       => @_) }
-sub bgColor     { shift->attr('bgcolor'     => @_) }
-sub border      { shift->attr( border       => @_) }
-sub cellPadding { shift->attr('cellpadding' => @_) }
-sub cellSpacing { shift->attr('cellspacing' => @_) }
-sub frame       { shift->attr('frame'       => @_) }
-sub rules       { lc shift->attr('rules'       => @_) }
-sub summary     { shift->attr('summary'     => @_) }
-sub width       { shift->attr('width'       => @_) }
+sub align       { lc shift->_attr('align'       => @_) }
+sub bgColor     { shift->_attr('bgcolor'     => @_) }
+sub border      { shift->_attr( border       => @_) }
+sub cellPadding { shift->_attr('cellpadding' => @_) }
+sub cellSpacing { shift->_attr('cellspacing' => @_) }
+sub frame       { shift->_attr('frame'       => @_) }
+sub rules       { lc shift->_attr('rules'       => @_) }
+sub summary     { shift->_attr('summary'     => @_) }
+sub width       { shift->_attr('width'       => @_) }
 
 sub createTHead {
 	my $self = shift;
@@ -348,26 +348,26 @@ L<HTML::DOM::Element::TableCell>
 # ------- HTMLTableCaptionElement interface ---------- #
 
 package HTML::DOM::Element::Caption;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *align = \&HTML::DOM::Element::Table::align;
 
 # ------- HTMLTableColElement interface ---------- #
 
 package HTML::DOM::Element::TableColumn;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *align = \&HTML::DOM::Element::Table::align;
-sub ch     { shift->attr('char'   => @_) }
-sub chOff  { shift->attr( charoff => @_) }
-sub span   { shift->attr('span'   => @_) }
-sub vAlign { lc shift->attr('valign' => @_) }
-sub width  { shift->attr('width'  => @_) }
+sub ch     { shift->_attr('char'   => @_) }
+sub chOff  { shift->_attr( charoff => @_) }
+sub span   { shift->_attr('span'   => @_) }
+sub vAlign { lc shift->_attr('valign' => @_) }
+sub width  { shift->_attr('width'  => @_) }
 
 # ------- HTMLTableSectionElement interface ---------- #
 
 package HTML::DOM::Element::TableSection;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *align  = \&HTML::DOM::Element::Table::align;
 *ch     = \&HTML::DOM::Element::TableColumn::ch;
@@ -420,7 +420,7 @@ sub insertRow {
 # ------- HTMLTableRowElement interface ---------- #
 
 package HTML::DOM::Element::TR;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 sub rowIndex {
 	my $self = shift;
@@ -506,7 +506,7 @@ sub deleteCell {
 # ------- HTMLTableCellElement interface ---------- #
 
 package HTML::DOM::Element::TableCell;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 sub cellIndex {
 	my $self = shift;
@@ -519,18 +519,18 @@ sub cellIndex {
 	    "This table row is not inside the table it is inside. " .
 	    "Please report this bug."
 }
-sub abbr  { shift->attr('abbr'  => @_) }
+sub abbr  { shift->_attr('abbr'  => @_) }
 *align   = \&HTML::DOM::Element::Table::align;
-sub axis  { shift->attr('axis'  => @_) }
+sub axis  { shift->_attr('axis'  => @_) }
 *bgColor = \&HTML::DOM::Element::Table::bgColor;
 *ch      = \&HTML::DOM::Element::TableColumn::ch;
 *chOff   = \&HTML::DOM::Element::TableColumn::chOff;
-sub colSpan  { shift->attr('colspan'  => @_) }
-sub headers  { shift->attr('headers'  => @_) }
-sub height   { shift->attr('height'   => @_) }
-sub noWrap   { shift->attr('nowrap'   => @_) }
-sub rowSpan  { shift->attr('rowspan'  => @_) }
-sub scope    { lc shift->attr('scope'    => @_) }
+sub colSpan  { shift->_attr('colspan'  => @_) }
+sub headers  { shift->_attr('headers'  => @_) }
+sub height   { shift->_attr('height'   => @_) }
+sub noWrap   { shift->_attr('nowrap'   => @_) }
+sub rowSpan  { shift->_attr('rowspan'  => @_) }
+sub scope    { lc shift->_attr('scope'    => @_) }
 *vAlign  = \&HTML::DOM::Element::TableColumn::vAlign;
 *width   = \&HTML::DOM::Element::Table::width;
 

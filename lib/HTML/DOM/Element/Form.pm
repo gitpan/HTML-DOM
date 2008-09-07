@@ -10,7 +10,7 @@ require HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 #require HTML::DOM::Collection::Elements;
 
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = qw'HTML::DOM::Element';
 
 use overload fallback => 1,
@@ -44,26 +44,26 @@ sub elements { # ~~~ I need to make this cache the resulting collection obj
 }
 
 sub length        { shift->elements              -> length }
-sub name          { no warnings; shift->attr( name           => @_) . ''  }
-sub acceptCharset { shift->attr('accept-charset' => @_)    }
+sub name          { no warnings; shift->_attr( name          => @_) . ''  }
+sub acceptCharset { shift->_attr('accept-charset' => @_)    }
 sub action        {
 	my $self = shift;
 	(my $base = $self->ownerDocument->base)
-		or return $self->attr('action', @_);
+		or return $self->_attr('action', @_);
 	(new_abs URI
-		$self->attr('action' => @_),
+		$self->_attr('action' => @_),
 		$self->ownerDocument->base)
 	 ->as_string
 }
 sub enctype       {
-	my $ret = shift->attr('enctype'        => @_);
+	my $ret = shift->_attr('enctype'        => @_);
 	defined $ret ? $ret : 'application/x-www-form-urlencoded'
 }
 sub method        {
-	my $ret = shift->attr('method'         => @_);
+	my $ret = shift->_attr('method'         => @_);
 	defined $ret ? lc $ret : 'get'
 }
-sub target        { shift->attr('target'         => @_)    }
+sub target        { shift->_attr('target'         => @_)    }
 
 sub submit { shift->trigger_event('submit') }
 
@@ -374,7 +374,7 @@ package HTML::DOM::NodeList::Radio; # solely for HTML::Form compatibility
 use Carp 'croak';
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = qw'HTML::DOM::NodeList';
 
 sub type { 'radio' }
@@ -446,7 +446,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 
 require HTML::DOM::Collection;
 our @ISA = 'HTML::DOM::Collection';
@@ -623,7 +623,7 @@ L<HTML::Form>
 # ------- HTMLSelectElement interface ---------- #
 
 package HTML::DOM::Element::Select;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 
 use overload fallback=>1, '@{}' => sub { shift->options };
@@ -676,11 +676,11 @@ sub options { # ~~~ I need to make this cache the resulting collection obj
 		$collection;
 	}
 }
-sub disabled  { shift->attr( disabled => @_) }
-sub multiple  { shift->attr( multiple => @_) }
+sub disabled  { shift->_attr( disabled => @_) }
+sub multiple  { shift->_attr( multiple => @_) }
 *name = \&HTML::DOM::Element::Form::name;
-sub size      { shift->attr( size => @_) }
-sub tabIndex  { shift->attr( tabindex => @_) }
+sub size      { shift->_attr( size => @_) }
+sub tabIndex  { shift->_attr( tabindex => @_) }
 
 sub add {
 	my ($sel,$opt,$b4) = @_;
@@ -706,7 +706,7 @@ package HTML::DOM::Collection::Options;
 use strict;
 use warnings;
 
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 
 use Carp 'croak';
 use constant::lexical sel => 5; # must not conflict with super
@@ -782,23 +782,23 @@ sub length { # override
 # ------- HTMLOptGroupElement interface ---------- #
 
 package HTML::DOM::Element::OptGroup;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 
-sub label  { shift->attr( label => @_) }
+sub label  { shift->_attr( label => @_) }
 *disabled = \&HTML::DOM::Element::Select::disabled;
 
 
 # ------- HTMLOptionElement interface ---------- #
 
 package HTML::DOM::Element::Option;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
 
 *form = \&HTML::DOM::Element::Select::form;
-sub defaultSelected   { shift->attr( selected => @_) }
+sub defaultSelected   { shift->_attr( selected => @_) }
 
 sub text { 
 	shift->as_text
@@ -903,18 +903,18 @@ sub _reset { delete shift->{_HTML_DOM_sel} }
 # ------- HTMLInputElement interface ---------- #
 
 package HTML::DOM::Element::Input;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
 
-sub defaultValue   { shift->attr( value => @_) }
-sub defaultChecked { shift->attr( checked => @_) }
+sub defaultValue   { shift->_attr( value => @_) }
+sub defaultChecked { shift->_attr( checked => @_) }
 *form = \&HTML::DOM::Element::Select::form;
-sub accept         { shift->attr( accept => @_) }
-sub accessKey      { shift->attr( accesskey => @_) }
-sub align          { lc shift->attr( align => @_) }
-sub alt            { shift->attr( alt => @_) }
+sub accept         { shift->_attr( accept => @_) }
+sub accessKey      { shift->_attr( accesskey => @_) }
+sub align          { lc shift->_attr( align => @_) }
+sub alt            { shift->_attr( alt => @_) }
 sub checked        {
 	my $self = shift;
 	my $ret;
@@ -928,17 +928,17 @@ sub checked        {
 	return $ret;
 }
 *disabled = \&HTML::DOM::Element::Select::disabled;
-sub maxLength { shift->attr( maxlength => @_) }
+sub maxLength { shift->_attr( maxlength => @_) }
 *name = \&HTML::DOM::Element::Form::name;
-sub readOnly  { shift->attr( readonly => @_) }
+sub readOnly  { shift->_attr( readonly => @_) }
 *size = \&HTML::DOM::Element::Select::size;
-sub src       { shift->attr( src => @_) }
+sub src       { shift->_attr( src => @_) }
 *tabIndex = \&HTML::DOM::Element::Select::tabIndex;
 sub type      {
-	my $ret = shift->attr('type', @_);
+	my $ret = shift->_attr('type', @_);
 	return defined $ret ? lc $ret : 'text'
 }
-sub useMap    { shift->attr( usemap => @_) }
+sub useMap    { shift->_attr( usemap => @_) }
 sub value        {
 	my $self = shift;
 	my($ret,$type);
@@ -1112,7 +1112,7 @@ sub content {
 # ------- HTMLTextAreaElement interface ---------- #
 
 package HTML::DOM::Element::TextArea;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = qw'HTML::DOM::Element';
 
 sub defaultValue { # same as HTML::DOM::Element::Title::text
@@ -1125,11 +1125,11 @@ sub defaultValue { # same as HTML::DOM::Element::Title::text
 }
 *form = \&HTML::DOM::Element::Select::form;
 *accessKey = \&HTML::DOM::Element::Input::accessKey;
-sub cols      { shift->attr( cols       => @_) }
+sub cols      { shift->_attr( cols       => @_) }
 *disabled = \&HTML::DOM::Element::Select::disabled;
 *name = \&HTML::DOM::Element::Select::name;
 *readOnly = \&HTML::DOM::Element::Input::readOnly;
-sub rows {shift->attr( rows      => @_) }
+sub rows {shift->_attr( rows      => @_) }
 *tabIndex = \&HTML::DOM::Element::Select::tabIndex;
 sub type { 'textarea' }
 sub value        {
@@ -1160,7 +1160,7 @@ sub _reset {
 # ------- HTMLButtonElement interface ---------- #
 
 package HTML::DOM::Element::Button;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1175,17 +1175,17 @@ sub value      { shift->attr( value       => @_) }
 # ------- HTMLLabelElement interface ---------- #
 
 package HTML::DOM::Element::Label;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
 *accessKey = \&HTML::DOM::Element::Input::accessKey;
-sub htmlFor { shift->attr( for       => @_) }
+sub htmlFor { shift->_attr( for       => @_) }
 
 # ------- HTMLFieldSetElement interface ---------- #
 
 package HTML::DOM::Element::FieldSet;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1193,7 +1193,7 @@ our @ISA = qw'HTML::DOM::Element';
 # ------- HTMLLegendElement interface ---------- #
 
 package HTML::DOM::Element::Legend;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;

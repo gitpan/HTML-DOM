@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.018 (alpha)
+Version 0.019 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -1588,8 +1588,9 @@ L<HTML::DOM::Element::Option/BUGS|HTML::DOM::Element::Option>)
 
 =item -
 
-DOMAttrModified events are not currently triggered by shorthand methods for
-accessing HTML attributes (aka the DOM Level 0 interface).
+Setting a boolean attribute to true through the DOM Level 0 interface is 
+supposed to set the attribute's value to the attribute's name. Right now it
+sets the value to whatever true value you pass it.
 
 =back
 

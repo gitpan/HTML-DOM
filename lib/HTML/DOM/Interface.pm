@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 
 =head1 NAME
 
@@ -173,6 +173,7 @@ gory details, look at the source code. In fact, here it is:
   	'HTML::DOM::Event::Mouse' => 'MouseEvent',
   	'HTML::DOM::Event::UI' => 'UIEvent',
   	'HTML::DOM::Event::Mutation' => 'MutationEvent',
+  	'HTML::DOM::EventTarget' => 'EventTarget',
   	 DOMException => {
   		code => NUM | READONLY,
   		_constants => [qw[
@@ -202,7 +203,47 @@ gory details, look at the source code. In fact, here it is:
   #		createDocument => METHOD | OBJ,
   #		createCSSStyleSheet => METHOD | OBJ,
   	 },
+  	 EventTarget => {
+  		addEventListener => METHOD | VOID,
+  		removeEventListener => METHOD | VOID,
+  		dispatchEvent => METHOD | BOOL,
+  		onabort => OBJ,
+  		onbeforeunload => OBJ,
+  		onblur => OBJ,
+  		onchange => OBJ,
+  		onclick => OBJ,
+  		oncontextmenu => OBJ,
+  		ondblclick => OBJ,
+  		ondrag => OBJ,
+  		ondragend => OBJ,
+  		ondragenter => OBJ,
+  		ondragleave => OBJ,
+  		ondragover => OBJ,
+  		ondragstart => OBJ,
+  		ondrop => OBJ,
+  		onerror => OBJ,
+  		onfocus => OBJ,
+  		onhashchange => OBJ,
+  		onkeydown => OBJ,
+  		onkeypress => OBJ,
+  		onkeyup => OBJ,
+  		onload => OBJ,
+  		onmessage => OBJ,
+  		onmousedown => OBJ,
+  		onmousemove => OBJ,
+  		onmouseout => OBJ,
+  		onmouseover => OBJ,
+  		onmouseup => OBJ,
+  		onmousewheel => OBJ,
+  		onresize => OBJ,
+  		onscroll => OBJ,
+  		onselect => OBJ,
+  		onstorage => OBJ,
+  		onsubmit => OBJ,
+  		onunload => OBJ,
+  	 },
   	 Node => {
+  		_isa => 'EventTarget',
 		_hash => 0,
 		_array => 0,
   		_constants => [qw[
@@ -242,9 +283,6 @@ gory details, look at the source code. In fact, here it is:
   		prefix => STR,
   		localName => STR | READONLY,
   		hasAttributes => METHOD | BOOL,
-  		addEventListener => METHOD | VOID,
-  		removeEventListener => METHOD | VOID,
-  		dispatchEvent => METHOD | BOOL,
   	 },
   	 NodeList => {
 		_hash => 0,

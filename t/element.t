@@ -253,7 +253,7 @@ use tests 4; # hasAttribute
 }
 
 # -------------------------#
-use tests 23; # default attirbute values with getAttribute
+use tests 25; # default attirbute values with getAttribute
 {
 	for(
 		[qw[ br clear none ]],
@@ -348,4 +348,13 @@ use tests 23; # default attirbute values with getAttribute
 	my $elem = $doc->createElement('br');
 	isa_ok $elem->getAttributeNode('clear'), 'HTML::DOM::Attr',
 		'getAttributeNode on unspecified attribute';
+
+	# These 2 tests make sure that the DTD values don’t override
+	# explicit empty attributes:
+	$elem = $doc->createElement('form');
+	$elem->attr(enctype => '');
+	is $elem->getAttribute('enctype'), '',
+		'getAttribute on specified empty attribute';
+	is $elem->getAttributeNode('enctype')->value, '',
+		'getAttribteNode on specified empty attribute';
 }

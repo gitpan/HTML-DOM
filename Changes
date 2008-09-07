@@ -1,5 +1,24 @@
 Revision history for HTML::DOM
 
+0.019   7 September, 2008
+        New feature:
+        • EventTarget is now listed as a separate interface in
+          %H:D:Interface.
+        Whether you call this a bug fix or a new feature is up to you:
+        • The DOM Level 0 methods for accessing HTML  attributes  now
+          trigger DOMAttrModified events. (So mutation events are fin-
+          ished;  the implementation object also claims to support it
+          now.)  By fixing this I accidentally uncovered another bug:
+        Two bug fixes:
+        • Event attribute methods ($elem->onclick, etc.) are now list-
+          ed in %HTML::DOM::Interface.
+        • Unspecified attribute nodes  (attribute nodes corresponding
+          to HTML attributes that are not specified in  the  document
+          but have default values in the DTD) are not supposed to be--
+          and are no longer-- created if  the  attribute  *is*  speci-
+          fied but set to the empty  string.  This  problem  affected
+          getAttribute, but not getAttributeNode.
+
 0.018   4 September, 2008
         New features/miscellaneous changes:
         • HTML::DOM’s defaultView attribute is now writable.

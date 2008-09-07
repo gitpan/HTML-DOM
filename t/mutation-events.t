@@ -1048,3 +1048,144 @@ use tests 2; # Default event handlers triggered by mutation events
 		'event auto-vivved solely for deh’s sake';
 	is $e->target, $doc->body, 'target is set correctly';
 }
+
+# -------------------------#
+use tests 466; # MutationEvents caused by DOM Level 0 attribute attributes
+{
+	my $doc = new HTML::DOM;
+
+	my %attrnames = # for where the method differs from the attrname
+	qw(
+		className       class
+		httpEquiv       http-equiv
+		acceptCharset   accept-charset
+		defaultSelected selected
+		defaultValue    value
+		htmlFor         for
+		ch              char
+		chOff           charoff
+		defaultChecked  checked
+	);
+
+	for(
+		[span     => qw[ id title lang dir className ]],
+		[html     => qw[ version ]],
+		[head     => qw[ profile ]],
+		[link     => qw[ charset href hreflang media rel rev target
+		                 type ]],
+		[meta     => qw[ content name scheme httpEquiv ]],
+		[base     => qw[ href target ]],
+		[isindex  => qw[ prompt ]],
+		[style    => qw[ media type ]],
+		[body     => qw[ aLink background bgColor link text
+		                 vLink ]],
+		[form     => qw[ name action enctype method target
+		                 acceptCharset]],
+		[select   => qw[ name size tabIndex ]],
+		[optgroup => qw[ label ]],
+		[option   => qw[ label ]],
+		[input    => qw[ accept accessKey align alt maxLength name
+		                 size src tabIndex type useMap ]],
+		[textarea => qw[ accessKey cols name rows tabIndex ]],
+		[button   => qw[ accessKey name tabIndex ]],
+		[label    => qw[ accessKey htmlFor ]],
+		[legend   => qw[ accessKey align ]],
+		[ul       => qw[ type ]],
+		[ol       => qw[ start type ]],
+		[li       => qw[ type value ]],
+		[div      => qw[ align ]],
+		[p        => qw[ align ]],
+		[h1       => qw[ align ]],
+		[q        => qw[ cite ]],
+		[pre      => qw[ width ]],
+		[br       => qw[ clear ]],
+		[basefont => qw[ color face size ]],
+		[font     => qw[ color face size ]],
+		[hr       => qw[ align size width ]],
+		[ins      => qw[ cite dateTime ]],
+		[a        => qw[ accessKey charset coords href hreflang
+		                 name rel rev shape tabIndex target
+		                 type ]],
+		[img      => qw[ name align alt border height hspace isMap
+		                 longDesc src useMap vspace width ]],
+		[object   => qw[ code align archive border codeBase
+		                 codeType data height hspace name standby
+		                 tabIndex type useMap vspace width ]],
+		[param    => qw[ name type value valueType ]],
+		[applet   => qw[ align alt archive code codeBase height
+		                 hspace name object vspace width ]],
+		[map      => qw[ name ]],
+		[area     => qw[ accessKey alt coords href shape tabIndex
+		                 target ]],
+		[script   => qw[ event charset src type htmlFor ]],
+		[table    => qw[ align bgColor border cellPadding
+		                 cellSpacing frame rules summary width ]],
+		[caption  => qw[ align ]],
+		[col      => qw[ align span vAlign width ch chOff ]],
+		[tbody    => qw[ align vAlign ch chOff ]],
+		[tr       => qw[ align bgColor vAlign ch chOff ]],
+		[td       => qw[ abbr align axis bgColor colSpan headers
+		                 height rowSpan scope vAlign width
+		                 ch chOff ]],
+		[frameset => qw[ cols rows ]],
+		[frame    => qw[ frameBorder longDesc marginHeight
+		                 marginWidth name scrolling src ]],
+		[iframe   => qw[ align frameBorder height longDesc
+		                 marginHeight marginWidth name scrolling
+		                 src width ]],
+	# booleans:
+		[select   => qw[ disabled multiple ]],
+		[optgroup => qw[ disabled ]],
+		[option   => qw[ disabled defaultSelected ]],
+		[input    => qw[ disabled readOnly defaultValue
+		                 defaultChecked]],
+		[textarea => qw[ disabled readOnly ]],
+		[button   => qw[ disabled ]],
+		[ul       => qw[ compact ]],
+		[ol       => qw[ compact ]],
+		[dl       => qw[ compact ]],
+		[dir      => qw[ compact ]],
+		[menu     => qw[ compact ]],
+		[hr       => qw[ noShade ]],
+		[object   => qw[ declare ]],
+		[script   => qw[ defer ]],
+		[td       => qw[ noWrap ]],
+		[frame    => qw[ noResize ]],
+	) {
+		my $e = $doc->createElement(my $tag = shift @$_);
+
+		my @scratch;
+		# copied and pasted from gimme_a_test_doc (and tweaked):
+		$e->addEventListener(domattrmodified => sub {
+			 no warnings 'uninitialized';
+			push @scratch, 
+			  (eval{
+			    return join '',$_->name,$_->value
+			      for $_[0]->relatedNode
+			  }||'')."-".
+			  $_[0]->target->hasAttribute($_[0]->attrName)."-".
+			  join '-', map lc $_[0]->$_,
+			    attrName=>attrChange=>prevValue=>newValue=>;
+		});
+		
+		for my $attr_m( @$_ ) {
+			# attr_m == attribute method; _n == name
+			my $attr_n = $attrnames{$attr_m} || lc $attr_m;
+			@scratch = ();
+			eval { $e->$attr_m("foo");}; $@ and (warn tag $e),die;
+# Test right here --------
+			is_deeply \@scratch, [
+			  "${attr_n}foo-1-$attr_n-2--foo" ,
+			], "$tag elem  ->$attr_m(foo) creating the attr";
+			@scratch = ();
+			$e->$attr_m("bar");
+# A second test right here --
+			is_deeply \@scratch, [
+			 "${attr_n}bar-1-$attr_n-1-foo-bar" ,
+			], "$tag elem  ->$attr_m(bar) changing the attr";
+		}
+	}
+
+
+
+}

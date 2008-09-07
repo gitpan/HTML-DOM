@@ -17,7 +17,7 @@ require HTML::DOM::Node;
 require HTML::DOM::NodeList::Magic;
 
 our @ISA = qw'HTML::DOM::Node';
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 
 
 {
@@ -176,20 +176,12 @@ sub tagName {
 	uc $_[0]->tag;
 }
 
-sub id { # unfivetuninely, SUPER::id($something) doesn't return the old val
-	if (@_ > 1) {
-		my $old = $_[0]->SUPER::id;
-		shift->SUPER::id(shift);
-		return $old;
-	} else {
-		SUPER::id{shift}
-	}
-}
+sub id { shift->_attr(id => @_) }
 
-sub title { shift->attr(title => @_) }
-sub lang  { shift->attr(lang  => @_) }
-sub dir   { lc shift->attr(dir   => @_) }
-sub className { shift->attr(class => @_) }
+sub title { shift->_attr(title => @_) }
+sub lang  { shift->_attr(lang  => @_) }
+sub dir   { lc shift->_attr(dir   => @_) }
+sub className { shift->_attr(class => @_) }
 
 =item style
 
@@ -304,7 +296,8 @@ my %attr_defaults = (
 #       stores Attr objects for implicit attributes in this list.
 
 sub getAttribute {
-	''.($_[0]->attr($_[1])||do{
+	my $ret = $_[0]->attr($_[1]);
+	defined $ret ? "$ret" : do{
 		my $tag = $_[0]->tag;
 		return '' unless exists $attr_defaults{$tag}
 			and exists $attr_defaults{$tag}{$_[1]}
@@ -313,7 +306,7 @@ sub getAttribute {
 		$_[1] eq 'version'
 			? $_[0]->{_HTML_DOM_version}
 			: $attr_defaults{$tag}{$_[1]}
-	})
+	};
 }
 
 sub setAttribute {
@@ -356,6 +349,15 @@ sub setAttribute {
 
 	return # nothing;
 }
+
+# This is just like attr, except that it triggers events.
+sub _attr {
+	my($self,$name) = (shift,shift);
+	my $old = $self->getAttribute($name) if defined wantarray;
+	@_ and $self->setAttribute($name, shift);
+	$old;
+}
+
 
 sub removeAttribute {
 	my $old = (my $self = shift)->attr(my $name = shift);
@@ -646,21 +648,21 @@ L<HTML::DOM/CLASSES AND DOM INTERFACES>
 # ------- HTMLHtmlElement interface ---------- #
 
 package HTML::DOM::Element::HTML;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub version { shift->attr('version' => @_) }
+sub version { shift->_attr('version' => @_) }
 
 # ------- HTMLHeadElement interface ---------- #
 
 package HTML::DOM::Element::Head;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub profile { shift->attr('profile' => @_) }
+sub profile { shift->_attr('profile' => @_) }
 
 # ------- HTMLLinkElement interface ---------- #
 
 package HTML::DOM::Element::Link;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 sub disabled {
 	if(@_ > 1) {
@@ -670,14 +672,14 @@ sub disabled {
 	}
 	else { $_[0]->{_HTML_DOM_disabled};}
 }
-sub charset  { shift->attr('charset' => @_) }
-sub href     { shift->attr('href'    => @_) }
-sub hreflang { shift->attr( hreflang => @_) }
-sub media    { shift->attr('media'   => @_) }
-sub rel      { shift->attr('rel'     => @_) }
-sub rev      { shift->attr('rev'     => @_) }
-sub target   { shift->attr('target'  => @_) }
-sub type     { shift->attr('type'    => @_) }
+sub charset  { shift->_attr('charset' => @_) }
+sub href     { shift->_attr('href'    => @_) }
+sub hreflang { shift->_attr( hreflang => @_) }
+sub media    { shift->_attr('media'   => @_) }
+sub rel      { shift->_attr('rel'     => @_) }
+sub rev      { shift->_attr('rev'     => @_) }
+sub target   { shift->_attr('target'  => @_) }
+sub type     { shift->_attr('type'    => @_) }
 
 sub sheet {
 	my $self = shift;
@@ -718,7 +720,7 @@ sub removeAttributeNode {
 # ------- HTMLTitleElement interface ---------- #
 
 package HTML::DOM::Element::Title;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 # This is what I call FWP (no lexical vars):
 sub text {
@@ -733,17 +735,17 @@ sub text {
 # ------- HTMLMetaElement interface ---------- #
 
 package HTML::DOM::Element::Meta;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub content   { shift->attr('content'    => @_) }
-sub httpEquiv { shift->attr('http-equiv' => @_) }
-sub name      { shift->attr('name'       => @_) }
-sub scheme    { shift->attr('scheme'     => @_) }
+sub content   { shift->_attr('content'    => @_) }
+sub httpEquiv { shift->_attr('http-equiv' => @_) }
+sub name      { shift->_attr('name'       => @_) }
+sub scheme    { shift->_attr('scheme'     => @_) }
 
 # ------- HTMLBaseElement interface ---------- #
 
 package HTML::DOM::Element::Base;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *href =\& HTML::DOM::Element::Link::href;
 *target =\& HTML::DOM::Element::Link::target;
@@ -751,15 +753,15 @@ our @ISA = 'HTML::DOM::Element';
 # ------- HTMLIsIndexElement interface ---------- #
 
 package HTML::DOM::Element::IsIndex;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 sub form     { (shift->look_up(_tag => 'form'))[0] || () }
-sub prompt   { shift->attr('prompt'  => @_) }
+sub prompt   { shift->_attr('prompt'  => @_) }
 
 # ------- HTMLStyleElement interface ---------- #
 
 package HTML::DOM::Element::Style;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *disabled = \&HTML::DOM::Element::Link::disabled;
 *media =\& HTML::DOM::Element::Link::media;
@@ -779,14 +781,14 @@ sub sheet {
 # ------- HTMLBodyElement interface ---------- #
 
 package HTML::DOM::Element::Body;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub aLink      { shift->attr( aLink      => @_) }
-sub background { shift->attr( background => @_) }
-sub bgColor    { shift->attr('bgcolor'   => @_) }
-sub link       { shift->attr('link'      => @_) }
-sub text       { shift->attr('text'      => @_) }
-sub vLink      { shift->attr('vlink'     => @_) }
+sub aLink      { shift->_attr( aLink      => @_) }
+sub background { shift->_attr( background => @_) }
+sub bgColor    { shift->_attr('bgcolor'   => @_) }
+sub link       { shift->_attr('link'      => @_) }
+sub text       { shift->_attr('text'      => @_) }
+sub vLink      { shift->_attr('vlink'     => @_) }
 
 # ------- HTMLFormElement interface ---------- #
 
@@ -797,104 +799,104 @@ sub vLink      { shift->attr('vlink'     => @_) }
 # ------- HTMLUListElement interface ---------- #
 
 package HTML::DOM::Element::UL;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub compact { shift->attr( compact => @_) }
-sub type { lc shift->attr( type => @_) }
+sub compact { shift->_attr( compact => @_) }
+sub type { lc shift->_attr( type => @_) }
 
 # ------- HTMLOListElement interface ---------- #
 
 package HTML::DOM::Element::OL;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub start { shift->attr( start => @_) }
+sub start { shift->_attr( start => @_) }
 *compact=\&HTML::DOM::Element::UL::compact;
 * type = \ & HTML::DOM::Element::Link::type ;
 
 # ------- HTMLDListElement interface ---------- #
 
 package HTML::DOM::Element::DL;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *compact=\&HTML::DOM::Element::UL::compact;
 
 # ------- HTMLDirectoryElement interface ---------- #
 
 package HTML::DOM::Element::Dir;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *compact=\&HTML::DOM::Element::UL::compact;
 
 # ------- HTMLMenuElement interface ---------- #
 
 package HTML::DOM::Element::Menu;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *compact=\&HTML::DOM::Element::UL::compact;
 
 # ------- HTMLLIElement interface ---------- #
 
 package HTML::DOM::Element::LI;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *type =\& HTML::DOM::Element::Link::type;
-sub value { shift->attr( value => @_) }
+sub value { shift->_attr( value => @_) }
 
 # ------- HTMLDivElement interface ---------- #
 
 package HTML::DOM::Element::Div;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub align { lc shift->attr( align => @_) }
+sub align { lc shift->_attr( align => @_) }
 
 # ------- HTMLParagraphElement interface ---------- #
 
 package HTML::DOM::Element::P;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *align =\& HTML::DOM::Element::Div::align;
 
 # ------- HTMLHeadingElement interface ---------- #
 
 package HTML::DOM::Element::Heading;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *align =\& HTML::DOM::Element::Div::align;
 
 # ------- HTMLQuoteElement interface ---------- #
 
 package HTML::DOM::Element::Quote;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub cite { shift->attr( cite => @_) }
+sub cite { shift->_attr( cite => @_) }
 
 # ------- HTMLPreElement interface ---------- #
 
 package HTML::DOM::Element::Pre;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub width { shift->attr( width => @_) }
+sub width { shift->_attr( width => @_) }
 
 # ------- HTMLBRElement interface ---------- #
 
 package HTML::DOM::Element::Br;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub clear { lc shift->attr( clear => @_) }
+sub clear { lc shift->_attr( clear => @_) }
 
 # ------- HTMLBaseFontElement interface ---------- #
 
 package HTML::DOM::Element::BaseFont;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub color { shift->attr( color => @_) }
-sub face  { shift->attr( face  => @_) }
-sub size  { shift->attr( size  => @_) }
+sub color { shift->_attr( color => @_) }
+sub face  { shift->_attr( face  => @_) }
+sub size  { shift->_attr( size  => @_) }
 
 # ------- HTMLBaseFontElement interface ---------- #
 
 package HTML::DOM::Element::Font;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *color =\& HTML::DOM::Element::BaseFont::color;
 *face =\& HTML::DOM::Element::BaseFont::face;
@@ -903,27 +905,27 @@ our @ISA = 'HTML::DOM::Element';
 # ------- HTMLHRElement interface ---------- #
 
 package HTML::DOM::Element::HR;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *align =\& HTML::DOM::Element::Div::align;
-sub noShade  { shift->attr( noshade  => @_) }
+sub noShade  { shift->_attr( noshade  => @_) }
 *size =\& HTML::DOM::Element::BaseFont::size;
 *width =\& HTML::DOM::Element::Pre::width;
 
 # ------- HTMLModElement interface ---------- #
 
 package HTML::DOM::Element::Mod;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *cite =\& HTML::DOM::Element::Quote::cite;
-sub dateTime  { shift->attr( datetime  => @_) }
+sub dateTime  { shift->_attr( datetime  => @_) }
 
 # ------- HTMLAnchorElement interface ---------- #
 
 package HTML::DOM::Element::A;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub accessKey  { shift->attr(               accesskey  => @_) }
+sub accessKey  { shift->_attr(               accesskey  => @_) }
 *   charset    =\&HTML::DOM::Element::Link::charset           ;
 *   coords     =\&HTML::DOM::Element::Area::coords            ;
 *   href       =\&HTML::DOM::Element::Link::href              ;
@@ -931,7 +933,7 @@ sub accessKey  { shift->attr(               accesskey  => @_) }
 *   name       =\&HTML::DOM::Element::Meta::name              ;
 *   rel        =\&HTML::DOM::Element::Link::rel               ;
 *   rev        =\&HTML::DOM::Element::Link::rev               ;
-sub shape      { shift->attr(               shape      => @_) }
+sub shape      { shift->_attr(               shape      => @_) }
 *   tabIndex   =\&HTML::DOM::Element::Object::tabIndex        ;
 *   target     =\&HTML::DOM::Element::Link::target            ;
 *   type       =\&HTML::DOM::Element::Link::type              ;
@@ -954,41 +956,41 @@ sub trigger_event {
 # ------- HTMLImageElement interface ---------- #
 
 package HTML::DOM::Element::Img;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 sub lowSrc  { shift->attr(               lowsrc  => @_) }
 *   name  = \&HTML::DOM::Element::Meta::name            ;
 *   align = \&HTML::DOM::Element::Div::align            ;
-sub alt     { shift->attr(               alt     => @_) }
-sub border  { shift->attr(               border  => @_) }
-sub height  { shift->attr(               height  => @_) }
-sub hspace  { shift->attr(               hspace  => @_) }
-sub isMap   { shift->attr(               ismap   => @_) }
-sub longDesc { shift->attr(              longdesc => @_) }
-sub src      { shift->attr(              src      => @_) }
-sub useMap   { shift->attr(              usemap   => @_) }
-sub vspace   { shift->attr(              vspace   => @_) }
+sub alt     { shift->_attr(               alt     => @_) }
+sub border  { shift->_attr(               border  => @_) }
+sub height  { shift->_attr(               height  => @_) }
+sub hspace  { shift->_attr(               hspace  => @_) }
+sub isMap   { shift->_attr(               ismap   => @_) }
+sub longDesc { shift->_attr(              longdesc => @_) }
+sub src      { shift->_attr(              src      => @_) }
+sub useMap   { shift->_attr(              usemap   => @_) }
+sub vspace   { shift->_attr(              vspace   => @_) }
 *   width = \&HTML::DOM::Element::Pre::width             ;
 
 # ------- HTMLObjectElement interface ---------- #
 
 package HTML::DOM::Element::Object;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *form=\&HTML::DOM::Element::IsIndex::form;
-sub code  { shift->attr(               code  => @_) }
+sub code  { shift->_attr(               code  => @_) }
 *   align = \&HTML::DOM::Element::Div::align            ;
-sub archive  { shift->attr(               archive  => @_) }
-sub border  { shift->attr(               border  => @_) }
-sub codeBase     { shift->attr(               codebase     => @_) }
-sub codeType     { shift->attr(               codetype     => @_) }
-sub data  { shift->attr(               data  => @_) }
-sub declare  { shift->attr(               declare  => @_) }
+sub archive  { shift->_attr(               archive  => @_) }
+sub border  { shift->_attr(               border  => @_) }
+sub codeBase     { shift->_attr(               codebase     => @_) }
+sub codeType     { shift->_attr(               codetype     => @_) }
+sub data  { shift->_attr(               data  => @_) }
+sub declare  { shift->_attr(               declare  => @_) }
 *   height = \&HTML::DOM::Element::Img::height             ;
 *   hspace = \&HTML::DOM::Element::Img::hspace             ;
 *   name  = \&HTML::DOM::Element::Meta::name            ;
-sub standby { shift->attr(              standby => @_) }
-sub tabIndex      { shift->attr(              tabindex      => @_) }
+sub standby { shift->_attr(              standby => @_) }
+sub tabIndex      { shift->_attr(              tabindex      => @_) }
 *type =\& HTML::DOM::Element::Link::type;
 *useMap =\& HTML::DOM::Element::Img::useMap;
 *vspace =\& HTML::DOM::Element::Img::vspace;
@@ -998,17 +1000,17 @@ sub contentDocument{}
 # ------- HTMLParamElement interface ---------- #
 
 package HTML::DOM::Element::Param;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *name=\&HTML::DOM::Element::Meta::name;
 *type=\&HTML::DOM::Element::Link::type;
 *value=\&HTML::DOM::Element::LI::value;
-sub valueType{lc shift->attr(valuetype=>@_)}
+sub valueType{lc shift->_attr(valuetype=>@_)}
 
 # ------- HTMLAppletElement interface ---------- #
 
 package HTML::DOM::Element::Applet;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 * align    = \ & HTML::DOM::Element::Div::align       ;
 * alt      = \ & HTML::DOM::Element::Img::alt         ;
@@ -1018,14 +1020,14 @@ our @ISA = 'HTML::DOM::Element';
 * height   = \ & HTML::DOM::Element::Img::height      ;
 * hspace   = \ & HTML::DOM::Element::Img::hspace      ;
 * name     = \ & HTML::DOM::Element::Meta::name       ;
-sub object { shift -> attr ( object => @_ ) }
+sub object { shift -> _attr ( object => @_ ) }
 * vspace   = \ & HTML::DOM::Element::Img::vspace      ;
 * width    = \ & HTML::DOM::Element::Pre::width       ;
 
 # ------- HTMLMapElement interface ---------- #
 
 package HTML::DOM::Element::Map;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 sub areas { # ~~~ I need to make this cache the resulting collection obj
 	my $self = shift;
@@ -1046,11 +1048,11 @@ sub areas { # ~~~ I need to make this cache the resulting collection obj
 # ------- HTMLAreaElement interface ---------- #
 
 package HTML::DOM::Element::Area;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 * accessKey = \ & HTML::DOM::Element::A::accessKey     ;
 * alt       = \ & HTML::DOM::Element::Img::alt         ;
-sub coords { shift -> attr ( coords => @_ ) }
+sub coords { shift -> _attr ( coords => @_ ) }
 * href      = \ & HTML::DOM::Element::Link::href       ;
 sub noHref { shift -> attr ( nohref => @_ ) }
 * shape     = \ & HTML::DOM::Element::A::shape         ;
@@ -1060,50 +1062,50 @@ sub noHref { shift -> attr ( nohref => @_ ) }
 # ------- HTMLScriptElement interface ---------- #
 
 package HTML::DOM::Element::Script;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 * text    = \ &HTML::DOM::Element::Title::text   ;
-sub htmlFor { shift -> attr ( for   => @_ )      }
-sub event   { shift -> attr ( event => @_ )      }
+sub htmlFor { shift -> _attr ( for   => @_ )      }
+sub event   { shift -> _attr ( event => @_ )      }
 * charset = \ &HTML::DOM::Element::Link::charset ;
-sub defer   { shift -> attr ( defer => @_ )      }
+sub defer   { shift -> _attr ( defer => @_ )      }
 * src     = \ &HTML::DOM::Element::Img::src      ;
 * type    = \ &HTML::DOM::Element::Link::type    ;
 
 # ------- HTMLFrameSetElement interface ---------- #
 
 package HTML::DOM::Element::FrameSet;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub rows { shift -> attr ( rows   => @_ )      }
-sub cols   { shift -> attr ( cols => @_ )      }
+sub rows { shift -> _attr ( rows   => @_ )      }
+sub cols   { shift -> _attr ( cols => @_ )      }
 
 # ------- HTMLFrameElement interface ---------- #
 
 package HTML::DOM::Element::Frame;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
-sub frameBorder { lc shift -> attr ( frameBorder  => @_ )      }
-sub longDesc    { shift -> attr ( longdesc     => @_ )      }
-sub marginHeight{ shift -> attr ( marginheight => @_ )      }
-sub marginWidth { shift -> attr ( marginwidth  => @_ )      }
+sub frameBorder { lc shift -> _attr ( frameBorder  => @_ )      }
+sub longDesc    { shift -> _attr ( longdesc     => @_ )      }
+sub marginHeight{ shift -> _attr ( marginheight => @_ )      }
+sub marginWidth { shift -> _attr ( marginwidth  => @_ )      }
 * name    = \ &HTML::DOM::Element::Meta::name   ;
-sub noResize    { shift -> attr ( noresize     => @_ )      }
-sub scrolling   { lc shift -> attr ( scrolling    => @_ )      }
+sub noResize    { shift -> _attr ( noresize     => @_ )      }
+sub scrolling   { lc shift -> _attr ( scrolling    => @_ )      }
 * src     = \ &HTML::DOM::Element::Img::src     ;
 sub contentDocument{ shift->{_HTML_DOM_doc} ||= new HTML::DOM }
 
 # ------- HTMLIFrameElement interface ---------- #
 
 package HTML::DOM::Element::IFrame;
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 our @ISA = 'HTML::DOM::Element';
 *align  = \&HTML::DOM::Element::Div::align;
 *frameBorder = \&HTML::DOM::Element::Frame::frameBorder;
 *height = \&HTML::DOM::Element::Img::height;
-sub longDesc    { shift -> attr ( longdesc     => @_ )      }
-sub marginHeight{ shift -> attr ( marginheight => @_ )      }
-sub marginWidth { shift -> attr ( marginwidth  => @_ )      }
+*longDesc = \&HTML::DOM::Element::Frame::longDesc;
+* marginHeight = \&HTML::DOM::Element::Frame::marginHeight;
+*marginWidth = \&HTML::DOM::Element::Frame::marginWidth;
 *name   = \&HTML::DOM::Element::Meta::name;
 *scrolling = \&HTML::DOM::Element::Frame::scrolling;
 *src    = \&HTML::DOM::Element::Img::src;
