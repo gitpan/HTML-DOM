@@ -592,4 +592,16 @@ use tests 1; # modification of Attr objects for event attributes
 	  'modification of Attr objects corresponding to event attributes';
 }
 
+# -------------------------#
+use tests 3; # HTML::DOM::event_listeners_enabled
+
+{
+	ok $doc->event_listeners_enabled,
+		'HTML::DOM::event_listeners_enabled is true by default';
+	ok $doc->event_listeners_enabled(0),
+		'assignment to event_listeners_enabled returns old val';
+	ok !$doc->event_listeners_enabled,
+		'subsequent call (to e_l_e) return the newly-assigned val';
+}
+
 

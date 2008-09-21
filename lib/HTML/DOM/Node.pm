@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.019';
+our $VERSION = '0.020';
 
 
 use strict;
@@ -507,7 +507,7 @@ sub trigger_event { # non-DOM method
 	$n->SUPER::trigger_event(
 		$evnt,
 		default => $doc->default_event_handler,
-		view => $doc->defaultView,
+		view => scalar $doc->defaultView,
 		@_,
 	);
 }

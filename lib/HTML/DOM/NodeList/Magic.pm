@@ -6,7 +6,7 @@ use overload fallback => 1, '@{}' => \&_get_tie;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.019';
+our $VERSION = '0.020';
 
 # Innards: {
 #	get => sub { ... }, # sub that gets the list
@@ -17,10 +17,13 @@ our $VERSION = '0.019';
 
 
 # new NodeList sub { ... }
+# new NodeList sub { ... }, $doc
 # The sub needs to return the list of nodes.
 
 sub new {
-	bless {get => $_[1]}, shift;
+	my $self = bless {get => $_[1]}, shift;
+	($_[1]||return $self)->_register_magic_node_list($self);
+	$self;
 }
 
 sub item {
@@ -99,6 +102,14 @@ HTML::DOM::NodeList - Magical node list class for HTML::DOM
 
   $list = $doc->getElementsByTagName('p');
     # returns an HTML::DOM::NodeList::Magic object
+
+  # OR:
+  use HTML::DOM::NodeList::Magic;
+  $list = new HTML::DOM::NodeList::Magic::
+      sub {
+          # ... return a list of items ...
+      },
+      $doc;
     
   $list->[0];     # first node
   $list->item(0); # same
@@ -108,6 +119,15 @@ HTML::DOM::NodeList - Magical node list class for HTML::DOM
 =head1 DESCRIPTION
 
 See L<HTML::DOM::NodeList> both for a description and the API.
+
+There is one difference, though: If you want to create a NodeList yourself,
+for whatever reason, you can call the constructor shown in the synopsis.
+The subroutine has to return the entire list that the node list is supposed
+to contain. The second argument is the document to which the node belongs.
+If the document is modified, the node list is automatically notified, and
+calls the subroutine again the next time it is accessed, to reset itself.
+If you don't provide the document, the node list will never be updated
+after the first time an element is accessed.
 
 =head1 SEE ALSO
 

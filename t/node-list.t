@@ -5,7 +5,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 024;
+use Test::More tests => 025;
 
 
 # -------------------------#
@@ -68,4 +68,12 @@ bless $magic, ref $magic;
 undef $magic;
 ok $::bye_bye, 'make sure the dustbin man does his job';
 
+# -------------------------#
+# Test 21: second arg to magic node list’s constructor
 
+require HTML::DOM;
+my $doc = new HTML::DOM;
+$magic = new HTML::DOM::NodeList::Magic sub { $doc->childNodes }, $doc;
+$magic->length;  # call the sub and populate it
+$doc->appendChild($doc->createElement('br'));
+is $magic->length, 2, 'second arg to magic node list constructor automatically registers the node list with the document';

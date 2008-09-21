@@ -22,6 +22,7 @@ WriteMakefile(
         'CSS::DOM::StyleSheetList' => 0,    # stringification
          Exporter                  => 5.57, # for use Exporter 'import'
          Hash'Util'FieldHash'Compat=> 0,
+	'HTML::Tagset'             => 0,
         'HTML::TreeBuilder'        => 0,
         'HTML::Element'            => 0,
 	'HTML::Encoding'           => 0,

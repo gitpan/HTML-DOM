@@ -294,7 +294,7 @@ cmp_ok $@, '==', HTML::DOM::Exception::UNSPECIFIED_EVENT_TYPE_ERR,
 
 
 # -------------------------#
-use tests 5; # trigger_event and default_event_handler(_for)
+use tests 5; # trigger_event
 
 clear_event_listeners($grandchild, 'click');
 
@@ -341,6 +341,45 @@ use tests 1; # error_handler
 	$grandchild->addEventListener(foo => sub { die "67\n" });
 	$grandchild->trigger_event('foo');
 	is $e, "67\n", 'error_handler gets called';
+}
+
+
+# -------------------------#
+use tests 7;  # event_listeners_enabled
+{
+	no warnings qw 'redefine once';
+	my $e;
+	local *MyEventTarget'event_listeners_enabled = sub{ 1 };
+	$grandchild->addEventListener(foo => sub { ++$e });
+	$grandchild->trigger_event('foo');
+	is $e, 1,
+	  'event handlers run when event_listeners_enabled returns true';
+	local *MyEventTarget'event_listeners_enabled = sub{ 0 };
+	$grandchild->trigger_event('foo');
+	is $e, 1,
+	  'event handlers don\'t run if event_listeners_enabled is false';
+	local *MyEventTarget'event_listeners_enabled = sub{ 1 };
+	local *MyDoc'event_listeners_enabled = sub { 0 };
+	local *MyEventTarget'ownerDocument = sub { bless[], 'MyDoc' };
+	$grandchild->trigger_event('foo');
+	is $e, 2, 'An event_listeners_enabled method on the event';
+	local *MyEventTarget'event_listeners_enabled = sub{ 0 };
+	local *MyDoc'event_listeners_enabled = sub { 1 };
+	$grandchild->trigger_event('foo');
+	is $e, 2, ' target prevents ownerDocument from being checked.';
+	undef *MyEventTarget'event_listeners_enabled;
+	$grandchild->trigger_event('foo');
+	is $e, 3, 'fallback to event_listeners_enabled';
+	local *MyDoc'event_listeners_enabled = sub { 0 };
+	$grandchild->trigger_event('foo');
+	is $e, 3, '  on the ownerDocument';
+
+	$grandchild->trigger_event('foo', default => sub {
+	  is $_[0]->target, $grandchild,
+	    'the event’s target is set when event handlers are disabled'
+	    # something I got wrong at first
+	});
+	
 }
 
 

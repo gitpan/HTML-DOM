@@ -5,7 +5,7 @@
 
 use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => 31;
+use Test::More tests => 34;
 
 
 # -------------------------#
@@ -218,4 +218,19 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 	$doc->write('<p><b><i></i></b></p>');
 
 	is $counter,3,  'elem_handler(*)';
+}
+
+
+# -------------------------#
+# Tests 32-4: event_parent
+
+{
+	my $doc = new HTML::DOM;
+	my $thing = bless[];
+	is $doc->event_parent, undef, 'event_parent is initially undef';
+	is $doc->event_parent($thing), undef,
+		'event parent returns undef when setting the first time';;
+	is $doc->event_parent, $thing,, 'and setting it actually worked';
+
+
 }

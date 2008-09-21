@@ -8,14 +8,14 @@ use Hash::Util::FieldHash::Compat 'fieldhash';
 
 fieldhash my %doc;
 
-our $VERSION = '0.019';
+our $VERSION = '0.020';
 
 # -------- DOM ATTRIBUTES -------- #
 
 sub document {
 	my $old = $doc{my $self = shift};
-	weaken($doc{$self} = shift) if @_;
-	$old
+	$doc{$self} = shift if @_;
+	defined $old ? $old :();
 }
 
 

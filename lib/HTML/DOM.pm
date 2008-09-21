@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.019';
+our $VERSION = '0.020';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.019 (alpha)
+Version 0.020 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -60,7 +60,7 @@ notice.
   $dom_tree->close;
   
   my $other_dom_tree = new HTML::DOM;
-  $dom_tree->parse_file($filename);
+  $other_dom_tree->parse_file($filename);
   
   $dom_tree->getElementsByTagName('body')->[0]->appendChild(
            $dom_tree->createElement('input')
@@ -150,6 +150,11 @@ C<response>.
 {
 	# This HTML::DOM::TreeBuilder package is represents the
 	# documentElement. It is also used as a parser for innerHTML.
+
+	# Note for potential developers: You can’t refer to ->parent in
+	# this package and expect it to provide the document, because
+	# that’s not the case with innerHTML.  Use ->ownerDocument.
+
 
 	package HTML::DOM::TreeBuilder;
 	our @ISA = qw' HTML::DOM::Element::HTML HTML::TreeBuilder';
@@ -251,7 +256,7 @@ C<response>.
 	sub _create_events {
 		my ($doc_elem,$elem,$event_offsets) = @_;
 		defined(my $event_attr_handler =
-		  $doc_elem->parent->event_attr_handler)
+		  $doc_elem->ownerDocument->event_attr_handler)
 		  or return;
 		for(keys %$event_offsets) {
 			my $l =
@@ -1045,45 +1050,27 @@ sub createEvent {
 
 Returns the L<HTML::DOM::View> object associated with the document.
 
-B<Note>: Currently this has an object there by default, but this may
-change, since the object is fairly useless.
+There is no such object by default; you have to put one there yourself:
 
 Although it is supposed to be read-only according to the DOM, you can set
-this attribute by passing an argument to it, in which case you should not
-count on any meaningful return value. It C<is> still marked as read-only in
+this attribute by passing an argument to it. It C<is> still marked as 
+read-only in
 L<C<%HTML::DOM::Interface>|HTML::DOM::Interface>.
 
 If you do set it, it is recommended that the object be a subclass of
 L<HTML::DOM::View>.
 
-=cut
+This attribute holds a weak reference to the object.
 
-# It says above that you can’t count on a meaningful return value because
-# of problems with autovivification.
-# ~~~ If I change it not to have a defaultView by default, then I can make
-#     this method act like all the others.
+=cut
 
 sub defaultView {
 	my $self = shift;
+	my $old = $self->{_HTML_DOM_view};
 	if(@_) {
-		$self->{_HTML_DOM_view} = shift;
-		++$self->{_HTML_DOM_customview};
+		weaken($self->{_HTML_DOM_view} = shift);
 	}
-	else {
-#.!!$self->{_HTML_DOM_customview};
-		return defined $self->{_HTML_DOM_view}
-		? $self->{_HTML_DOM_view}
-		: $self->{_HTML_DOM_customview}
-			? undef
-			: do {
-				require                  HTML::DOM::View;
-				bless(my $view
-				        = $self->{_HTML_DOM_view} = \my $x,
-				      HTML::DOM::View::);
-				$view->document($self);
-				$view;
-			};
-	}
+	return defined $old ? $old : ();
 }
 
 # ---------- DocumentStyle interface -------------- #
@@ -1134,7 +1121,7 @@ sub innerHTML  {
 
 =item location
 
-=item set_location_object
+=item set_location_object (non-DOM)
 
 C<location> returns the location object, if you've put one there with
 C<set_location_object>. HTML::DOM doesn't actually implement such an object
@@ -1164,7 +1151,7 @@ sub set_location_object {
 =cut
 
 
-# ---------- OVERRIDDEN NODE METHODS -------------- #
+# ---------- OVERRIDDEN NODE & EVENT TARGET METHODS -------------- #
 
 sub ownerDocument {} # empty list
 sub nodeName { '#document' }
@@ -1172,17 +1159,9 @@ sub nodeName { '#document' }
 
 =head2 Other (Non-DOM) Methods
 
+(See also L</EVENT HANDLING>, below.)
+
 =over 4
-
-=item $tree->event_attr_handler
-
-=item $tree->default_event_handler
-
-=item $tree->default_event_handler_for
-
-=item $tree->error_handler
-
-See L</EVENT HANDLING>, below.
 
 =item $tree->base
 
@@ -1318,7 +1297,33 @@ triggered, so it is not called unnecessarily.)
 Use C<error_handler> to assign a coderef that will be called whenever an
 event listener raises an error. The error will be contained in C<$@>.
 
+=head2 Other Event-Related Methods
+
+=over
+
+=item $tree->event_parent
+
+=item $tree->event_parent( $new_val )
+
+This method lets you provide an object that is added to the top of the
+event dispatch chain. E.g., if you want the view object (the value of
+C<defaultView>, aka the window) to have event handlers called before the
+document in the capture phase, and after it in the bubbling phase, you can
+set it like this (see also L</defaultView>, above):
+
+  $tree->event_parent( $tree->defaultView );
+
+=item $tree->event_listeners_enabled
+
+=item $tree->event_listeners_enabled( $new_val )
+
+This attribute, which is true by default, can be used to disable event
+handlers. (Default event handlers [see below] still run, though.)
+
+=back
+
 =cut
+
 
 # ---------- NON-DOM EVENT METHODS -------------- #
 
@@ -1341,6 +1346,18 @@ sub error_handler {
 	my $old = $_[0]->{_HTML_DOM_error_handler};
 	$_[0]->{_HTML_DOM_error_handler} = $_[1] if @_ > 1;
 	$old;
+}
+
+sub event_parent {
+	my $old = (my $self = shift) ->{_HTML_DOM_event_parent};
+	$self->{_HTML_DOM_event_parent} = shift if @_;
+	$old
+}
+
+sub event_listeners_enabled {
+	my $old = (my $Self = shift)->{_HTML_DOM_doevents};
+	@_ and $$Self{_HTML_DOM_doevents} = !!shift;
+	defined $old ? $old : 1; # true by default
 }
 
 

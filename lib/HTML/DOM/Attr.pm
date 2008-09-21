@@ -7,7 +7,7 @@ use strict;
 no constant 1.03 ();
 use constant::lexical +{ do {
 	my $x; map +($_=>$x++), qw[
-		_doc _elem _name _val _list _styl _evnt _capt
+		_doc _elem _name _val _list _styl
 	]
 }};
 # The internal fields are:
@@ -33,7 +33,7 @@ require HTML::DOM::NodeList;
 
 our @ISA = 'HTML::DOM::EventTarget';
 
-our $VERSION = '0.019';
+our $VERSION = '0.020';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 

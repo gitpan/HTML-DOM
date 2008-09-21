@@ -1,29 +1,33 @@
-HTML::DOM, version 0.019
+HTML::DOM, version 0.020
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
-This is an alpha release.  So far,  the level-2 core and  HTML  DOM
-interfaces have been implemented, and some of the level-2 event and
-style sheet interfaces.
+This is an alpha release.  So far,  the  level-2  core  and  HTML  DOM
+interfaces have been implemented, most of the level-2 event interfaces
+and some of the level-2 style sheet interfaces.
 
 
 CHANGES IN THIS RELEASE
 
-New feature:
-  EventTarget is now listed as a separate interface in
-  %H:D:Interface.
+Incompatible changes:
+• HTML::DOM’s defaultView attribute no longer has anything assigned
+  to it by default.
+• The defaultView attribute now holds a weak reference to the view,
+  and the view holds a strong reference to the document.
 
-Whether you call this a bug fix or a new feature is up to you:
-  The DOM Level 0 methods for accessing HTML attributes  now  trigger
-  DOMAttrModified events. (So mutation events are finished; the imple-
-  mentation object also claims to support it now.)
+New features:
+• HTML::DOM now has an event_parent method, with which you can add an
+  object to the top of the event dispatch chain.
+• HTML::DOM::NodeList::Magic’s constructor is now officially public.
+  Use this if  you  need  to  create  a  custom  ‘live’  node  list.
+• HTML::DOM  now has an  event_listeners_enabled  method  that  allows
+  event handlers to be disabled. Also, any subclass of EventTarget can
+  implement this to achieve the same effect.
 
-A bug fix:
-  Event attribute methods ($elem->onclick, etc.) are now listed in
-  %HTML::DOM::Interface.
-
-Another bug fix, whose description is too long to put here. (Look in
-the Changes file.)
+Bug fixes:
+• innerHTML no longer dies when there are event attributes in the HTML
+  code fed to it.
+And a couple of minor fixes. See the Changes file.
 
 
 TO DO

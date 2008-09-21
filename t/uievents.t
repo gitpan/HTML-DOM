@@ -6,6 +6,8 @@ use lib 't';
 use HTML::DOM;
 
 my $doc = new HTML::DOM;
+require HTML::DOM::View;
+$doc->defaultView(my $v = bless[], HTML::DOM::View::);
 my $event = $doc->createEvent('UIEvents');
 
 # -------------------------#

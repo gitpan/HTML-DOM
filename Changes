@@ -1,5 +1,35 @@
 Revision history for HTML::DOM
 
+0.020
+        Incompatible changes:
+        • HTML::DOM’s defaultView attribute no longer has anything
+          assigned to it by default.
+        • The defaultView attribute now holds a weak reference to the
+          view, and the view holds a strong reference to the document.
+        New features:
+        • HTML::DOM now has an event_parent method, with which you
+          can add an object to the top of the event dispatch chain.
+        • HTML::DOM::NodeList::Magic’s constructor is now officially
+          public.  (For those of you who read  the  source,  it  now
+          accepts a second arg; which it didn’t before). Use this if
+          you need to create a custom ‘live’ node list.
+        • HTML::DOM now has an  event_listeners_enabled  method that
+          allows event handlers to be disabled.  (Default event  han-
+          dlers still run.) EventTarget uses this method, so any sub-
+          class can implement it to achieve the same effect.
+        Bug fixes:
+        • HTML::DOM’s defaultView method and  HTML::DOM::View’s docu-
+          ment method now return empty list (as opposed to lists con-
+          taining undef)  if called in list context when there is no
+          object assigned.
+        • When there  is  no  view  object,  HTML::DOM::Node’s
+          trigger_event method no longer mangles the arguments
+          passed to the superclass (preventing default actions
+          and causing the event’s properties  other  than  the
+          event type not to be set).
+        • innerHTML no longer dies when there are event attributes in
+          the HTML code fed to it.
+
 0.019   7 September, 2008
         New feature:
         • EventTarget is now listed as a separate interface in

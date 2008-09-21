@@ -1,6 +1,6 @@
 package HTML::DOM::EventTarget;
 
-our $VERSION = '0.019';
+our $VERSION = '0.020';
 
 
 use strict;
@@ -66,9 +66,17 @@ If there is no C<error_handler> method that returns true, then
 C<< $target->ownerDocument->error_handler >> is used instead. If that
 fails, then errors are ignored.
 
+=item event_listeners_enabled
+
+If this method exists and returns false, then event handlers are not 
+called.
+If there is no C<event_listeners_enabled> method,
+then
+C<< $target->ownerDocument->event_listeners_enabled >> is used instead.
+
 =item ownerDocument
 
-See C<error_handler>.
+See C<error_handler> and C<event_listeners_enabled>.
 
 =head1 METHODS
 
@@ -213,6 +221,19 @@ sub _dispatch_event { # This is where all the work is.
 	die HTML::DOM::Exception->new(UNSPECIFIED_EVENT_TYPE_ERR,
 		'The type of event has not been specified')
 		unless defined $name and length $name;
+
+	$event->_set_target($target) if $event;
+
+	# Check to see whether we are supposed to skip event handlers, and
+	# short-circuit if that’s the case:
+	Foo: {
+		my $doc;
+		my $sub = $target->can('event_listeners_enabled')
+		       || (eval{$doc = $target->ownerDocument}||next Foo)
+		                 ->can('event_listeners_enabled')
+		       || last Foo;
+		&$sub($doc||$target) or return $event||1
+	}
 	
 	# Basic event flow is as follows:
 	# 1.  The  'capturing'  phase:  Go through the  node's  ancestors,
@@ -224,8 +245,6 @@ sub _dispatch_event { # This is where all the work is.
 
 	my $eh = eval{$target->error_handler}
 	       ||eval{$target->ownerDocument->error_handler};
-
-	$event->_set_target($target) if $event;
 
 	my @lineage = $target;
 	{

@@ -57,7 +57,7 @@ isa_ok $doc, 'HTML::DOM';
 
 
 # -------------------------#
-use tests 52; # Element types that just use the HTMLElement interface
+use tests 53; # Element types that just use the HTMLElement interface
               # (and general tests for that interface)
 
 for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
@@ -118,6 +118,9 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 
 	$elem->innerHTML('');
 	is $elem->childNodes->length, 0, 'innerHTML("")';
+
+	ok eval{$elem->innerHTML('<a onclick="">');1},
+		'innerHTML doesn\'t die when fed an event attribute';
 }
 
 # -------------------------#
