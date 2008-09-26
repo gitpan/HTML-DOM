@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.020';
+our $VERSION = '0.021';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.020 (alpha)
+Version 0.021 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -87,7 +87,7 @@ The following DOM modules are currently supported:
   Events          2.0
   UIEvents        2.0
   MouseEvents     2.0
-  MutationEvents  2.0 (partially)
+  MutationEvents  2.0
   StyleSheets     2.0
   CSS             2.0 (partially)
   CSS2            2.0
@@ -1608,6 +1608,11 @@ L<HTML::DOM::Element::Option/BUGS|HTML::DOM::Element::Option>)
 Setting a boolean attribute to true through the DOM Level 0 interface is 
 supposed to set the attribute's value to the attribute's name. Right now it
 sets the value to whatever true value you pass it.
+
+=item -
+
+Element handlers are not currently called during assignments to 
+C<innerHTML>.
 
 =back
 

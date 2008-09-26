@@ -93,10 +93,11 @@ binmode $fh; print $fh "This is some text\n"; close $fh;
 $form->acceptCharset('iso-8859-1');
 $form->elements->[1]->value($filename);
 $input->value("φου is foo in Greek");
+(my $esc_fn = $filename) =~ s/(["\\])/\\$1/g;
 is $form->make_request->as_string,
 	<<EOR,'post with m/fd and ascii-based charset';
 POST http://10.11.12.20/cgi-bin/printenv
-Content-Length: ${\(251+length $filename)}
+Content-Length: ${\(251+length $esc_fn)}
 Content-Type: multipart/form-data; boundary=xYzZY
 
 --xYzZY\r
@@ -105,7 +106,7 @@ Content-Type: text/plain; charset="iso-8859-1"\r
 \r
 ??? is foo in Greek\r
 --xYzZY\r
-Content-Disposition: form-data; name="phial"; filename="$filename"\r
+Content-Disposition: form-data; name="phial"; filename="$esc_fn"\r
 Content-Type: text/plain\r
 \r
 This is some text
@@ -117,7 +118,7 @@ $form->acceptCharset('utf-32le');
 is $form->make_request->as_string,
 	<<EOR,'post with m/fd and non-ascii charset';
 POST http://10.11.12.20/cgi-bin/printenv
-Content-Length: ${\(306+length $filename)}
+Content-Length: ${\(306+length $esc_fn)}
 Content-Type: multipart/form-data; boundary=xYzZY
 
 --xYzZY\r
@@ -126,7 +127,7 @@ Content-Type: text/plain; charset="utf-32le"\r
 \r
 \xc6\3\0\0\xbf\3\0\0\xc5\3\0\0 \0\0\0i\0\0\0s\0\0\0 \0\0\0f\0\0\0o\0\0\0o\0\0\0 \0\0\0i\0\0\0n\0\0\0 \0\0\0G\0\0\0r\0\0\0e\0\0\0e\0\0\0k\0\0\0\r
 --xYzZY\r
-Content-Disposition: form-data; name="phial"; filename="$filename"\r
+Content-Disposition: form-data; name="phial"; filename="$esc_fn"\r
 Content-Type: text/plain\r
 \r
 This is some text

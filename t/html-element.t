@@ -871,7 +871,7 @@ use tests 7; # HTMLFrameSetElement
 }
 
 # -------------------------#
-use tests 28; # HTMLFrameElement
+use tests 34; # HTMLFrameElement
 
 {
 	my $elem;
@@ -908,11 +908,25 @@ use tests 28; # HTMLFrameElement
 	$elem->setAttribute('frameborder'=>'bOOhoO');
 	is frameBorder $elem, 'boohoo', 'frame->frameBorder is lc';
 
-	isa_ok $elem->contentDocument, 'HTML::DOM','frame contentDocument';
+	is +()=$elem->contentWindow, 0,'no frame->contentWindow';
+	is +()=$elem->contentDocument, 0,
+		'  or frame->contentDocument by default';
+	require HTML::DOM::View;
+	is +()=$elem->contentWindow(my $view = bless[],'HTML::DOM::View'),
+		0, 'contentWindow\'s retval when initially assigned';
+	is $elem->contentWindow, $view,
+		'the assignment to frame->contentWindow worked';
+	$view->document("foo");
+	is $elem->contentDocument, 'foo',
+	  'frame contentDocument retrieved from contentWindow->document';
+	is $elem->contentWindow(bless[],'HTML::DOM::View'), $view,
+		'retval when setting frame’s contentWindow again';
+	is +()=$elem->contentDocument, 0,
+	    'no frame->contentDocument when the window present has no doc';
 }
 
 # -------------------------#
-use tests 33; # HTMLIFrameElement
+use tests 39; # HTMLIFrameElement
 
 {
 	my $elem;
@@ -951,7 +965,21 @@ use tests 33; # HTMLIFrameElement
 	$elem->setAttribute('frameborder'=>'bOOhoO');
 	is frameBorder $elem, 'boohoo', 'frame->frameBorder is lc';
 
-	isa_ok $elem->contentDocument,'HTML::DOM','iframe contentDocument';
+	is +()=$elem->contentWindow, 0,'no iframe->contentWindow';
+	is +()=$elem->contentDocument, 0,
+		'  or iframe->contentDocument by default';
+	require HTML::DOM::View;
+	is +()=$elem->contentWindow(my $view = bless[],'HTML::DOM::View'),
+		0, 'contentWindow\'s retval when initially assigned';
+	is $elem->contentWindow, $view,
+		'the assignment to iframe->contentWindow worked';
+	$view->document("foo");
+	is $elem->contentDocument, 'foo',
+	  'iframe contentDocument retrieved from contentWindow->document';
+	is $elem->contentWindow(bless[],'HTML::DOM::View'), $view,
+		'retval when setting iframe’s contentWindow again';
+	is +()=$elem->contentDocument, 0,
+	   'no iframe->contentDocument when the window present has no doc';
 }
 
 # -------------------------#

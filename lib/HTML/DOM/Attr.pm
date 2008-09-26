@@ -33,7 +33,7 @@ require HTML::DOM::NodeList;
 
 our @ISA = 'HTML::DOM::EventTarget';
 
-our $VERSION = '0.020';
+our $VERSION = '0.021';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 

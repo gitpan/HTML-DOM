@@ -1,4 +1,4 @@
-HTML::DOM, version 0.020
+HTML::DOM, version 0.021
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -9,25 +9,12 @@ and some of the level-2 style sheet interfaces.
 
 CHANGES IN THIS RELEASE
 
-Incompatible changes:
-• HTML::DOM’s defaultView attribute no longer has anything assigned
-  to it by default.
-• The defaultView attribute now holds a weak reference to the view,
-  and the view holds a strong reference to the document.
-
-New features:
-• HTML::DOM now has an event_parent method, with which you can add an
-  object to the top of the event dispatch chain.
-• HTML::DOM::NodeList::Magic’s constructor is now officially public.
-  Use this if  you  need  to  create  a  custom  ‘live’  node  list.
-• HTML::DOM  now has an  event_listeners_enabled  method  that  allows
-  event handlers to be disabled. Also, any subclass of EventTarget can
-  implement this to achieve the same effect.
-
-Bug fixes:
-• innerHTML no longer dies when there are event attributes in the HTML
-  code fed to it.
-And a couple of minor fixes. See the Changes file.
+• (I)frame elements now have a contentWindow attribute, which you
+  can set,  although it is listed as read-only  in  H:D:Interface.
+  contentDocument now uses this.
+• Fixed some tests that failed on Windoze because they  relied  on  an
+  LWP bug that was fixed in 5.810 (filenames in file upload fields not
+  being escaped)
 
 
 TO DO
@@ -36,7 +23,6 @@ TO DO
 - Finish Level 2 CSS support
 - outerHTML?
 - Other DOM interfaces (the rest of level 2, and level 3)
-- Support callback routines for creating DOM objects for frames.
 - HTML 5 stuff
 - Write more complete documentation
 - Write more tests
