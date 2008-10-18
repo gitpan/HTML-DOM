@@ -33,7 +33,7 @@ require HTML::DOM::NodeList;
 
 our @ISA = 'HTML::DOM::EventTarget';
 
-our $VERSION = '0.021';
+our $VERSION = '0.022';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 
@@ -79,7 +79,7 @@ sub _val_as_node { # turns the attribute's value into a text node if it is
 	          $_[0]->ownerDocument->createTextNode(
 		    $_[0][_styl] ? $_[0][_styl]->cssText : $val
 		  );
-	        $val->{_parent}=($_[0]);
+	        weaken($val->{_parent}=($_[0]));
 	        $val
 	      }
 }
@@ -259,7 +259,7 @@ sub replaceChild {
 	}
 
 	($_[0][_val][0] = $new_node)->detach;
-	$new_node->{_parent}=($self);
+	weaken($new_node->{_parent}=($self));
 	$old_node->parent(undef);
 
 	$new_node->trigger_event('DOMNodeInserted', rel_node => $self);

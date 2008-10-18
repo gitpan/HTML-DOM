@@ -1,5 +1,14 @@
 Revision history for HTML::DOM
 
+0.022   17 October, 2008
+        A few memory leak fixes:
+        • Whitespace after the </body> tag would cause the close meth-
+          od to create a circularity.
+        • Accessing an attribute node’s text node  (i.e.,  autovivify-
+          ing it) would create a circularity.
+        • Deep clones were indestructible.
+        • replaceChild would create a circular reference.
+
 0.021   25 September, 2008
         New feature:
         • (I)frame elements now have a contentWindow attribute, which

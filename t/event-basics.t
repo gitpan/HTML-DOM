@@ -491,6 +491,10 @@ is $e->target, $grandchild,
 ok eval{new HTML::DOM +()=>->trigger_event("foo");1},
 	'$doc->trigger_event(string) doesn\'t die';
 
+undef $e; # break the circularity that would result if we left this--not so
+          # important in a test, but I like to run this through
+          # Devel::Leak::Object
+
 
 # -------------------------#
 use tests 10; # even laster: make sure event_attr_handler is actually used
@@ -538,6 +542,8 @@ use tests 10; # even laster: make sure event_attr_handler is actually used
 		"foo"
 	);
 	is @__, 1, 'changes to an event attr’s text node call eah';
+
+	@__=(); # remove circularities
 }
 
 # -------------------------#

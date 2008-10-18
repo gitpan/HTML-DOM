@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.021';
+our $VERSION = '0.022';
 
 
 use strict;
@@ -565,6 +565,26 @@ sub splice_content {
 		for @$ary[$start..$#$ary-$orig_count+$deleted+$start];
 
 	$self
+}
+
+sub clone {
+	my $self = shift;
+	my $clone = $self->SUPER::clone;
+	for ($clone->content_list) {
+		ref or next;
+		weaken $_->{_parent};
+	}
+	$clone;
+}
+
+sub replace_with {
+	my $self = shift;
+	$self->SUPER::replace_with(@_);
+	for(@_) {
+		no warnings;
+		ref and weaken $_->{_parent};
+	}
+	$self;
 }
 
 

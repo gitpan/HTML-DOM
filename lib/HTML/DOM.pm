@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.021';
+our $VERSION = '0.022';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.021 (alpha)
+Version 0.022 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -167,8 +167,8 @@ C<response>.
 	  my $self = shift;
 	  my %attrs = map /^[a-z_]*\z/ ? () : ($_ => $self->{$_}),
 	    keys %$self;
-          $self->SUPER::elementify;
 	  my @weak = grep isweak $self->{$_}, keys %$self;
+          $self->SUPER::elementify;
 	  %$self = (%$self, %attrs); # this invigorates feeble refs
 	  weaken $self->{$_} for @weak;
 	  bless $self, HTML::DOM::Element::class_for(tag $self);

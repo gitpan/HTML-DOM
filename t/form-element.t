@@ -56,8 +56,10 @@ sub test_attr {
 		is $evt, $event, "$class\'s $event method";
 		is refaddr $targ, refaddr $obj, 
 			"$class\'s $event event is on target";
-		$obj->removeEventListener($eh);
+		$obj->removeEventListener($event=>$eh);
 	}
+
+	END { undef $targ; } # Be nice to Devel::Object::Leak
 }
 
 my $doc = new HTML::DOM;	

@@ -328,6 +328,8 @@ is $e->type, 'clink',
 is $e->target, $grandchild,
 	'$event->target when an event name is passed to trigger_event';
 
+undef $e; # remove circularities
+
 
 # -------------------------#
 use tests 1; # error_handler
