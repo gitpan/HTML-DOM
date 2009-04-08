@@ -87,7 +87,7 @@ $form = $doc->forms->[0];
 $input = $form->elements->[0];
 
 use File::Temp 'tempfile';
-my($fh,$filename) = tempfile uc 'suffix', '.txt';
+my($fh,$filename) = tempfile uc 'suffix', '.txt', uc 'unlink', 1;
 binmode $fh; print $fh "This is some text\n"; close $fh;
 
 $form->acceptCharset('iso-8859-1');

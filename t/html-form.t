@@ -6,7 +6,7 @@
 
 use strict; use warnings; use lib 't';
 
-use Test::More tests => 116+24+1;
+use Test::More tests => 116+24+2;
 
 BEGIN{	use_ok 'HTML::DOM' };
 
@@ -635,5 +635,12 @@ $doc->write('<title>What’s up, Doc?</title>
 $doc->close;
 is eval { $doc->forms->[0]->{Bunny}->options->name } || diag($@), 'Bunny',
 	'select->options->name no longer dies when there are no options';
+
+$doc->write(
+ '<form><input name=c type=checkbox value=12345 checked></form>'
+);
+my $f = $doc->forms->[0];
+$f->value(c => undef);
+ok ! $f->{c}->checked, 'form->value(field, undef) unchecks a checkbox';
 
 }

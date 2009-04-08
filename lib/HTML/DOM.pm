@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.022';
+our $VERSION = '0.023';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.022 (alpha)
+Version 0.023 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -586,6 +586,8 @@ sub open {
 	# parent  (and that code  doesn’t  belong  in  this  package).
 	$self->push_content(my $tb = new HTML::DOM::TreeBuilder);
 
+	delete $$self{_HTML_DOM_sheets};
+
 	return unless $self->{_HTML_DOM_elem_handlers};
 	for(keys %{$self->{_HTML_DOM_elem_handlers}}) {
 		$$tb{"_tweak_$_"} =
@@ -1053,7 +1055,7 @@ Returns the L<HTML::DOM::View> object associated with the document.
 There is no such object by default; you have to put one there yourself:
 
 Although it is supposed to be read-only according to the DOM, you can set
-this attribute by passing an argument to it. It C<is> still marked as 
+this attribute by passing an argument to it. It I<is> still marked as 
 read-only in
 L<C<%HTML::DOM::Interface>|HTML::DOM::Interface>.
 
@@ -1486,7 +1488,7 @@ machine-readable list of standard methods.)
       DOM::Event::UI                      UIEvent
           DOM::Event::Mouse               MouseEvent
       DOM::Event::Mutation                MutationEvent
-  DOM::View                               AbstractView, [ViewCSS]
+  DOM::View                               AbstractView, ViewCSS
 
 The EventListener interface is not implemented by HTML::DOM, but is 
 supported.
@@ -1613,6 +1615,13 @@ sets the value to whatever true value you pass it.
 
 Element handlers are not currently called during assignments to 
 C<innerHTML>.
+
+=item -
+
+L<HTML::DOM::View>'s C<getComputedStyle> does not currently return a
+read-only style object; nor are lengths converted to absolute values.
+Currently there is no way to specify the medium. Any style rules that apply
+to specific media are ignored.
 
 =back
 

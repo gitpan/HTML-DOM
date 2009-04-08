@@ -1,5 +1,17 @@
 Revision history for HTML::DOM
 
+0.023   8 April, 2009
+        New features:
+        • getComputedStyle
+        Bug fixes:
+        • A form elements value method is now capable of unchecking a
+          checkbox.
+        • If the document was rewritten  (via close and write)  after
+          styleSheets had already been accessed,  a subsequent access
+          would return the first list of style sheets  again.
+        • form-charset.t  no  longer  leaves  temporary  files  lying
+          around (RT #41470).
+
 0.022   17 October, 2008
         A few memory leak fixes:
         • Whitespace after the </body> tag would cause the close meth-

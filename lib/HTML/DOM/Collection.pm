@@ -5,7 +5,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.022';
+our $VERSION = '0.023';
 
 # Internals: \[$nodelist, $tie]
 

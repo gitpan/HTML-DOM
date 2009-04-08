@@ -1,4 +1,4 @@
-HTML::DOM, version 0.022
+HTML::DOM, version 0.023
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -9,8 +9,9 @@ and some of the level-2 style sheet interfaces.
 
 CHANGES IN THIS RELEASE
 
-Just a few memory leak fixes, that’s all. See the Changes file for
-more detail.
+• New feature: getComputedStyle — still highly experimental and
+  unfinished
+• A couple of bug fixes — see the Changes file
 
 
 TO DO
@@ -54,7 +55,7 @@ Perl modules:
   distribution) (tested with 3.23)
 - URI (tested with 1.35)
 - LWP 1.13 or later
-- CSS::DOM 0.05 or later
+- CSS::DOM 0.06 or later
 - HTML::Encoding is required if the parse_file method is to be used.
 - constant::lexical
 - Hash::Util::FieldHash::Compat
