@@ -1,14 +1,14 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         HTML-DOM
-version:      0.023
+version:      0.024
 version_from: lib/HTML/DOM.pm
 installdirs:  site
 requires:
     Carp:                          0
     constant:                      1.03
     constant::lexical:             0
-    CSS::DOM:                      0.03
+    CSS::DOM:                      0.06
     CSS::DOM::Style:               0.05
     CSS::DOM::StyleSheetList:      0
     Exporter:                      5.57

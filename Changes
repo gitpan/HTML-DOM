@@ -1,5 +1,9 @@
 Revision history for HTML::DOM
 
+0.024   8 April, 2009
+        Forgot to increase the  CSS::DOM  required version to 0.06 in
+        the previous release.
+
 0.023   8 April, 2009
         New features:
         • getComputedStyle

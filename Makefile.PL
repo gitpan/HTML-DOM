@@ -16,7 +16,7 @@ WriteMakefile(
          Carp                      => 0,
          constant                  => 1.03, # multiple at once
          constant::lexical         => 0,
-        'CSS::DOM'                 => 0.03,
+        'CSS::DOM'                 => 0.06, # compute_style
         'CSS::DOM::Style'          => 0.05, # modification_handler
                                             # and ::Style::parse’s
         'CSS::DOM::StyleSheetList' => 0,    # stringification

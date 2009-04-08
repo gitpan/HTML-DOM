@@ -1,4 +1,4 @@
-HTML::DOM, version 0.023
+HTML::DOM, version 0.024
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -7,11 +7,19 @@ interfaces have been implemented, most of the level-2 event interfaces
 and some of the level-2 style sheet interfaces.
 
 
-CHANGES IN THIS RELEASE
+RECENT CHANGES
 
+See the Changes file for the long version.
+
+0.024
+-----
+Increased the CSS::DOM required version to 0.06.  (I forgot it in the previous release.)
+
+0.023
+-----
 • New feature: getComputedStyle — still highly experimental and
   unfinished
-• A couple of bug fixes — see the Changes file
+• A couple of bug fixes
 
 
 TO DO

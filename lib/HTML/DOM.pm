@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.023';
+our $VERSION = '0.024';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.023 (alpha)
+Version 0.024 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -94,7 +94,7 @@ The following DOM modules are currently supported:
   Views           2.0
 
 StyleSheets, CSS and CSS2 are actually provided by L<CSS::DOM>. This list
-corresponds to CSS::DOM versions 0.02 to 0.05.
+corresponds to CSS::DOM versions 0.02 to 0.06.
 
 =head1 METHODS
 
@@ -1584,7 +1584,7 @@ L<URI.pm|URI> (tested with 1.35)
 L<LWP> 5.13 or later (for the C<cookie> method and a form's C<make_request> 
 method to work)
 
-L<CSS::DOM 0.05> or later is required if you use any of the style sheet 
+L<CSS::DOM 0.06> or later is required if you use any of the style sheet 
 features.
 
 L<Scalar::Util> 1.14 or later

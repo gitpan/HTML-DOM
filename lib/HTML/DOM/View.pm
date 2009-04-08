@@ -8,7 +8,7 @@ use Hash::Util::FieldHash::Compat 'fieldhash';
 
 fieldhash my %doc;
 
-our $VERSION = '0.023';
+our $VERSION = '0.024';
 
 # -------- DOM ATTRIBUTES -------- #
 
@@ -23,7 +23,7 @@ sub getComputedStyle {
 	my($ua,$u) = map eval{$view->${\"u$_\_style_sheet"}}, 'a','ser';
 	my $doc = $view->document;
 
-	require CSS::DOM;
+	require CSS::DOM; CSS::DOM->VERSION(.06);
 	return CSS::DOM'compute_style(
 		#medium => ...	
 		#height => $view->innerHeight;
@@ -55,7 +55,6 @@ HTML::DOM::View - A Perl class for representing an HTML Document's 'defaultView'
   $view = new MyView;
   
   $doc->defaultView($view);
-  $view->document($doc);
   
   
   package MyView;
