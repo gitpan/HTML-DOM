@@ -12,7 +12,7 @@ use Scalar::Util qw'blessed weaken';
 require HTML::DOM::Node;
 
 our @ISA = 'HTML::DOM::Node';
-our $VERSION = '0.024';
+our $VERSION = '0.025';
 
 
 sub   surrogify($);

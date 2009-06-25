@@ -8,7 +8,7 @@ use HTML::DOM::Node qw 'TEXT_NODE ATTRIBUTE_NODE';
 require HTML::DOM::CharacterData;
 
 our @ISA = 'HTML::DOM::CharacterData';
-our $VERSION = '0.024';
+our $VERSION = '0.025';
 
 
 =head1 NAME
@@ -58,7 +58,7 @@ This returns the constant HTML::DOM::Node::TEXT_NODE.
 
 
 sub new { # $_[1] contains the text
-	$_[0]->SUPER::new('~text', text => $_[1]);
+	$_[0]->SUPER::new('~text', text => "$_[1]");
 }
 
 sub splitText {

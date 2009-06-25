@@ -180,6 +180,9 @@ use tests 28; # HTMLLinkElement
 	test_attr $elem, qw\ rev      ver             ekd             \;
 	test_attr $elem, qw/ target   tegrat          guitar          /;
 	test_attr $elem, qw\ type     application/pdf text/richtext   \;
+
+	my $doc = new HTML::DOM;
+	$doc->css_url_fetcher(sub { "" });
 }
 
 # -------------------------#

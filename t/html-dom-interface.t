@@ -8,7 +8,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 96;
+use Test::More tests => 97;
 
 
 # -------------------------#
@@ -35,8 +35,11 @@ ok exists $HTML::DOM::Interface{'HTML::DOM::Collection::Options'},
 # -------------------------#
 # Test 7-32: changes made in 0.010
 
-is $HTML::DOM::Interface{'HTML::DOM::TreeBuilder'},
-	'HTMLElement', 'HTML::DOM::TreeBuilder';
+SKIP:{
+	skip "bad test", 1;
+	is $HTML::DOM::Interface{'HTML::DOM::TreeBuilder'},
+		'HTMLElement', 'HTML::DOM::TreeBuilder';
+}
 ok exists $HTML::DOM::Interface{$_}, $_ for map "HTML::DOM::Element::$_",
 	qw/ Table Caption TableColumn TableSection TR TableCell
 	    FrameSet Frame IFrame /;
@@ -154,3 +157,8 @@ for(qw(
 )) {
 	ok exists $HTML::DOM::Interface{EventTarget}{"on$_"}, "on$_";
 }
+
+# -------------------------#
+# Test 97: change made in 0.025
+is $HTML::DOM::Interface{"HTML::DOM::TreeBuilder"}, 'HTMLHtmlElement',
+ 'HTML::DOM::TreeBuilder maps to HTMLHtmlElement';

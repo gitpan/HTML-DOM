@@ -5,7 +5,7 @@
 
 use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => 73;
+use Test::More tests => 74;
 
 
 # -------------------------#
@@ -311,7 +311,7 @@ is $doc->{fred}, $doc->forms->[0],           'hashness (1)';
 is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 
 # -------------------------#
-# Tests 68-70: innerHTML
+# Tests 68-71: innerHTML
 {
 	my $doc = new HTML::DOM;
 	$doc->write('
@@ -342,10 +342,19 @@ is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 	  '<html><head><title></title></head>'
 	 ."<body><div>foo</div></body></html>",
 	  'result of setting innerHTML';
+
+	$doc->innerHTML("");
+	{
+		package StringObj;
+		use overload '""' => sub { "#mi_down_0" }
+	}
+	$doc->body->appendChild($doc->createTextNode(bless[],'StringObj'));
+	like eval{$doc->innerHTML}, qr/#mi_down_0/,
+	 'innerHTML with text nodes made from objs with string overloading'
 }
 
 # -------------------------#
-# Tests 71-3: location
+# Tests 72-4: location
 {
 	my $href;
 	no warnings 'once';

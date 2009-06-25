@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.024';
+our $VERSION = '0.025';
 
 =head1 NAME
 
@@ -107,7 +107,7 @@ gory details, look at the source code. In fact, here it is:
   	'HTML::DOM::Text' => 'Text',
   	'HTML::DOM::Comment' => 'Comment',
   	'HTML::DOM::Element' => 'HTMLElement',
-  	'HTML::DOM::TreeBuilder' => 'HTMLElement',
+  	'HTML::DOM::TreeBuilder' => 'HTMLHtmlElement',
   	'HTML::DOM::Element::HTML' => 'HTMLHtmlElement',
   	'HTML::DOM::Element::Head' => 'HTMLHeadElement',
   	'HTML::DOM::Element::Link' => 'HTMLLinkElement',

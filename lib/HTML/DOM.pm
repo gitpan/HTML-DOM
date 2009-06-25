@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.024';
+our $VERSION = '0.025';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.024 (alpha)
+Version 0.025 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -94,7 +94,7 @@ The following DOM modules are currently supported:
   Views           2.0
 
 StyleSheets, CSS and CSS2 are actually provided by L<CSS::DOM>. This list
-corresponds to CSS::DOM versions 0.02 to 0.06.
+corresponds to CSS::DOM versions 0.02 to 0.07.
 
 =head1 METHODS
 
@@ -340,14 +340,6 @@ sub new {
 	$self;
 }
 
-=item $tree = new_from_file HTML::DOM
-
-=item $tree = new_from_content HTML::DOM
-
-B<Not yet implemented.> (I'm minded never to implement these, for the 
-simple reason that you won't
-get all the options that the constructor provides.)
-
 =item $tree->elem_handler($elem_name => sub { ... })
 
 If you call this method first, then, when the DOM tree is in the 
@@ -438,6 +430,26 @@ sub elem_handler {
 }
 
 
+=begin comment
+
+I ran out of time to finish this before making a necessary bug-fix release.
+
+=item css_url_fetcher( \&sub )
+
+With this method you can provide a subroutine that fetches URLs referenced
+by 'link' tags. HTML::DOM will then pass the result to L<CSS::DOM> and turn
+it into a style sheet object accessible via the link element's
+L<C<sheet>|HTML::DOM::Element::Link/sheet>> method.
+
+=end comment
+
+=cut
+
+sub css_url_fetcher {
+ $_[0]{_HTML_DOM_cuf} = $_[1];
+ return;
+}
+
 
 =item $tree->write(...) (DOM method)
 
@@ -491,9 +503,9 @@ This method returns the name of the character
 set that was passed to C<new>, or, if that was not given, that which
 C<parse_file> used.
 
-It returns undef if C<new> was not given a charset, if C<parse_file> was 
+It returns undef if C<new> was not given a charset and if C<parse_file> was 
 not 
-used or if C<parse_file> was
+used or was
 passed a file handle.
 
 You can also set the charset by passing an argument, in which case the old
@@ -1174,12 +1186,10 @@ URL passed to C<new>.
 
 =cut
 
-# ~~~ this methosd tsill needs tstest
-
-sub base { # ~~~ is this specky?
+sub base {
 	my $doc = shift;
 	if(my $base_elem = $doc->look_down(_tag => 'base')){
-		return $base_elem->attr('href');
+		return ''.$base_elem->attr('href');
 	}
 	else {
 		$doc->URL
@@ -1629,7 +1639,7 @@ B<To report bugs,> please e-mail the author.
 
 =head1 AUTHOR, COPYRIGHT & LICENSE
 
-Copyright (C) 2007-8 Father Chrysostomos
+Copyright (C) 2007-9 Father Chrysostomos
 
   $text = new HTML::DOM ->createTextNode('sprout');
   $text->appendData('@');

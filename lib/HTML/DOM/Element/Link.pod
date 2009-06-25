@@ -53,7 +53,31 @@ will be returned.
 
 =item sheet
 
-Unless the 'rel' attribute is set to 'stylesheet', this returns null.
+By default, this returns null.
+
+You can parse an argument to set it. You normally only do this if 'rel' is
+set to 'stylesheet', but CSS::DOM is kind, and trusts you know what you are
+doing if you set it when that is not the case.
+
+Here is an example of how one might
+parse CSS style sheets while the HTML document is being parsed (a bit
+simplistic, as it only works with absolute URLs):
+
+ use LWP::Simple 'get';
+ use CSS::DOM 0.03;
+ $doc = new HTML::DOM;
+ $doc->elem_handler( link => sub {
+  my ($doc, $elem) = @_;
+  return unless $elem->attr('rel') =~ /\bstylesheet\b/i;
+  my $css = get($elem->src);
+  my $charset = $doc->charset || 'iso-8859-1';
+  CSS::DOM::parse(
+   $css,
+   encoding_hint => $charset,
+   url_fetcher => sub { get(shift), encoding_hint => $charset },
+  );
+ });
+If the 'rel' attribute is set to 'stylesheet', this returns null.
 
 Otherwise it returns a style sheet (a L<CSS::DOM> object), empty by default
 (since

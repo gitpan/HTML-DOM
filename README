@@ -1,4 +1,4 @@
-HTML::DOM, version 0.024
+HTML::DOM, version 0.025
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,14 @@ and some of the level-2 style sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.025
+-----
+• HTML::DOM::Interface  now  maps  HTML::DOM::TreeBuilder  to
+  HTMLHtmlElement,  instead of  HTMLElement.  (This class  is
+  used for the <html>  element when the tree is being built.)
+• innerHTML  no longer dies when serialising a text node that was cre-
+  ated from an object with string overloading.
 
 0.024
 -----
@@ -83,7 +91,7 @@ Or try using man (it's faster, in my experience):
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2007-8 Father Chrysostomos
+Copyright (C) 2007-9 Father Chrysostomos
 
 This program is free software; you may redistribute it and/or modify
 it under the same terms as perl.

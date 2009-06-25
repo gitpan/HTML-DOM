@@ -1,11 +1,16 @@
 #!/usr/bin/perl -T
 
+# This script tests HTML::DOM features that are not part of the DOM inter-
+# faces.
+
+# See html-element.t for css_url_fetcher.
+
 # ~~~ I need a test that makes sure HTML::TreeBuilder doesn’t spit out
 #     warnings because of hash deref overloading.
 
 use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => 34;
+use Test::More tests => 37;
 
 
 # -------------------------#
@@ -233,4 +238,17 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 	is $doc->event_parent, $thing,, 'and setting it actually worked';
 
 
+}
+
+# -------------------------#
+# Tests 35-7: base
+
+{
+ my $doc = new HTML::DOM url => 'file:///';
+ $doc->close;
+ is $doc->base, 'file:///', '->base with no <base>';
+ $doc->find('head')->innerHTML('<base href="file:///Volumes/">');
+ is $doc->base, 'file:///Volumes/', '->base from <base>';
+ $doc->find('base')->getAttributeNode('href'); # autoviv the attr node
+ ok !ref $doc->base, 'base returns a plain scalar';
 }

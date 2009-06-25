@@ -1,5 +1,13 @@
 Revision history for HTML::DOM
 
+0.025   24 June, 2009
+        Bug fixes:
+        • HTML::DOM::Interface  now  maps  HTML::DOM::TreeBuilder  to
+          HTMLHtmlElement,  instead of  HTMLElement.  (This class  is
+          used for the <html>  element when the tree is being built.)
+        • innerHTML  no longer dies when serialising a text node that
+          was created from an object with string overloading.
+
 0.024   8 April, 2009
         Forgot to increase the  CSS::DOM  required version to 0.06 in
         the previous release.
