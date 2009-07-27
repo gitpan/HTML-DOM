@@ -48,3 +48,18 @@ use tests 1; # make sure <td><td> doesn’t try to insert an extra <tr>
 	  ."</body></html>\n",
 		'<td><td>';
 }
+
+# -------------------------#
+use tests 2; # Make sure comments get parsed and added to the tree as
+{            # comment nodes (added in 0.026)
+	my $doc = new HTML::DOM;
+	$doc->write('<body><!--foo-->');
+	$doc->close;
+	is $doc->documentElement->as_HTML,
+	   '<html><head></head><body>'
+	  ."<!--foo-->"
+	  ."</body></html>\n",
+		'parsing comments';
+	isa_ok $doc->body->firstChild, 'HTML::DOM::Comment',
+	 'parsed comment';
+}

@@ -1,5 +1,20 @@
 Revision history for HTML::DOM
 
+0.026   27 July, 2009
+        Incompatible change:
+        • The  sheet  method of link elements used to create an empty
+          CSS::DOM object and would not allow assignment, which behav-
+          iour  became  utterly  useless  with  the  API  changes  of
+          CSS::DOM 0.03.  This behaviour has been removed.  sheet  is
+          now a simple accessor  (except that it only works when  the
+         ‘rel’ attribute contains  ‘stylesheet’).
+        New features:
+        • css_url_fetcher:  Provide  a  URL-fetching  subroutine  and
+          external style  sheets  will  be  parsed  and  turned  into
+          CSS::DOM objects.
+        • Comments are now included in the HTML tree, as requested by
+          an anonymous individual who filed RT #48168.
+
 0.025   24 June, 2009
         Bug fixes:
         • HTML::DOM::Interface  now  maps  HTML::DOM::TreeBuilder  to

@@ -1,4 +1,4 @@
-HTML::DOM, version 0.025
+HTML::DOM, version 0.026
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -11,6 +11,11 @@ RECENT CHANGES
 
 See the Changes file for the long version.
 
+0.026
+-----
+• css_url_fetcher
+• Parsing of comments (RT #48168)
+
 0.025
 -----
 • HTML::DOM::Interface  now  maps  HTML::DOM::TreeBuilder  to
@@ -22,12 +27,6 @@ See the Changes file for the long version.
 0.024
 -----
 Increased the CSS::DOM required version to 0.06.  (I forgot it in the previous release.)
-
-0.023
------
-• New feature: getComputedStyle — still highly experimental and
-  unfinished
-• A couple of bug fixes
 
 
 TO DO

@@ -87,7 +87,7 @@ use tests 17; # ElementCSSInlineStyle
 }
 
 # -------------------------------- #
-use tests 4; # LinkStyle
+use tests 6; # LinkStyle
 
 {
 	(my $elem = $doc->createElement('style'))->appendChild(
@@ -97,10 +97,27 @@ use tests 4; # LinkStyle
 	is +($elem->sheet->cssRules)[0]->selectorText, 'a',
 		'contents are there';
 
-	$elem = $doc->createElement('link');
-	is +()=$elem->sheet, 0, 'sheet can return null';
-	$elem->setAttribute('rel' => 'stylesheet');
-	isa_ok $elem->sheet, 'CSS::DOM', '<link> ->sheet';
+	my $doc = new HTML::DOM;
+	my $css ;
+	$doc->css_url_fetcher(sub{$css});
+	$doc->write("<link href='data:text/css,'>");
+	$doc->write("<link rel=stylesheet href='data:text/css,'>");
+	$doc->close;
+	my @links = $doc->find('link');
+	is +()=$links[0]->sheet, 0,
+	 'sheet returns null when rel != stylesheet';
+	is +()=$links[1]->sheet, 0,
+	 'sheet returns null when rel == stylesheet, & cuf returns undef';
+
+	$css='';
+	$doc->write("<link href='data:text/css,'>");
+	$doc->write("<link rel=stylesheet href='data:text/css,'>");
+	$doc->close;
+	@links = $doc->find('link');
+	is +()=$links[0]->sheet, 0,
+	 'sheet returns null when rel != stylesheet, even w/cuf';
+	isa_ok $links[1]->sheet, 'CSS::DOM',
+	 '<link> ->sheet when rel == stylesheet and cuf returns defined';
 }
 
 # -------------------------------- #
@@ -110,6 +127,7 @@ use tests 17; # DocumentStyle
 	use Scalar::Util 'refaddr';
 
 	my $doc = new HTML::DOM;
+	$doc->css_url_fetcher(sub{''});
 	$doc->write('
 		<style id=stile>b { font-weight: bold }</style>
 		<link id=foo rel=stylesheet>
@@ -148,8 +166,10 @@ use tests 17; # DocumentStyle
 	$link->setAttribute(rel => 'a stylesheet');
 	is @$list, 2,
 	    'setAttribute adds the style sheet to the list';
+	SKIP: { skip 'What is the correct behaviour?' ,1;
 	isn't refaddr $list->[1], refaddr $list[1],
 	    'creating it from scratch';
+	}
 
 	@list = @$list;
 
@@ -166,8 +186,10 @@ use tests 17; # DocumentStyle
 	$link->setAttributeNode($attr);
 	is @$list, 2,
 	    'setAttributeNode adds the style sheet to the list ...';
+	SKIP: { skip 'What is the correct behaviour?' ,1;
 	isn't refaddr $list->[1], refaddr $list[1],
 	    '... creating it from scratch';
+	}
 	
 	$link->removeAttribute('rel');
 	is @$list, 1, 'removeAttribute removes the style sheet';

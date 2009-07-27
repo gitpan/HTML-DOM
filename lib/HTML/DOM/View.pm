@@ -8,7 +8,7 @@ use Hash::Util::FieldHash::Compat 'fieldhash';
 
 fieldhash my %doc;
 
-our $VERSION = '0.025';
+our $VERSION = '0.026';
 
 # -------- DOM ATTRIBUTES -------- #
 

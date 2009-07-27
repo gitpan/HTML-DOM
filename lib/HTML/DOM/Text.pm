@@ -8,7 +8,7 @@ use HTML::DOM::Node qw 'TEXT_NODE ATTRIBUTE_NODE';
 require HTML::DOM::CharacterData;
 
 our @ISA = 'HTML::DOM::CharacterData';
-our $VERSION = '0.025';
+our $VERSION = '0.026';
 
 
 =head1 NAME

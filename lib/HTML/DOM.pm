@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.025';
+our $VERSION = '0.026';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.025 (alpha)
+Version 0.026 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -94,7 +94,7 @@ The following DOM modules are currently supported:
   Views           2.0
 
 StyleSheets, CSS and CSS2 are actually provided by L<CSS::DOM>. This list
-corresponds to CSS::DOM versions 0.02 to 0.07.
+corresponds to CSS::DOM versions 0.02 to 0.06.
 
 =head1 METHODS
 
@@ -202,7 +202,7 @@ C<response>.
 			 },
 		 ))
 		   ->ignore_ignorable_whitespace(0); # stop eof()'s cleanup
-		                                       # from changing the
+		$tb->store_comments(1);                # from changing the
 		$tb->unbroken_text(1); # necessary, con-  # script han-
 		                     # sidering what        # dler's view
 		                   # _tweak_~text does       # of the tree
@@ -430,26 +430,58 @@ sub elem_handler {
 }
 
 
-=begin comment
-
-I ran out of time to finish this before making a necessary bug-fix release.
-
 =item css_url_fetcher( \&sub )
 
 With this method you can provide a subroutine that fetches URLs referenced
-by 'link' tags. HTML::DOM will then pass the result to L<CSS::DOM> and turn
-it into a style sheet object accessible via the link element's
-L<C<sheet>|HTML::DOM::Element::Link/sheet>> method.
+by 'link' tags. Its sole argument is the URL, which is made absolute based
+on the HTML page's own base URL (it is assumed that this is absolute). It 
+should return C<undef> or an empty list on failure. Upon
+success, it should return just the CSS code, if it has been decoded (and is
+in Unicode), or, if it has not been decoded, the CSS code followed by
+C<< decode => 1 >>. See L<CSS::DOM/STYLE SHEET ENCODING> for details on
+when you should or should not decode it. (Note that HTML::DOM automatically
+provides an encoding hint based on the HTML document.)
 
-=end comment
+HTML::DOM passes the result of the url fetcher to L<CSS::DOM> and
+turns
+it into a style sheet object accessible via the link element's
+L<C<sheet>|HTML::DOM::Element::Link/sheet> method.
+
+In the current implementation, this simply uses C<elem_handler>, clobbering
+any handler for 'link'
+elements already registered. This may change in the future.
 
 =cut
 
 sub css_url_fetcher {
- $_[0]{_HTML_DOM_cuf} = $_[1];
+ my $fetcher = $_[1];
+ $_[0]->elem_handler( link => sub {
+  my($doc,$elem) = @_;
+  return unless ($elem->attr('rel')||'') =~
+		/(?:^|\p{IsSpacePerl})stylesheet(?:\z|\p{IsSpacePerl})/i;
+  my $base = $doc->base;
+  my $url = defined $base
+   ? new_abs URI $elem->href, $doc->base
+   : $elem->href;
+  my ($css_code, %args) = $fetcher->($url);
+  return unless defined $css_code;
+  require CSS'DOM;
+  VERSION CSS'DOM 0.03;
+  my $hint = $doc->charset || 'iso-8859-1'; # default HTML charset
+  $elem->sheet(
+   CSS'DOM'parse(      # ’Tis true we create a new closure for each style
+    $css_code,               # sheet, but what if the charset changes?
+    url_fetcher => sub {           # ~~~ Is that even possible?
+     my @ret = $fetcher->(shift);
+     @ret ? ( $ret[0], encoding_hint => $hint, @ret[1..$#ret]) : ()
+    },
+    encoding_hint => $hint,
+    %args
+   )
+  );
+ });
  return;
 }
-
 
 =item $tree->write(...) (DOM method)
 
