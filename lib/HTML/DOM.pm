@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.026';
+our $VERSION = '0.027';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.026 (alpha)
+Version 0.027 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -88,13 +88,17 @@ The following DOM modules are currently supported:
   UIEvents        2.0
   MouseEvents     2.0
   MutationEvents  2.0
+  HTMLEvents      2.0
   StyleSheets     2.0
   CSS             2.0 (partially)
   CSS2            2.0
   Views           2.0
 
 StyleSheets, CSS and CSS2 are actually provided by L<CSS::DOM>. This list
-corresponds to CSS::DOM versions 0.02 to 0.06.
+corresponds to CSS::DOM versions 0.02 to 0.07.
+
+=for comment
+Level 2 interfaces not yet included: Range, Traversal
 
 =head1 METHODS
 
@@ -390,6 +394,8 @@ sub elem_handler {
 		# referring to the wrong one.
 		my $doc_elem = ($self->content_list)[0];
 		$doc_elem->{_HTML_DOM_tweakall}->(@_);
+		$self->_modified; # in case there are node lists hanging
+		                  # around that the handler references
 		{ local $$self{_HTML_DOM_buffered} = 1;
 		  &$sub($self, $_[0]); }
 		return unless exists $$self{_HTML_DOM_write_buffer};
@@ -603,6 +609,7 @@ sub write {
 			or $self->open;
 		($self->content_list)[0]->parse(shift);
 	}
+	$self->_modified;
 	return # nothing;
 }
 
@@ -1078,7 +1085,7 @@ Creates a new event object, believe it or not.
 
 The C<$category> is the DOM event category, which determines what type of
 event object will be returned. The currently supported event categories
-are MouseEvents and UIEvents.
+are MouseEvents, UIEvents and MutationEvents.
 
 You can omit the C<$category> to create an instance of the event base class
 (not officially part of the DOM).

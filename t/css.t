@@ -1,4 +1,4 @@
-#!/usr/bin/perl -T
+#!/usr/bin/perl
 
 use strict; use warnings; use lib 't';
 our $tests;
@@ -215,12 +215,13 @@ use tests 23; # ViewCSS
 	(my $view = new TestView) -> document ( $doc );
 
 	require CSS::DOM;
-	$view->[0] = CSS'DOM'parse('
+	VERSION CSS'DOM 0.07;
+	$view->[0] = CSS'DOM'parse(' /* UA style sheet */
 		#twelve { font-size: 13px }
 		#thirteen { font-size: 14px }
 		#fourteen { font-size: 15px
 	');
-	$view->[1] = CSS'DOM'parse('
+	$view->[1] = CSS'DOM'parse(' /* User style sheet */
 		#twelve { font-size: 3px }
 		#thirteen { font-size: 4px }
 	');
@@ -306,11 +307,11 @@ _END_
 
 	
 
-	$view->[0]=CSS'DOM'parse('
+	$view->[0]=CSS'DOM'parse(' /* UA style sheet */
 		p { color: yellow ! important; }
 		span { font-size: 38px !important }
 	');
-	$view->[1]=CSS'DOM'parse('
+	$view->[1]=CSS'DOM'parse(' /* User style sheet */
 		a { font-size: 14px ! important }
 	');
 	$doc->write(<<'_TEMDOBEDXK>N');
@@ -357,8 +358,8 @@ _TEMDOBEDXK>N
 	is $view->getComputedStyle($doc->links->[0])->fontSize, '14px',
 		'user !important overrides author !important';
 	is $view->getComputedStyle($doc->getElementById('s'))->fontSize,
-		'23px',
-		'un!important author decl overrides !important ua decl';
+		'38px',
+		'!important ua decl overrides un!important author decl';
 	my $d = $doc->getElementsByTagName('div')->[0];
 	is $view->getComputedStyle($d)->textTransform, 'none',
 		'getComputedStyle without pseudo-elem';

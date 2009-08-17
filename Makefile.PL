@@ -34,11 +34,12 @@ WriteMakefile(
          HTTP::Request::Common     => 0,
         'HTTP::Headers::Util'      => 0,
          overload                  => 0,
-#        'Scalar::Util'             => 1.09, # refaddr
+        'Scalar::Util'             => 1.09, # refaddr
          strict                    => 0,
          URI                       => 0,
          warnings                  => 0,
 # used only in the tests:
+         CSS'DOM                   => 0.07, # !important ua rules
          Scalar::Util              => 1.14, # refaddr with ties
         'Test::More'               => 0,
 	 utf8                      => 0,

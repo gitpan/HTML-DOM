@@ -3,7 +3,7 @@ package HTML::DOM::Implementation;
 use strict;
 use warnings;
 
-our $VERSION = '0.026';
+our $VERSION = '0.027';
 
 our $it = bless do{\my$x};
 
@@ -14,6 +14,7 @@ my %features = (
 	uievents => { '2.0' => 1 },
 	mouseevents => { '2.0' => 1},
 	mutationevents => { '2.0' => 1 },
+        htmlevents => { '2.0' => 1 },
 	views => { '2.0' => 1 },
 #	stylesheets => { '2.0' => 1 },
 #       css => { '2.0' => 1 },
@@ -57,8 +58,9 @@ C<$HTML::DOM::Implementation::it> or C<< HTML::DOM->implementation >>.
 =head2 $implementation->hasFeature( $name, $version )
 
 This returns true or false depending on whether the feature is supported.
-C<$name> is case-tolerant. Currently, this only returns true for 'HTML' and
-'1.0'.
+C<$name> is case-tolerant. C<$version> is optional. The supported features
+are listed under L<HTML::DOM/DESCRIPTION>. If C<$version is '1.0', this 
+method only returns true for 'Core' and 'HTML'.
 
 =head1 SEE ALSO
 

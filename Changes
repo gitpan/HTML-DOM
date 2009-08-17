@@ -1,5 +1,19 @@
 Revision history for HTML::DOM
 
+0.027   16 August, 2009
+        • Updated a test to match a change in CSS::DOM with regard to
+          !important user agent rules.  CSS::DOM 0.07 is now required.
+        New features:
+        • createEvent now accepts  HTMLEvents  as an event type. trig-
+          ger_event now has the defaults for all the HTML event types
+          listed in the DOM Level 2 Events specification.  (These may
+          need to be changed later to conform to HTML 5,  which  more
+          closely resembles reality.)
+        Bug fixes:
+        • HTML collections and  node  lists  created  by  getElements-
+          By(Tag)Name  used not to be updated when the  write  method
+          was  called  or  when  an  element  handler  was  triggered.
+
 0.026   27 July, 2009
         Incompatible change:
         • The  sheet  method of link elements used to create an empty

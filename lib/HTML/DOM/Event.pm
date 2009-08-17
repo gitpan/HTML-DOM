@@ -1,6 +1,6 @@
 package HTML::DOM::Event;
 
-our $VERSION = '0.026';
+our $VERSION = '0.027';
 
 
 use strict;
@@ -83,9 +83,9 @@ sub init {
 my %class_for = (
 	'' => __PACKAGE__,
 	UIEvents => 'HTML::DOM::Event::UI',
+	HTMLEvents => __PACKAGE__,
 	MouseEvents => 'HTML::DOM::Event::Mouse',
 	MutationEvents => "HTML::DOM::Event::Mutation",
-	# ~~~ etc.
 );
 
 sub class_for {
@@ -213,6 +213,51 @@ my %defaults = (
 		cancellable => 0,
 	],
 	domcharacterdatamodified  => [ MutationEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+	load => [ HTMLEvents =>
+		propagates_up => 0,
+		cancellable => 0,
+	],
+	unload => [ HTMLEvents =>
+		propagates_up => 0,
+		cancellable => 0,
+	],
+	focus => [ HTMLEvents =>
+		propagates_up => 0,
+		cancellable => 0,
+	],
+	blur => [ HTMLEvents =>
+		propagates_up => 0,
+		cancellable => 0,
+	],
+	abort => [ HTMLEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+	error => [ HTMLEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+	select => [ HTMLEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+	change => [ HTMLEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+	# submit uses the defaults
+	reset => [ HTMLEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+	resize => [ HTMLEvents =>
+		propagates_up => 1,
+		cancellable => 0,
+	],
+	scroll => [ HTMLEvents =>
 		propagates_up => 1,
 		cancellable => 0,
 	],

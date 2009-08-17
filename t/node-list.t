@@ -3,9 +3,12 @@
 # This script tests both the NodeList interface and the Perl overload
 # interface of both NodeList classes.
 
+# We also check to see that node lists are updated whenever the document
+# is modified.
+
 use strict; use warnings;
 
-use Test::More tests => 025;
+use Test::More tests => 030;
 
 
 # -------------------------#
@@ -77,3 +80,23 @@ $magic = new HTML::DOM::NodeList::Magic sub { $doc->childNodes }, $doc;
 $magic->length;  # call the sub and populate it
 $doc->appendChild($doc->createElement('br'));
 is $magic->length, 2, 'second arg to magic node list constructor automatically registers the node list with the document';
+
+# -------------------------#
+# Tests 22-4: make sure doc-modification methods update node lists
+#             This did not work for document->write before 0.027.
+
+$doc = new HTML::DOM;
+my $divs = $doc->getElementsByTagName('div');
+()=@$divs; # force the node list to update itself
+$doc->write("<div><div><div></div></div></div>");
+$doc->close;
+is @$divs, 3, "node lists are updated by document->write";
+$doc->elem_handler(script => sub {
+ is @$divs, 2, "node lists are updated before an elem_handler is called";
+});
+$doc->write(
+ "<div><div><script></script><div></div><div></div></div></div>"
+);
+is @$divs, 4, 'node lists are updated when doc->write finishes';
+
+# ~~~ Add tests for node-manipulation methods.

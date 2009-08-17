@@ -1,6 +1,6 @@
 package HTML::DOM::EventTarget;
 
-our $VERSION = '0.026';
+our $VERSION = '0.027';
 
 
 use strict;
@@ -466,4 +466,4 @@ L<HTML::DOM::Event>
 
 L<HTML::DOM::Node>
 
-L<HTML::DOM::Node::Attr>
+L<HTML::DOM::Attr>

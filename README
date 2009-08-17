@@ -1,15 +1,20 @@
-HTML::DOM, version 0.026
+HTML::DOM, version 0.027
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
-This is an alpha release.  So far,  the  level-2  core  and  HTML  DOM
-interfaces have been implemented, most of the level-2 event interfaces
-and some of the level-2 style sheet interfaces.
+This is an alpha release. So far, the level-2 core HTML and event DOM
+interfaces have been implemented, and some of the level-2 style sheet
+interfaces.
 
 
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.027
+-----
+• HTMLEvents
+• Node lists are correctly updated when the write method is called.
 
 0.026
 -----
@@ -24,14 +29,9 @@ See the Changes file for the long version.
 • innerHTML  no longer dies when serialising a text node that was cre-
   ated from an object with string overloading.
 
-0.024
------
-Increased the CSS::DOM required version to 0.06.  (I forgot it in the previous release.)
-
 
 TO DO
 
-- Finish Level 2 Events support (HTMLEvents)
 - Finish Level 2 CSS support
 - outerHTML/innerText?
 - Other DOM interfaces (the rest of level 2, and level 3)
@@ -70,7 +70,7 @@ Perl modules:
   distribution) (tested with 3.23)
 - URI (tested with 1.35)
 - LWP 1.13 or later
-- CSS::DOM 0.06 or later
+- CSS::DOM 0.07 or later
 - HTML::Encoding is required if the parse_file method is to be used.
 - constant::lexical
 - Hash::Util::FieldHash::Compat
