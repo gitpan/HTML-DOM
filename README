@@ -1,4 +1,4 @@
-HTML::DOM, version 0.027
+HTML::DOM, version 0.028
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -11,6 +11,12 @@ RECENT CHANGES
 
 See the Changes file for the long version.
 
+0.028
+-----
+When  HTML  code contains something like  <td><form><td><input>,  the
+<input> is now associated with the <form>. Thanks to Terry Simons for
+bringing this to my attention.
+
 0.027
 -----
 • HTMLEvents
@@ -20,14 +26,6 @@ See the Changes file for the long version.
 -----
 • css_url_fetcher
 • Parsing of comments (RT #48168)
-
-0.025
------
-• HTML::DOM::Interface  now  maps  HTML::DOM::TreeBuilder  to
-  HTMLHtmlElement,  instead of  HTMLElement.  (This class  is
-  used for the <html>  element when the tree is being built.)
-• innerHTML  no longer dies when serialising a text node that was cre-
-  ated from an object with string overloading.
 
 
 TO DO

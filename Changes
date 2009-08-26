@@ -1,5 +1,13 @@
 Revision history for HTML::DOM
 
+0.028   25 August, 2009
+        New features:
+        • Form elements are now associated during  parsing  with  the
+          last-opened form element,  even if it has  been  implicitly
+          closed.  This is to deal with badly-formed  documents  that
+          contain aberrations like  <td><form><td><input>.  Thanks to
+          Terry Simons for bringing this to my attention.
+
 0.027   16 August, 2009
         • Updated a test to match a change in CSS::DOM with regard to
           !important user agent rules.  CSS::DOM 0.07 is now required.

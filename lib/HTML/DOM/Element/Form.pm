@@ -10,7 +10,7 @@ require HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 #require HTML::DOM::Collection::Elements;
 
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 our @ISA = qw'HTML::DOM::Element';
 
 use overload fallback => 1,
@@ -36,11 +36,26 @@ sub elements { # ~~~ I need to make this cache the resulting collection obj
 	else {
 		my $collection = HTML::DOM::Collection::Elements->new(
 		my $list = HTML::DOM::NodeList::Magic->new(
-		    sub { grep $elem_elems{tag $_}, $self->descendants }
+		    sub {
+		     grep($elem_elems{tag $_}, $self->descendants),
+		     @{ $self->{_HTML_DOM_elems}||[] }
+		    }
 		));
 		$self->ownerDocument-> _register_magic_node_list($list);
 		$collection;
 	}
+}
+sub add_element { # helper routine that formies use to add themselves to
+ my $self = shift;  # the elements list
+ push @{ $self->{_HTML_DOM_elems} ||= [] }, shift
+  if $elem_elems{ $_[0]->tag };
+ return;
+}
+sub remove_element { # and this is how formies remove themselves when they
+ my $self = shift;   # get moved around the DOM
+ my $removee = shift;
+ @{ $self->{_HTML_DOM_elems} }
+  = grep $_ != $removee, @{ $self->{_HTML_DOM_elems} ||= [] }
 }
 
 sub length        { shift->elements              -> length }
@@ -376,7 +391,7 @@ package HTML::DOM::NodeList::Radio; # solely for HTML::Form compatibility
 use Carp 'croak';
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 our @ISA = qw'HTML::DOM::NodeList';
 
 sub type { 'radio' }
@@ -448,7 +463,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 
 require HTML::DOM::Collection;
 our @ISA = 'HTML::DOM::Collection';
@@ -583,7 +598,7 @@ This triggers the form's 'reset' event.
 =item trigger_event
 
 This class overrides the superclasses' method to trigger the default event
-handler for form submissions,when the submit event occurs, and reset the
+handler for form submissions, when the submit event occurs, and reset the
 form when a reset event occurs.
 
 =back
@@ -625,11 +640,13 @@ L<HTML::Form>
 # ------- HTMLSelectElement interface ---------- #
 
 package HTML::DOM::Element::Select;
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 our @ISA = 'HTML::DOM::Element';
 
 use overload fallback=>1, '@{}' => sub { shift->options };
 	# ~~~ Don't I need %{} as well?
+
+use Scalar'Util 'weaken';
 
 sub type      { 'select-' . qw/one multiple/[!!shift->attr('multiple')] }
 sub selectedIndex   {
@@ -661,7 +678,16 @@ sub selectedIndex   {
 sub _reset_sel_index { delete shift->{_HTML_DOM_sel_index} }
 sub value   { shift->options->value(@_) }
 sub length { scalar(()= shift->options ) }
-sub form           { (shift->look_up(_tag => 'form'))[0] || () }
+sub form           { 
+ my $self = shift;
+ my $ret = ($self->look_up(_tag => 'form'))[0] || $$self{_HTML_DOM_f}
+  if defined wantarray;
+ @_ and defined $_[0]
+  ? ( weaken($$self{_HTML_DOM_f} = $_[0]), shift->add_element($self) )
+  : (delete $$self{_HTML_DOM_f} or return $ret || ())
+     ->remove_element($self);
+ $ret || ();
+}
 sub options { # ~~~ I need to make this cache the resulting collection obj
               #     but when I do so I need to weaken references to $self
               #     and make ::Options do the same.
@@ -708,7 +734,7 @@ package HTML::DOM::Collection::Options;
 use strict;
 use warnings;
 
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 
 use Carp 'croak';
 use constant::lexical sel => 5; # must not conflict with super
@@ -784,7 +810,7 @@ sub length { # override
 # ------- HTMLOptGroupElement interface ---------- #
 
 package HTML::DOM::Element::OptGroup;
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 our @ISA = 'HTML::DOM::Element';
 
 sub label  { shift->_attr( label => @_) }
@@ -794,7 +820,7 @@ sub label  { shift->_attr( label => @_) }
 # ------- HTMLOptionElement interface ---------- #
 
 package HTML::DOM::Element::Option;
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
@@ -905,7 +931,7 @@ sub _reset { delete shift->{_HTML_DOM_sel} }
 # ------- HTMLInputElement interface ---------- #
 
 package HTML::DOM::Element::Input;
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
@@ -1114,7 +1140,7 @@ sub content {
 # ------- HTMLTextAreaElement interface ---------- #
 
 package HTML::DOM::Element::TextArea;
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 our @ISA = qw'HTML::DOM::Element';
 
 sub defaultValue { # same as HTML::DOM::Element::Title::text
@@ -1162,7 +1188,7 @@ sub _reset {
 # ------- HTMLButtonElement interface ---------- #
 
 package HTML::DOM::Element::Button;
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1177,7 +1203,7 @@ sub value      { shift->attr( value       => @_) }
 # ------- HTMLLabelElement interface ---------- #
 
 package HTML::DOM::Element::Label;
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1187,7 +1213,7 @@ sub htmlFor { shift->_attr( for       => @_) }
 # ------- HTMLFieldSetElement interface ---------- #
 
 package HTML::DOM::Element::FieldSet;
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1195,7 +1221,7 @@ our @ISA = qw'HTML::DOM::Element';
 # ------- HTMLLegendElement interface ---------- #
 
 package HTML::DOM::Element::Legend;
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;

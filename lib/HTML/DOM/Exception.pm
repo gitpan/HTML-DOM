@@ -24,7 +24,7 @@ use constant {
 
 use Exporter 5.57 'import';
 
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 our @EXPORT_OK = qw'
 	INDEX_SIZE_ERR             
 	DOMSTRING_SIZE_ERR         

@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.027 (alpha)
+Version 0.028 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -159,6 +159,18 @@ C<response>.
 	# this package and expect it to provide the document, because
 	# that’s not the case with innerHTML.  Use ->ownerDocument.
 
+	# Concerning magic associations between forms and fields: To cope
+	# with bad markup, an implicitly closed form (with no end tag) is
+	# associated with any form fields that occur after that  are  not
+	# inside any form. So when a start tag for a form is encountered,
+	# we  make  that  the  ‘current form’,  by  pushing  it  on  to
+	# @{ $$self{_HTML_DOM_cf} }.  When the element is closed, if it
+	# is closed by an end tag, we simply pop it off the cf array. If
+	# it is implicitly closed we pop it off  and  also  make  it  the
+	# ‘magic form’  (_HTML_DOM_mg_f).  When we encounter a form field,
+	# we give it a  magic  association  with  the  form  if  the  cf
+	# stack is empty.
+
 
 	package HTML::DOM::TreeBuilder;
 	our @ISA = qw' HTML::DOM::Element::HTML HTML::TreeBuilder';
@@ -197,6 +209,37 @@ C<response>.
 			'tweak_*' => sub {
 				my($elem, $tag, $doc_elem) = @_;
 				$tag =~ /^~/ and return;
+
+				# If a  form  is  being  closed,  determine
+				# whether it is closed implicitly and set
+				# the  current  form  and  magic  form
+				# accordingly.
+				if($tag eq 'form') {
+					pop
+					 @{$$doc_elem{_HTML_DOM_cf}||[]};
+				 	delete $$doc_elem{_HTML_DOM_etif}
+					 or $$doc_elem{_HTML_DOM_mg_f}
+					  = $elem
+				}
+
+				# If a formie is being closed, create a
+				# magic association where appropriate.
+				if(!$$doc_elem{_HTML_DOM_no_mg}
+				   and $tag =~ /^(?:
+				    button|(?:
+				     fieldse|inpu|(?:obj|sel)ec
+				    )t|label|textarea
+				   )\z/x
+				   and $$doc_elem{_HTML_DOM_mg_f}
+				   and  !$$doc_elem{_HTML_DOM_cf}
+				      ||!@{$$doc_elem{_HTML_DOM_cf}}) {
+					$elem->form(
+					 $$doc_elem{_HTML_DOM_mg_f}
+					);
+					$doc_elem->ownerDocument->
+					 magic_forms(1);
+				}
+
 				my $event_offsets = delete
 				    $elem->{_HTML_DOM_tb_event_offsets}
 				  or return;
@@ -218,6 +261,10 @@ C<response>.
 		$tb->handler((declaration=>)x2,'self,tagname,tokens,text');
 
 		$tb->{_HTML_DOM_tweakall} = $tb->{'_tweak_*'};
+
+		my %opts = @_;
+		$tb->{_HTML_DOM_no_mg} = delete $opts{no_magic_forms};
+		  # used by an element’s innerHTML
 
 		# We have to copy it like this, because our circular ref-
 		# erence is thus:  $tb  ->  object  ->  closure  ->  $tb
@@ -253,6 +300,9 @@ C<response>.
 				\%event_offsets,
 			);
 		}
+
+		$_[0] eq 'form' and push @{ $$self{_HTML_DOM_cf} ||= [] },
+		 $elem;
 
 		return $elem;
 	}
@@ -299,6 +349,8 @@ C<response>.
 
 		my $self = shift;
 		my $pos = $self->{_pos};
+		++$$self{_HTML_DOM_etif} # end tag is 'form'
+		 if $_[0] eq 'form';
 		my @ret = $self->SUPER::end(@_);
 		$self->{_pos} = $pos
 			if ($self->{_pos}||return @ret)->{_tag} eq '~doc';
@@ -1221,8 +1273,6 @@ sub nodeName { '#document' }
 Returns the base URL of the page; either from a <base href=...> tag or the
 URL passed to C<new>.
 
-=back
-
 =cut
 
 sub base {
@@ -1234,6 +1284,19 @@ sub base {
 		$doc->URL
 	}
 }
+
+=item $tree->magic_forms
+
+This is mainly for internal use. This returns a boolean indicating whether
+the parser needed to associate formies with a form that did not contain
+them. This happens when a closing </form> tag is missing and the form is
+closed implicitly, but a formie is encountered later.
+
+=cut
+
+sub magic_forms { @_ and ++$_[0]{_HTML_DOM_mg_f}; $_[0]{_HTML_DOM_mg_f} }
+
+=back
 
 =head1 HASH ACCESS
 

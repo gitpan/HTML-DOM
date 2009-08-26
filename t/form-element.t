@@ -580,6 +580,46 @@ use tests 7; # reset
 	is $$form{cyngle}->selectedIndex, 1;
 }
 
+# -------------------------#
+use tests 26; # magic element-form association
+{
+ # Every element of this array has three tests to go with it
+ my @formies = qw 'select input textarea button label fieldset object';
+
+ $doc->innerHTML( '<table><tR><td><form><td><selecT></select><input>
+                   <textarea></textarea><button></button><label></label>
+                   <fieldset></fieldset><object></object>' );
+ my $form = $doc->forms->[0];
+ for(@formies) {
+  is $doc->find($_)->form, $form,
+   "The parser magically links $_ elements to implicitly closed forms.";
+ }
+ is $form->elements->length, 4,
+  'form->elements lists the magically linked items';
+ my $td = ($doc->find('td'))[1];
+ for(@formies) {
+  my $elem = $doc->find($_);
+  $td->removeChild($elem);
+  is +()=$elem->form, 0,
+    "The magic link on $_ elements is broken when the node is removed.";
+  $td->appendChild($elem);
+  is +()=$elem->form, 0,
+    "The link on $_ elements is not restored when the node is put back.";
+ }
+ is $form->elements->length, 0,
+  'The magically linked items are no longer listed in form->elements.';
+ $doc->innerHTML( '<table><tr><td><form><td><form></form><input>' );
+ is $doc->forms->[0], $doc->find('input')->form,
+  '<td><form><td><form></form><input> links input to the first form';
+ $doc->innerHTML( '<table><tr><td><form><td><form><td><input>' );
+ is $doc->forms->[1], $doc->find('input')->form,
+  '<td><form><td><form><td><input> links input to the second form';
+ $doc->innerHTML('<p>');
+ $doc->body->innerHTML( '<table><tr><td><form><td><input>' );
+ is +()=$doc->find('input')->form, 0,
+  'elem->innerHTML creates no magical form element associations';
+}
+
 # ~~~ I need to write tests for HTML::DOM::Collection::Elements’s namedItem
 #     method. In .009 it dies if there are radio buttons. I don’t think it
 #     works for more than two buttons.
