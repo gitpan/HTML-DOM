@@ -1,5 +1,12 @@
 Revision history for HTML::DOM
 
+0.029   28 August, 2009
+        Bug fixes:
+        • HTML::DOM::Element::Form’s elements method,  when called in
+          list context,  was ignoring the magic associations added in
+          the previous version. Thanks to Terry Simons once more, for
+          the bug report.
+
 0.028   25 August, 2009
         New features:
         • Form elements are now associated during  parsing  with  the

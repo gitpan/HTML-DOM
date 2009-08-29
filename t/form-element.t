@@ -581,7 +581,7 @@ use tests 7; # reset
 }
 
 # -------------------------#
-use tests 26; # magic element-form association
+use tests 27; # magic element-form association
 {
  # Every element of this array has three tests to go with it
  my @formies = qw 'select input textarea button label fieldset object';
@@ -596,6 +596,8 @@ use tests 26; # magic element-form association
  }
  is $form->elements->length, 4,
   'form->elements lists the magically linked items';
+ is +()=$form->elements, 4, # yes, this test actually failed in 0.028
+  'form->elements lists the magically linked items in list context';
  my $td = ($doc->find('td'))[1];
  for(@formies) {
   my $elem = $doc->find($_);

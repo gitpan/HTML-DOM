@@ -1,4 +1,4 @@
-HTML::DOM, version 0.028
+HTML::DOM, version 0.029
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -11,6 +11,12 @@ RECENT CHANGES
 
 See the Changes file for the long version.
 
+0.029
+-----
+HTML::DOM::Element::Form’s elements method,  when called in list cont-
+ext,  was ignoring the magic associations added in the  previous  ver-
+sion. Thanks to Terry Simons once more, for the bug report.
+
 0.028
 -----
 When  HTML  code contains something like  <td><form><td><input>,  the
@@ -21,11 +27,6 @@ bringing this to my attention.
 -----
 • HTMLEvents
 • Node lists are correctly updated when the write method is called.
-
-0.026
------
-• css_url_fetcher
-• Parsing of comments (RT #48168)
 
 
 TO DO
