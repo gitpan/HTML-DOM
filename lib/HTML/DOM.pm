@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.029';
+our $VERSION = '0.030';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.029 (alpha)
+Version 0.030 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -321,7 +321,7 @@ C<response>.
 				$$event_offsets{$_}
 			);
 			defined $l and
-			$elem->_add_attr_event (
+			$elem->attr_event_listener (
 				$_, $l
 			);
 		}
@@ -659,13 +659,14 @@ sub write {
 	else {
 		eval {($self->content_list)[0]->isa('HTML::TreeBuilder')}
 			or $self->open;
-		($self->content_list)[0]->parse(shift);
+		my $parser = ($self->content_list)[0];
+		$parser->parse($_) for @_;
 	}
 	$self->_modified;
 	return # nothing;
 }
 
-sub writeln { $_[0]->write("$_[1]\n") }
+sub writeln { shift->write(@_,"\n") }
 
 sub close {
 	my $a = (shift->content_list)[0];
@@ -932,7 +933,7 @@ headers are supported.
 
 sub title {
 	my $doc = shift;
-	return $doc->find('title')->firstChild->data(@_);
+	return $doc->find('title')->text(@_);
 }
 
 sub referrer {
@@ -1248,6 +1249,41 @@ sub location {
 
 sub set_location_object {
 	$_[0]{_HTML_DOM_loc} = $_[1];
+}
+
+
+=item lastModified
+
+This method returns the document's modification date as gleaned from the
+response object passed to the constructor, in MM/DD/YYYY HH:MM:SS format.
+
+If there is no modification date, an empty string is returned, but this
+may change in the future.
+
+=begin comment
+
+When there is no modification date, the return value is different in every
+browser.
+NS 2-4 and Opera 9 have the epoch (in GMT format).
+Firefox 3 has the time the page was loaded.
+Safari 4 has an empty string (it uses GMT format when there is a mod time).
+IE, 6-8 the only one to comply with HTML 5, has the current time; but HTML
+5 is illogical, since it makes no sense for the modification time to keep
+ticking away.
+
+I’ve opted to use the empty string for now, since we can’t *really* find
+out the modification time--only what the server *says* it is. And if the
+server doesn’t say, it’s no use pretending that it did say it.
+
+=end comment
+
+=cut
+
+sub lastModified {
+	my $time = ($_[0]{_HTML_DOM_response} || return '')->last_modified
+	 or return '';
+	require Date'Format;
+	Date'Format'time2str("%d/%m/%Y %X", $time);
 }
 
 

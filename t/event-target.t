@@ -385,5 +385,30 @@ use tests 7;  # event_listeners_enabled
 }
 
 
-# ~~~ explicit tests for event attribute event listener attribute methods
-#     (How’s that for excessive attributive use of nouns?)
+# -------------------------#
+use tests 8;  # on* and attr_event_listener
+{
+ my $scratch;
+ my $sub1 = sub { $scratch .= "one called "};
+ my $sub2 = sub {  $scratch .= "two called " };
+ is +()=$child->onbdext, 0, 'null retval from on*';
+ is +()=$child->onbdext($sub1),0,'null retval from on* initial assignment';
+ is $child->onbdext($sub2), $sub1, 'on* returns old value';
+ is $child->onbdext, $sub2, 'on* with no args after assignment';
+ $child->trigger_event('bdext');
+ is $scratch, "two called ",
+  'on* registers event listener and removes old one';
+ is $child->attr_event_listener('bdext'), $sub2,
+  'attr_event_listener returns the same thing as on*';
+ is $child->attr_event_listener('bdext',$sub1),$sub2,
+  'setting attr_event_listener returns old val';
+ is $child->onbdext, $sub1, 'and the change applies to on*';
+}
+
+# -------------------------#
+use tests 1;  # error messages for invalid methods
+{             # (Testing this is necessary since we implement AUTOLOAD.)
+ eval { 'dwext'->HTML::DOM::Node::dwed; };
+ like $@,
+  qr/^Can't locate object method "dwed" via package "HTML::DOM::Node"/;
+}

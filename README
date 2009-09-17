@@ -1,4 +1,4 @@
-HTML::DOM, version 0.029
+HTML::DOM, version 0.030
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -11,6 +11,20 @@ RECENT CHANGES
 
 See the Changes file for the long version.
 
+0.030
+-----
+New methods:
+• EventTarget’s attr_event_listener method
+• lastModified
+• Form’s encoding method
+• A and area elements now have hash, host, etc. properties that refer
+  to parts of the linked URL.
+Other stuff:
+• The  body  element now delegates  ‘onload’  et al.  to  the  window.
+• Improvements to the init method of event objects.
+• The  write  and  writeln  methods  now  accept  multiple  arguments.
+• Various bug fixes
+
 0.029
 -----
 HTML::DOM::Element::Form’s elements method,  when called in list cont-
@@ -22,11 +36,6 @@ sion. Thanks to Terry Simons once more, for the bug report.
 When  HTML  code contains something like  <td><form><td><input>,  the
 <input> is now associated with the <form>. Thanks to Terry Simons for
 bringing this to my attention.
-
-0.027
------
-• HTMLEvents
-• Node lists are correctly updated when the write method is called.
 
 
 TO DO

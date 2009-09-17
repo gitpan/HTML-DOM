@@ -1,6 +1,6 @@
 package HTML::DOM::Event;
 
-our $VERSION = '0.029';
+our $VERSION = '0.030';
 
 
 use strict;
@@ -63,14 +63,15 @@ sub initEvent {
 		propagates_up => shift,
 		cancellable => shift,
 	);
+	return;
 }
 
 sub init {
 	my($event, %args) = @_;
 	return if defined $event->eventPhase;
-	@$event{qw/name froth cancelable/}
-		= @args{qw/ type propagates_up cancellable /};
-	return;
+	@$event{qw/name froth cancelable target/}
+		= @args{qw/ type propagates_up cancellable target /};
+	$event;
 }
 
 # ----------- OTHER STUFF ------------- #
@@ -378,9 +379,11 @@ If this is called, no more event handlers will be triggered.
 
 =item preventDefault
 
-If this is called and the event object is cancelable, L<HTML::DOM::Node's 
+If this is called and the event object is cancelable, 
+L<HTML::DOM::EventTarget's 
 C<dispatchEvent>
-method|HTML::DOM::Node/dispatchEvent> will return false, indicating that
+method|HTML::DOM::EventTarget/dispatchEvent> will return false, indicating 
+that
 the default action is not to be taken.
 
 =back
@@ -398,6 +401,16 @@ This is a nice alternative to C<initEvent>. It takes named args:
       propagates_up => 1,
       cancellable => 1,
   );
+
+and returns the C<$event> itself, so you can write:
+
+  $node->dispatchEvent( $doc->createEvent(...)->init(...) );
+
+It also accepts C<target> as an argument. 
+This allows you to trigger weird events that have the target set to some
+object other than the actual target.
+(L<C<dispatchEvent>|HTML::DOM::EventTarget/dispatchEvent> will not set the
+target if it is already set.)
 
 =item cancelled
 

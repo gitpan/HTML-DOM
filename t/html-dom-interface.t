@@ -8,7 +8,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 97;
+use Test::More tests => 113;
 
 
 # -------------------------#
@@ -162,3 +162,12 @@ for(qw(
 # Test 97: change made in 0.025
 is $HTML::DOM::Interface{"HTML::DOM::TreeBuilder"}, 'HTMLHtmlElement',
  'HTML::DOM::TreeBuilder maps to HTMLHtmlElement';
+
+# -------------------------#
+# Tests 98-113: changes made in 0.030
+ok exists $HTML::DOM::Interface{HTMLDocument}{lastModified};
+ok exists $HTML::DOM::Interface{AbstractView}{getComputedStyle};
+ok exists $HTML::DOM::Interface{HTMLAnchorElement}{$_} for
+ qw/ hash host hostname pathname port protocol search /;
+ok exists $HTML::DOM::Interface{HTMLAreaElement}{$_} for
+ qw/ hash host hostname pathname port protocol search /;

@@ -161,7 +161,7 @@ sub clear_event_listeners {
 #  few sections)
 
 # -------------------------#
-use tests 24; # event initialisation (initEvent and init)
+use tests 25; # event initialisation (initEvent and init)
 
 is $event->type, undef, 'event type before init';
 is $event->eventPhase, undef, 'eventPhase before init';
@@ -194,7 +194,8 @@ is $event->type, 'click', 'event type after initEvent';
 
 $event = $doc->createEvent;
 $event2 = $doc->createEvent;
-init $event type => click => cancellable => 1 => propagates_up => 1;
+init $event type => click => cancellable => 1 => propagates_up => 1,
+            target => [];
 init $event2 type => focus => cancellable => 0 => propagates_up => 0;
 
 ok bubbles $event, 'event is bubbly after init';
@@ -202,7 +203,8 @@ ok!bubbles $event2, 'event is flat after init';
 ok cancelable $event, 'event is cancelable after init';
 ok!cancelable $event2, 'event is uncancelable after init';
 is scalar $event->currentTarget, undef, 'no currentTarget after init';
-is scalar $event->target, undef, 'no target after init';
+is ref $event->target, "ARRAY", 'target after init';
+is scalar $event2->target, undef, 'no target after init';
 is $event->eventPhase, undef, 'eventPhase after init';
 is $event->type, 'click', 'event type after init';
 
@@ -347,7 +349,7 @@ clear_event_listeners($doc, 'click');
 
 
 # -------------------------#
-use tests 10; # event dispatch:
+use tests 11; # event dispatch:
 #             qw/ target currentTarget preventDefault cancelable /
 #    This section also makes sure that event types are indifferent to case.
 
@@ -391,6 +393,14 @@ $grandchild->addEventListener(click => sub {
 ok $grandchild->dispatchEvent($event),
 	'preventDefault has no effect on uncancelable actions';
 is $e, 'did it', 'And, yes, preventDefault *was* actually called.';
+
+$e = '';
+clear_event_listeners($grandchild, 'click');
+$grandchild->addEventListener(click => sub { $e = $_[0]->target });
+$grandchild->dispatchEvent(
+ ($doc->createEvent)->init(type => 'click', target => $child)
+);
+is $e, $child, 'dispatchEvent leaves target alone if it already set';
 
 # -------------------------#
 use tests 6; # exceptions thrown by dispatchEvent

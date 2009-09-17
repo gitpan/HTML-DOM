@@ -33,7 +33,7 @@ require HTML::DOM::NodeList;
 
 our @ISA = 'HTML::DOM::EventTarget';
 
-our $VERSION = '0.029';
+our $VERSION = '0.030';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 
@@ -122,7 +122,7 @@ sub _modified {
 			$element, my $evt_name = lc $1, $new
 		);
 		defined $eavesdropper
-			and $element-> _add_attr_event(
+			and $element-> attr_event_listener(
 				$evt_name, $eavesdropper
 			);
 	}

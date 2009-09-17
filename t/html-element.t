@@ -14,6 +14,7 @@ use strict; use warnings;
 
 use lib 't';
 use HTML::DOM;
+use Scalar::Util 1.09 'refaddr';
 use tests();
 
 sub test_attr {
@@ -276,7 +277,7 @@ use tests 10; # HTMLStyleElement
 }
 
 # -------------------------#
-use tests 19; # HTMLBodyElement
+use tests 21; # HTMLBodyElement
 
 {
 	is ref(
@@ -297,6 +298,25 @@ use tests 19; # HTMLBodyElement
 	test_attr $elem, qw 5 link       green   prasino           5;
 	test_attr $elem, qw 6 text       blue    mple              6;
 	test_attr $elem, qw 7 vLink      dingo   eidos_skylou      7;
+
+	my $doc = new HTML::DOM;
+	@Window::ISA = qw (HTML::DOM::EventTarget);
+	my $wind = bless [], "Window";
+	$elem = $doc->body;
+	$doc->event_parent( $wind );
+	
+	my $scratch;
+	my $sub = sub{
+	 $scratch .= refaddr($_[0]->target) . ' '
+	           . refaddr($_[0]->currentTarget) . ' '
+	 };
+	$elem->onion($sub);
+	is $wind->onion, $sub,
+	 'assignment to body->onion assigns to window->onion';
+	$elem->addEventListener('ion', sub { $scratch .= "body " });
+	$elem->trigger_event('ion');
+	is $scratch, "body " .refaddr($elem) . " " . refaddr($wind) . " ",
+	   "handler assigned to body->on* vs body->addEventListener";
 }
 
 # -------------------------#
@@ -560,7 +580,7 @@ use tests 8; # HTMLModElement
 }
 
 # -------------------------#
-use tests 43; # HTMLAnchorElement
+use tests 43+57; # HTMLAnchorElement
 
 {
 	my $elem;
@@ -597,6 +617,81 @@ use tests 43; # HTMLAnchorElement
 	test_attr $elem, qw 2 type      application/pdf text/html   2;
 
 	test_event $elem => $_ for qw/blur focus/;
+
+
+	# Location methods not included in DOM 1 or 2 (but implemented in
+	# every browser since NS2 and included in HTML 5)
+
+	$doc->open(); 
+	# Doc currently has no base URL and href is relative.
+	for(qw( hash host hostname pathname port protocol search )) {
+		is $elem->$_, '',
+		 "$_ is empty str when href is relative to nothing";
+		$elem->$_("dwext");
+		is $elem->$_, "",
+		 "setting $_ sets it to '' when href is relative to nowt";
+	}
+
+	$elem->attr(href => undef );
+	for(qw( hash host hostname pathname port protocol search )) {
+		is $elem->$_, '',
+		 "$_ is empty str when href does not exist";
+		$elem->$_("dwext");
+		is $elem->$_, "",
+		 "setting $_ sets it to '' in absence of href";
+	}
+
+	$elem->attr(href => "http://clit.brile:232/bror?clat#brin");
+	is $elem->hash, "#brin",
+	 'hash when href is set but doc->base is blank';
+	is $elem->host, "clit.brile:232",
+	 'host when href is set but doc->base is blank';
+	is $elem->hostname, "clit.brile",
+	 'hostname when href is set but doc->base is blank';
+	is $elem->pathname, "/bror",
+	 'pathname when href is set but doc->base is blank';
+	is $elem->port, "232",
+	 'port when href is set but doc->base is blank';
+	is $elem->protocol, "http:",
+	 'protocol when href is set but doc->base is blank';
+	is $elem->search, "?clat",
+	 'search when href is set but doc->base is blank';
+
+	$doc->write("<base href='http://fext.gred/clow/'>");
+	$doc->close();
+	$elem->attr(href => "blelp");
+	is $elem->hash, "", 'hash is blank when missing from URL';
+	is $elem->hash("#brun"), '', 'hash retval when setting';
+	is $elem->href, "http://fext.gred/clow/blelp#brun",
+	 'setting hash modifies href and makes in absolute';
+	$elem->attr(href => "blelp");
+	is $elem->hostname, "fext.gred",
+	 'retval of hostname when href is relative';
+	$elem->attr(href => "http://fext.gred:123/blelp");
+	is $elem->hostname("blen.baise"), 'fext.gred',
+	 'retval of hostname when setting and when there is a port';
+	is $elem->href, "http://blen.baise:123/blelp",
+	 "setting hostname modifies href";
+	$elem->attr(href => "http://blan:2323/");
+	is $elem->host, "blan:2323", 'host';
+	is $elem->host("blan"), 'blan:2323',
+	 'retval of host when setting';
+	is $elem->href, "http://blan/", 'setting host';
+	is $elem->pathname, "/", 'pathname';
+	is $elem->pathname("/bal/"), '/', 'pathname retval when setting';
+	is $elem->href, "http://blan/bal/", 'setting pathname';
+	$elem->href("http://blid:3838/");
+	is $elem->port, "3838", "port";
+	is $elem->port("3865"), 3838, 'port retval when setting';
+	is $elem->href, "http://blid:3865/", 'setting port';
+	is $elem->protocol , "http:", 'protocol';
+	is $elem->protocol("ftp"), "http:", 'retval when setting protocol';
+	is $elem->href, 'ftp://blid:3865/', 'effect of setting protocol';
+	is $elem->search, '', 'search is blank when URL contains no ?';
+	is $elem->search("?oeet"), '', 'retval of search when setting';
+	is $elem->href,'ftp://blid:3865/?oeet', 'result of setting search';
+	$elem->search('?');
+	is $elem->href,'ftp://blid:3865/?','result of setting search to ?';
 }
 
 # -------------------------#
@@ -782,7 +877,7 @@ use tests 6; # HTMLMapElement
 }
 
 # -------------------------#
-use tests 25; # HTMLAreaElement
+use tests 25+57; # HTMLAreaElement
 
 {
 	my $elem;
@@ -813,6 +908,81 @@ use tests 25; # HTMLAreaElement
 	test_attr $elem, qw 2 shape    rect     poly    2;
 	test_attr $elem, qw 2 tabIndex 9        56      2;
 	test_attr $elem, qw 2 target   Fred     George  2;
+
+
+	# Location methods not included in DOM 1 or 2 (but implemented in
+	# every browser since NS2 and included in HTML 5)
+
+	$doc->open(); 
+	# Doc currently has no base URL and href is relative.
+	for(qw( hash host hostname pathname port protocol search )) {
+		is $elem->$_, '',
+		 "$_ is empty str when href is relative to nothing";
+		$elem->$_("dwext");
+		is $elem->$_, "",
+		 "setting $_ sets it to '' when href is relative to nowt";
+	}
+
+	$elem->attr(href => undef );
+	for(qw( hash host hostname pathname port protocol search )) {
+		is $elem->$_, '',
+		 "$_ is empty str when href does not exist";
+		$elem->$_("dwext");
+		is $elem->$_, "",
+		 "setting $_ sets it to '' in absence of href";
+	}
+
+	$elem->attr(href => "http://clit.brile:232/bror?clat#brin");
+	is $elem->hash, "#brin",
+	 'hash when href is set but doc->base is blank';
+	is $elem->host, "clit.brile:232",
+	 'host when href is set but doc->base is blank';
+	is $elem->hostname, "clit.brile",
+	 'hostname when href is set but doc->base is blank';
+	is $elem->pathname, "/bror",
+	 'pathname when href is set but doc->base is blank';
+	is $elem->port, "232",
+	 'port when href is set but doc->base is blank';
+	is $elem->protocol, "http:",
+	 'protocol when href is set but doc->base is blank';
+	is $elem->search, "?clat",
+	 'search when href is set but doc->base is blank';
+
+	$doc->write("<base href='http://fext.gred/clow/'>");
+	$doc->close();
+	$elem->attr(href => "blelp");
+	is $elem->hash, "", 'hash is blank when missing from URL';
+	is $elem->hash("#brun"), '', 'hash retval when setting';
+	is $elem->href, "http://fext.gred/clow/blelp#brun",
+	 'setting hash modifies href and makes in absolute';
+	$elem->attr(href => "blelp");
+	is $elem->hostname, "fext.gred",
+	 'retval of hostname when href is relative';
+	$elem->attr(href => "http://fext.gred:123/blelp");
+	is $elem->hostname("blen.baise"), 'fext.gred',
+	 'retval of hostname when setting and when there is a port';
+	is $elem->href, "http://blen.baise:123/blelp",
+	 "setting hostname modifies href";
+	$elem->attr(href => "http://blan:2323/");
+	is $elem->host, "blan:2323", 'host';
+	is $elem->host("blan"), 'blan:2323',
+	 'retval of host when setting';
+	is $elem->href, "http://blan/", 'setting host';
+	is $elem->pathname, "/", 'pathname';
+	is $elem->pathname("/bal/"), '/', 'pathname retval when setting';
+	is $elem->href, "http://blan/bal/", 'setting pathname';
+	$elem->href("http://blid:3838/");
+	is $elem->port, "3838", "port";
+	is $elem->port("3865"), 3838, 'port retval when setting';
+	is $elem->href, "http://blid:3865/", 'setting port';
+	is $elem->protocol , "http:", 'protocol';
+	is $elem->protocol("ftp"), "http:", 'retval when setting protocol';
+	is $elem->href, 'ftp://blid:3865/', 'effect of setting protocol';
+	is $elem->search, '', 'search is blank when URL contains no ?';
+	is $elem->search("?oeet"), '', 'retval of search when setting';
+	is $elem->href,'ftp://blid:3865/?oeet', 'result of setting search';
+	$elem->search('?');
+	is $elem->href,'ftp://blid:3865/?','result of setting search to ?';
 }
 
 # -------------------------#

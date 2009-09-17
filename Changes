@@ -1,5 +1,30 @@
 Revision history for HTML::DOM
 
+0.030   17 September, 2009
+        New features:
+        • EventTarget’s attr_event_listener method
+        • The  body  element now delegates attribute  event  handlers
+          to the  ownerDocument’s  ‘event_parent’  if  there  is  one.
+          (This makes the ‘onload’  in  <body onload='...'>  apply to
+          the window.)
+        • The  init  method of event objects now  accepts  target  as
+          an argument.
+        • The same  init  method now returns the event object  itself.
+        • The write and writeln methods now accept multiple arguments.
+        • lastModified
+        • Form’s encoding method
+        • A and area elements now have hash,  host,  etc.  properties
+          that refer to parts of the linked URL.
+        Bug fixes:
+        • HTML::DOM’s title  method no longer dies when the title ele-
+          ment is empty.
+        • EventTarget methods beginning with  ‘on’  (like  ‘onclick’)
+          used to return a  hash  ref  of  all  non-capture  handlers
+          assigned to the named event.  (Assignment  always  worked.)
+        • Invalid method calls on any class inheriting from  EventTar-
+          get used to have a scrambled error message.
+        • HTML::DOM::Interface now includes getComputedStyle.
+
 0.029   28 August, 2009
         Bug fixes:
         • HTML::DOM::Element::Form’s elements method,  when called in
@@ -60,8 +85,8 @@ Revision history for HTML::DOM
         New features:
         • getComputedStyle
         Bug fixes:
-        • A form elements value method is now capable of unchecking a
-          checkbox.
+        • A form element’s value method is now capable of  unchecking
+          a checkbox.
         • If the document was rewritten  (via close and write)  after
           styleSheets had already been accessed,  a subsequent access
           would return the first list of style sheets  again.

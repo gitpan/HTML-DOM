@@ -66,7 +66,7 @@ my $doc = new HTML::DOM;
 my $form;
 
 # -------------------------#
-use tests 31; # HTMLFormElement
+use tests 34; # HTMLFormElement
 
 {
 	is ref(
@@ -85,6 +85,8 @@ use tests 31; # HTMLFormElement
 	test_attr $form, qw/ acceptCharset utf-8 iso-8859-1 /;
 	test_attr $form, qw/ action http:\/\/\/ http:\/\/remote.host\/ /;
 	test_attr $form, enctype=>'',q/application\/x-www-form-urlencoded/;
+	test_attr $form, qw| encoding application/x-www-form-urlencoded
+	                     multipart/form-data |;
 	test_attr $form, qw/ method get post /;
 	test_attr $form, qw/ target foo phoo /;
 

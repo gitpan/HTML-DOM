@@ -5,7 +5,7 @@
 
 use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => 74;
+use Test::More tests => 82;
 
 
 # -------------------------#
@@ -41,12 +41,14 @@ $doc->write('
 $doc->close;
 
 # -------------------------#
-# Tests 3-11: simple attributes (not HTMLCollections or cookie)
+# Tests 3-12: simple attributes (not HTMLCollections or cookie)
 #     (not including the weird ones [fgColor, et al.]; see below for those)
 
 is    title $doc, 'Titlos', 'title';
 is $doc->title('new title'), 'Titlos', 'set title';
 is    title $doc, 'new title', 'see whether the title was set';
+$doc->find('title')->delete_content;
+is title $doc, '', 'title returns "" when the title element is empty';
 
 # These three are read-only:
 
@@ -69,7 +71,7 @@ is body $doc ->id, 'soma',                                'body';
 
 
 # -------------------------#
-# Tests 12-21: HTMLCollection attributes
+# Tests 13-22: HTMLCollection attributes
 
 # list context
 is_deeply [map id $_, images $doc], ['eikona1','eikona2'], 'images (list)';
@@ -97,7 +99,7 @@ is_deeply [map id $_, @{anchors$doc}], ['anchorlink','anchor2'],
 #     updated.
 
 # -------------------------#
-# Tests 22-5: URL and referrer with a response object
+# Tests 23-6: URL and referrer with a response object
 
 SKIP: {
 	skip 'HTTP::Re(sponse|quest) not installed', 4,
@@ -127,7 +129,7 @@ SKIP: {
 }
 
 # -------------------------#
-# Tests 26-32: cookies
+# Tests 27-33: cookies
 
 # Some things here are stolen from LWP's t/base/cookies.t.
 
@@ -181,7 +183,7 @@ SKIP: {
 }
 
 # -------------------------#
-# Tests 33-48: open, close, unbuffaloed write
+# Tests 34-52: open, close, unbuffaloed write(ln)
 
 # Buffaloed write is tested in html-dom.t together with
 # elem_handler with which it is closely tied.
@@ -253,10 +255,24 @@ SKIP: {
 	$doc->write('<p>');
 	ok !eval { $doc->close; 1 },
 		'close doesn\'t erroneously suppress errors';
+
+	$doc->open;
+	$doc->write('<ti','tle>a','b','c','</title>');
+	$doc->close;
+	is $doc->title, 'abc', 'multi-arg write';
+	$doc->writeln("<script>a");
+	$doc->writeln("b</script>");
+	$doc->close;
+	is $doc->find('script')->firstChild->data, "a\nb", 'writeln';
+	$doc->writeln("<s","cript>a");
+	$doc->writeln("b</script>");
+	$doc->close;
+	is $doc->find('script')->firstChild->data, "a\nb",
+	 'multi-arg writeln';
 }
 
 # -------------------------#
-# Tests 49-53: ^getElements?By
+# Tests 53-7: ^getElements?By
 
 $doc->write('<p name=para>para 1</p><p name=para>para 2</p><p id=p>3');
 $doc->close;
@@ -282,7 +298,7 @@ is $doc->getElementById(bless \do{my $v = 'p'}, 'oVerload')->firstChild
 	->data, 3, 'getElementById stringification';
 
 # -------------------------#
-# Tests 54-65: weird attributes (fgColor et al.)
+# Tests 58-69: weird attributes (fgColor et al.)
 
 $doc->write('<body alink=red background=white.gif bgcolor=white
                    text=black link=blue vlink=fuschia>');
@@ -302,7 +318,7 @@ is $doc->vlinkColor('silver'),      'fuschia', 'set/get vlinkColor';
 is $doc->vlinkColor,'silver',                , 'get vlinkColor';
 
 # -------------------------#
-# Tests 66-7: hashness
+# Tests 70-1: hashness
 
 $doc->write('<form name=fred></form><form name=alcibiades></form>');
 $doc->close;
@@ -311,7 +327,7 @@ is $doc->{fred}, $doc->forms->[0],           'hashness (1)';
 is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 
 # -------------------------#
-# Tests 68-71: innerHTML
+# Tests 72-5: innerHTML
 {
 	my $doc = new HTML::DOM;
 	$doc->write('
@@ -354,7 +370,7 @@ is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 }
 
 # -------------------------#
-# Tests 72-4: location
+# Tests 76-8: location
 {
 	my $href;
 	no warnings 'once';
@@ -366,4 +382,30 @@ is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 		'set_location_object does what its name says';
 	$doc->location('fooooooo');
 	is $href, 'fooooooo', 'location(arg) forwards to href';
+}
+
+# -------------------------#
+# Tests 79-82: lastModified
+SKIP: {
+	my $doc = new HTML::DOM;
+	is $doc->lastModified, '',
+	 'lastModified when there is no response object';
+
+	skip 'HTTP::Response not installed', 2,
+		unless eval{require HTTP::Response};
+
+	$doc = new HTML::DOM response => new HTTP'Response;
+	is lastModified $doc, '',
+	 'lastModified when response contains no mod time';
+
+	my $response = new HTTP::Response;
+	my $time = time;
+	my ($s,$m,$h,$d,$mo,$y) = localtime $time;
+	$mo += 1; $y += 1900;
+	$response->last_modified($time);
+	$doc = new HTML::DOM response => $response;
+	like $doc->lastModified, qr|^\d\d/\d\d/\d{4,} \d\d:\d\d:\d\d|,
+	 'format of lastModified';
+	is join("-", map 0+$_, split /\D/, $doc->lastModified),
+	   join("-", $d,$mo,$y,$h,$m,$s), "numbers in lastModified retval";
 }

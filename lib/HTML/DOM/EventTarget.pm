@@ -1,6 +1,6 @@
 package HTML::DOM::EventTarget;
 
-our $VERSION = '0.029';
+our $VERSION = '0.030';
 
 
 use strict;
@@ -132,24 +132,30 @@ previously assigned to C<onclick> if there is one.
 =cut
 
 sub AUTOLOAD {
-	my($meth) = our $AUTOLOAD =~ /.*::(.*)/s;
+	my($pack,$meth) = our $AUTOLOAD =~ /(.*)::(.*)/s;
 	$meth =~ /^on([a-z]+)\z/
 		or die "Can't locate object method \"$meth\" via package "
-			. ref($_[0]) . '" at '.join' line ',(caller)[1,2]
+			. qq'"$pack" at '.join' line ',(caller)[1,2]
 			,. "\n";
-	splice @_, 1, 0, $1;
-	goto &_attr_event;
+	shift->attr_event_listener($1, @_);
 }
 sub DESTROY{}
 
-# ~~~ I’d like to make this public, but I don’t know what to call it. The
-#     current name is misleading. Maybe it should be attr_event_listener.
-#     If I do make it public, HTML::DOM::Element::_add_attr_event should
-#     be deleted.
-sub _attr_event {
+=item attr_event_listener ( $name )
+
+=item attr_event_listener ( $name, $new_value )
+
+This is an accessor method for event listeners created by HTML or DOM
+attributes beginning with 'on'. This is used internally by the C<on*>
+methods. You can use it directly for efficiency's sake.
+
+=cut
+
+sub attr_event_listener {
 	my ($self,$name) = (shift,shift);
 	$name = lc $name;
-	my $old = exists $evh{$self} && $evh{$self}{$name};
+	my $old = exists $evh{$self} && exists $evh{$self}{$name}{attr}
+	 && $evh{$self}{$name}{attr};
 	@_ and $evh{$self}{$name}{attr} = shift;
 	$old ||();
 }
@@ -202,7 +208,7 @@ implementation detail that’s subject to change willy-nilly.
 =cut
 
 sub dispatchEvent {
-	shift->_dispatch_event(1, shift);
+	_dispatch_event(shift, 1, shift);
 }
 
 sub _dispatch_event { # This is where all the work is.
@@ -222,7 +228,7 @@ sub _dispatch_event { # This is where all the work is.
 		'The type of event has not been specified')
 		unless defined $name and length $name;
 
-	$event->_set_target($target) if $event;
+	$event->_set_target($target) if $event && !$event->target;
 
 	# Check to see whether we are supposed to skip event handlers, and
 	# short-circuit if that’s the case:
@@ -270,7 +276,7 @@ sub _dispatch_event { # This is where all the work is.
 				)->init(
 					%args, &$args
 				);
-				$e->_set_target($target);
+				$e->_set_target($target) unless $e->target;
 				$e;
 			};
 			$event->_set_eventPhase(
@@ -298,10 +304,9 @@ sub _dispatch_event { # This is where all the work is.
 				)->init(
 					%args, &$args
 				);
-				$e->_set_target($target);
+				$e->_set_target($target) unless $e->target;
 				$e;
 			};
-			$event->_set_target($target);
 		};
 		$event->_set_eventPhase(HTML::DOM::Event::AT_TARGET);
 		$event->_set_currentTarget($target);
@@ -328,10 +333,10 @@ sub _dispatch_event { # This is where all the work is.
 					)->init(
 						%args, &$args
 					);
-					$e->_set_target($target);
+					$e->_set_target($target)
+					  unless $e->target;
 					$e;
 				};
-				$event->_set_target($target);
 			}
 			unless ($initted2++) {
 				$event->_set_eventPhase(
@@ -405,8 +410,8 @@ sub trigger_event { # non-DOM method
 		# here, and have _dispatch_event create the object on
 		# demand, using the code ref that we pass to it.
 		my ($cat, @init_args) = HTML'DOM'Event'defaults($event);
-		if(my $rv = $target->_dispatch_event(
-			0, $cat, $args{auto_viv},
+		if(my $rv = _dispatch_event(
+			$target, 0, $cat, $args{auto_viv},
 			type => $event, @init_args
 		)) {
 			my $def = 

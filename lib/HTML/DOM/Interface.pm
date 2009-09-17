@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.029';
+our $VERSION = '0.030';
 
 =head1 NAME
 
@@ -396,6 +396,7 @@ gory details, look at the source code. In fact, here it is:
   #		getOverrideStyle => METHOD | OBJ,
   		innerHTML => STR,
   		location => OBJ,
+  		lastModified => STR | READONLY,
   	 },
   	 HTMLElement => {
   		tagName => STR | READONLY,
@@ -762,6 +763,13 @@ gory details, look at the source code. In fact, here it is:
   		type => STR,
   		blur => METHOD | VOID,
   		focus => METHOD | VOID,
+  		hash => STR,
+  		host => STR,
+  		hostname => STR,
+  		pathname => STR,
+  		port => STR,
+  		protocol => STR,
+  		search => STR,
   	 },
   	 HTMLImageElement => {
 		_isa => 'HTMLElement',
@@ -849,6 +857,13 @@ gory details, look at the source code. In fact, here it is:
   		shape => STR,
   		tabIndex => NUM,
   		target => STR,
+  		hash => STR,
+  		host => STR,
+  		hostname => STR,
+  		pathname => STR,
+  		port => STR,
+  		protocol => STR,
+  		search => STR,
   	 },
   	 HTMLScriptElement => {
 		_isa => 'HTMLElement',
@@ -1053,7 +1068,7 @@ gory details, look at the source code. In fact, here it is:
 		_hash => 0,
 		_array => 0,
   		document => OBJ | READONLY,
-  #		getComputedStyle => METHOD | OBJ,
+  		getComputedStyle => METHOD | OBJ,
   	 },
   );
 
