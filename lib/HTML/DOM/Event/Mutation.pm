@@ -1,6 +1,6 @@
 package HTML::DOM::Event::Mutation;
 
-our $VERSION = '0.030';
+our $VERSION = '0.031';
 
 use warnings; no warnings qw 'utf8 parenthesis';
 use strict;

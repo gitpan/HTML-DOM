@@ -1,4 +1,4 @@
-HTML::DOM, version 0.030
+HTML::DOM, version 0.031
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,12 @@ interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.031
+-----
+Bug fix: To conform to what ‘real’ web browsers do, a form’s elements
+collection no longer includes image buttons.  Thanks to Steven Nikkel
+for reporting this problem.
 
 0.030
 -----
@@ -29,13 +35,7 @@ Other stuff:
 -----
 HTML::DOM::Element::Form’s elements method,  when called in list cont-
 ext,  was ignoring the magic associations added in the  previous  ver-
-sion. Thanks to Terry Simons once more, for the bug report.
-
-0.028
------
-When  HTML  code contains something like  <td><form><td><input>,  the
-<input> is now associated with the <form>. Thanks to Terry Simons for
-bringing this to my attention.
+sion. Thanks to Terry Simons for the bug report.
 
 
 TO DO

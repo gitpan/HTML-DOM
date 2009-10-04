@@ -1,5 +1,10 @@
 Revision history for HTML::DOM
 
+0.031   4 October, 2009
+        Bug fix:  To conform to what ‘real’ web browsers do, a form’s
+        elements collection no longer includes image buttons.  Thanks
+        to Steven Nikkel for reporting this problem.
+
 0.030   17 September, 2009
         New features:
         • EventTarget’s attr_event_listener method

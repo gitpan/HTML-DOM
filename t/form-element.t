@@ -102,6 +102,13 @@ use tests 34; # HTMLFormElement
 		$r->type('radio'); 
 		$form->appendChild($r);
 	}
+	{
+		# Make sure image buttons are ignored
+		(my $r = $doc->createElement('input'))->type('image');
+		$r->value("SIGN IN");
+		$form->appendChild($r);
+	}
+	# ~~~ We need to test all possible formie types.
 
 	is $form->length, 3, '$form->length';
 	is $elements->length, 3., '$elements->length';

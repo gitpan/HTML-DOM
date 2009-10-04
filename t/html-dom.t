@@ -51,7 +51,9 @@ $doc->write('<p>Para ' . ($doc->body->childNodes->length+1))
 $doc->close;
 
 {
+	no warnings 'deprecated';
 	local $[ = 1;
+	use warnings 'deprecated';
 	my @p_tags = $doc->body->childNodes;
 	for(1..6){ 
 		is $p_tags[$_]->tagName, 'P',
