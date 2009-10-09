@@ -12,7 +12,7 @@
 
 use strict; use warnings; use lib 't';
 
-use Test::More tests => scalar reverse '401';
+use Test::More tests => scalar reverse '601';
 
 
 # -------------------------#
@@ -408,7 +408,7 @@ use Scalar::Util 'refaddr';
 }
 
 # -------------------------#
-# Tests 90-1: as_text and as_HTML
+# Tests 90-3: as_text and as_HTML
 
 {
 	my $element = $doc->createElement('p');
@@ -424,11 +424,21 @@ use Scalar::Util 'refaddr';
 	is $element->as_HTML,
 	   '<p>This text contains <tt>&lt;tags&gt;</tt>.<!--<no comment>-->
 ',	   "as_HTML";
+
+	# We forgot to pass the arguments to the superclass in releases
+	# prior to 0.032.
+	is $element->as_HTML((undef)x2,{}),
+	   '<p>This text contains <tt>&lt;tags&gt;</tt>.'
+	  .'<!--<no comment>--></p>
+',	   "as_HTML with args";
+	$belem->tag('del');
+	is $element->as_text(skip_dels => 1), "This text contains .",
+	 'as_text with args';
 }
 
 
 # -------------------------#
-# Tests 92-5: normalize
+# Tests 94-7: normalize
 
 {
 	my $element = $doc->createElement('p');
@@ -458,12 +468,12 @@ use Scalar::Util 'refaddr';
 }
 
 # -------------------------#
-# Tests 96-8: XML namespace stuff
+# Tests 98-100: XML namespace stuff
 
 is +()=$frag->$_, 0, $_ for qw / namespaceURI prefix localName /;
 
 # -------------------------#
-# Tests 99-101: hasAttributes
+# Tests 101-3: hasAttributes
 
 ok !$frag->hasAttributes, 'hasAttributes (non-Element node)';
 {
@@ -474,13 +484,13 @@ ok !$frag->hasAttributes, 'hasAttributes (non-Element node)';
 }
 
 # -------------------------#
-# Tests 102-3: isSupported
+# Tests 104-5: isSupported
 
 ok $frag->isSupported('hTML', '1.0'), 'isSupported';
 ok!$frag->isSupported('onfun') ,'isn’tSupported';
 
 # -------------------------#
-# Test 104: push_content on an empty node
+# Test 106: push_content on an empty node
 
 ok eval{$doc->createElement('foo')->push_content()},
 	'push_content with no args on an empty node doesn\'t die';

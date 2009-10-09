@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.031';
+our $VERSION = '0.032';
 
 =head1 NAME
 
@@ -15,7 +15,7 @@ HTML::DOM::Interface - A list of HTML::DOM's interface members in machine-readab
   # name of DOM interface (HTMLDocument):
   $HTML::DOM::Interface{"HTML::DOM"};
   
-  # interface it inherits from (Document):
+  # interface it inherits from (Node):
   $HTML::DOM::Interface{HTMLDocument}{_isa};
   
   # whether this can be used as an array
@@ -84,7 +84,8 @@ gory details, look at the source code. In fact, here it is:
 
 =for ;
 
-  our @EXPORT_OK = qw/METHOD VOID READONLY BOOL STR NUM OBJ TYPE/;
+  our @EXPORT_OK = qw/ METHOD VOID READONLY BOOL STR NUM OBJ TYPE
+                       UTF16 /;
   our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
   sub METHOD   () {       1 }
@@ -425,6 +426,8 @@ gory details, look at the source code. In fact, here it is:
   		className => STR,
   		style => OBJ | READONLY,
   		innerHTML => STR,
+  		insertAdjacentHTML => METHOD | VOID,
+  		insertAdjacentElement => METHOD | VOID,
   	 },
   	 HTMLHtmlElement => {
 		_isa => 'HTMLElement',

@@ -1,6 +1,6 @@
 package HTML::DOM::EventTarget;
 
-our $VERSION = '0.031';
+our $VERSION = '0.032';
 
 
 use strict;
@@ -16,6 +16,7 @@ use Scalar::Util qw'refaddr  blessed';
 fieldhashes \my(
 	%evh,  # event handlers
 	%cevh, # capturing event handlers
+	%aevh, # attribute event handlers
 );
 
 =head1 NAME
@@ -141,24 +142,29 @@ sub AUTOLOAD {
 }
 sub DESTROY{}
 
-=item attr_event_listener ( $name )
+=item event_handler ( $name )
 
-=item attr_event_listener ( $name, $new_value )
+=item event_handler ( $name, $new_value )
 
 This is an accessor method for event listeners created by HTML or DOM
 attributes beginning with 'on'. This is used internally by the C<on*>
 methods. You can use it directly for efficiency's sake.
+
+This method used to be called C<attr_event_listener>, but that was a
+mistake, as there is a distinction between handlers and listeners. The old
+name is still available but will be removed in a future release.
 
 =cut
 
 sub attr_event_listener {
 	my ($self,$name) = (shift,shift);
 	$name = lc $name;
-	my $old = exists $evh{$self} && exists $evh{$self}{$name}{attr}
-	 && $evh{$self}{$name}{attr};
-	@_ and $evh{$self}{$name}{attr} = shift;
+	my $old = exists $aevh{$self} && exists $aevh{$self}{$name}
+	 && $aevh{$self}{$name};
+	@_ and $aevh{$self}{$name} = shift;
 	$old ||();
 }
+*event_handler = *attr_event_listener;
 
 
 =item get_event_listeners($event_name, $capture)
@@ -182,9 +188,22 @@ sub get_event_listeners { # uses underscores because it is not a DOM method
 	my($self,$name,$capture) = @_;
 	$name = lc $name;
 	my $h = (\(%cevh, %evh))[!$capture]->{$self};
-	$h && exists $$h{$name}
+	my @ret = $h && exists $$h{$name}
 		? values %{$$h{$name}}
-		: ()
+		: ();
+	if(!$capture && exists $aevh{$self} && exists $aevh{$self}{$name}
+	   and defined (my $aevh = $aevh{$self}{$name})) {
+		@ret, sub {
+			my $ret =
+			 defined blessed $aevh && $aevh->can('call_with')
+			 ? call_with $aevh $self, $_[0]
+			 : &$aevh($_[0]);
+			defined $ret
+			 && ($name eq 'mouseover' ? $ret : !$ret)
+			 && $_[0]->preventDefault;
+		}
+	}
+	else { @ret }
 }
 
 =item dispatchEvent($event_object)

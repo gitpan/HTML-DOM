@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.031';
+our $VERSION = '0.032';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.031 (alpha)
+Version 0.032 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -321,7 +321,7 @@ C<response>.
 				$$event_offsets{$_}
 			);
 			defined $l and
-			$elem->attr_event_listener (
+			$elem->event_handler (
 				$_, $l
 			);
 		}
@@ -1214,7 +1214,9 @@ sub innerHTML  {
 	my $self = shift;
 	my $old;
 	$old = join '' , $self->documentElement->{_HTML_DOM_doctype}||'',
-		map substr(as_HTML $_, 0, -1), $self->content_list
+		map substr((
+		 as_HTML $_ (undef)x2,{}
+		), 0, -1), $self->content_list
 	  if defined wantarray;
 	if(@_){
 		$self->open();
@@ -1343,15 +1345,31 @@ S<< C<< $doc->forms->{yayaya} >> >>.
 =head1 EVENT HANDLING
 
 HTML::DOM supports both the DOM Level 2 event model and the HTML 4 event
-model (at least in part; the HTMLEvent interface is
-not yet implemented; MutationEvents are not always triggered when they
-should be [see L</BUGS>, below]).
+model.
 
-An event listener (aka handler) is a coderef, an object with a 
-C<handleEvent>
+Throughout this documentation, we make use of HTML 5's distinction between
+handlers and listeners: An event handler is the result of an HTML element
+beginning with 'on', e.g. onsubmit. These are also accessible via the DOM.
+(We also use the word 'handler' in other contexts, such as the 'default
+event handler'.)
+Event listeners are registered solely with the C<addEventListener> method
+and can be removed with C<removeEventListener>.
+
+HTML::DOM accepts as an event handler a coderef, an object with an 
+C<call_with> method, or an object with C<&{}> overloading. If the
+C<call_with> method is present, it is called with the current event
+target as the first argument and the event object as the second.
+This is to allow for objects that wrap JavaScript functions (which must be called with the event target as the B<this> value).
+
+An event listener is a coderef, an object with a C<handleEvent>
 method or an object with C<&{}> overloading. HTML::DOM does not implement
 any classes that provide a C<handleEvent> method, but will support any
 object that has one.
+
+Listeners and handlers differ in one important aspect. A listener has to
+call C<preventDefault> on the event object to cancel the default action. A
+handler simply returns a defined false value (except for mouseover event,
+which must return a true value to cancel the default).
 
 =head2 Default Actions
 
@@ -1409,7 +1427,8 @@ event handler.
 =head2 HTML Event Attributes
 
 The C<event_attr_handler> can be used to assign a coderef that will turn
-text assigned to an event attribute (e.g., C<onclick>) into a listener. The
+text assigned to an event attribute (e.g., C<onclick>) into an event
+handler. The
 arguments to the routine will be (0) the element, (1) the name (aka
 type) of 
 the event (without the initial 'on'), (2) the value of the attribute and
@@ -1428,11 +1447,8 @@ handlers are Perl code:
           my($elem, $name, $code, $offset) = @_;
           my $sub = eval "sub { $code }";
           return sub {
-                  my($event) = @_;
                   local *_ = \$elem;
-                  my $ret = &$sub;
-                  defined $ret and !$ret and
-                          $event->preventDefault;
+                  &$sub;
           };
   });
 
@@ -1445,7 +1461,8 @@ triggered, so it is not called unnecessarily.)
 =head2 When an Event Handler Dies
 
 Use C<error_handler> to assign a coderef that will be called whenever an
-event listener raises an error. The error will be contained in C<$@>.
+event listener (or handler) raises an error. The error will be contained in 
+C<$@>.
 
 =head2 Other Event-Related Methods
 
@@ -1468,7 +1485,8 @@ set it like this (see also L</defaultView>, above):
 =item $tree->event_listeners_enabled( $new_val )
 
 This attribute, which is true by default, can be used to disable event
-handlers. (Default event handlers [see below] still run, though.)
+handlers and listeners. (Default event handlers [see below] still run, 
+though.)
 
 =back
 
@@ -1727,13 +1745,11 @@ L<Exporter> 5.57 or later
 L<HTML::TreeBuilder> and L<HTML::Element> (both part of the HTML::Tree
 distribution) (tested with 3.23)
 
-L<URI.pm|URI> (tested with 1.35)
+L<URI.pm|URI> (tested with 1.35 and higher)
 
-L<LWP> 5.13 or later (for the C<cookie> method and a form's C<make_request> 
-method to work)
+L<LWP> 5.13 or later
 
-L<CSS::DOM 0.06> or later is required if you use any of the style sheet 
-features.
+L<CSS::DOM> 0.06 or later
 
 L<Scalar::Util> 1.14 or later
 

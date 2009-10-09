@@ -1,5 +1,42 @@
 Revision history for HTML::DOM
 
+0.032   ???????
+        Incompatible change:
+        • An  event_attr_handler  that provides a  subroutine  ending
+          with a line like
+            defined $ret and !$ret and $event->preventDefault
+          will now end  up  triggering  preventDefault  in  the  case
+          of an undefined  $ret.  This is the  result  of  the  first
+          new feature:
+        New features:
+        • The event  dispatch  mechanism  now  distinguishes  between
+          event listeners (added via addEventListener)  and event han-
+          dlers (those assigned via attr_event_listener or one of the
+          on*  methods),  calling preventDefault as appropriate based
+          on the latter’s return value. To achieve this, we have made
+          get_event_listener return not the event handler itself, but
+          a closure that calls  the  event  handler  and  checks  its
+          return value.
+        • The closure  returned  by  get_event_listener  also  checks
+          whether the handler is an object with  a  call_with  method.
+          If it is,  it calls it with the current event target as its
+          first argument and the event object as the second.
+        • insertAdjacentHTML and insertAdjacentElement
+        Bug fixes:
+        • HTML::DOM::Interface now exports the UTF16 constant.
+        • innerHTML no longer omits </p> before <table>. (In fact, it
+          simply turns of  TreeBuilder’s tag-omitting feature,  which
+          has bugs in it.)
+        • as_text and as_HTML used not to pass arguments to the super-
+          class’s methods.
+        Other changes:
+        • attr_event_listener has been renamed to event_handler  (the
+          original name was a big mistake).  The old  name  is  still
+          available but will be removed in a future release.
+        • Makefile.PL  now lists  Date::Format,  which  I  forgot  to
+          include in 0.030 (lastModified uses it).  Thanks to Andreas
+          König for reporting this (RT #50273).
+
 0.031   4 October, 2009
         Bug fix:  To conform to what ‘real’ web browsers do, a form’s
         elements collection no longer includes image buttons.  Thanks

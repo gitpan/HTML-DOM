@@ -532,19 +532,19 @@ use tests 10; # even laster: make sure event_attr_handler is actually used
 	is $__[1][3], 27, 'offset is passed ...';
 	is $__[0][3], 52, '... to the event attr handler';
 
-	is_deeply [$doc->forms->[0]->get_event_listeners('submit')],
-	   [$__[1][4]],
+	is $doc->forms->[0]->event_handler('submit'),
+	   $__[1][4],
 	  'coderef returned by event attr handler becomes an eavesdropper';
-	is_deeply [$doc->forms->[0]->elements->[0]
-	              ->get_event_listeners('click')],
-	          [$__[0][4]],
+	is $doc->forms->[0]->elements->[0]
+	              ->event_handler('click'),
+	          $__[0][4],
 	          'same when on is spelt On';
 
 	$doc->forms->[0]->setAttribute('onsubmit' => 'live');
 	is $__[2][1], 'submit',
 		'setAttribute triggers the event attr handler';
-	is_deeply [$doc->forms->[0]->get_event_listeners('submit')],
-	   [$__[2][-1]],
+	is_deeply $doc->forms->[0]->event_handler('submit'),
+	   $__[2][-1],
 	  're-assigning to an event attr can replace an existing listener';
 
 	@__=();

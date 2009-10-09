@@ -1,6 +1,7 @@
 #!/usr/bin/perl -T
 
-use strict; use warnings; no warnings qw 'utf8 parenthesis';
+use strict; use warnings;
+no warnings qw 'utf8 parenthesis regexp once qw bareword syntax';
 
 use lib 't';
 use HTML::DOM;
@@ -21,7 +22,7 @@ my $child = bless \do{my $x}, MyEventTarget=>;
 my $grandchild = bless \do{my $x = $child}, 'MyEventTarget';
 
 # -------------------------#
-use tests 8; # (add|remove)EventListener and get_event_listeners
+use tests 10; # (add|remove)EventListener and get_event_listeners
 
 {
 	my $sub1 = sub{};
@@ -61,10 +62,15 @@ use tests 8; # (add|remove)EventListener and get_event_listeners
 	          [sort $sub3, $sub4],
 	          [$sub2]],
 	         'different slots for different event types and phases';
+	$child->onsubmit($sub1);
+	is +()=$child->get_event_listeners('submit'), 1,
+	 'get_event_listeners with attribute event handlers';
+	is +()=$child->get_event_listeners('submit',1), 0,
+	 'event handlers to not apply to the capture phase';
 }
 
 # Let's clean up after ourselves:
-clear_event_listeners($child, 'click', 'focus');
+clear_event_listeners($child, 'click', 'focus', 'submit');
 
 sub clear_event_listeners {
 	my $target = shift;
@@ -256,6 +262,36 @@ $grandchild->addEventListener(click => sub {
 ok $grandchild->dispatchEvent($event),
 	'preventDefault has no effect on uncancelable actions';
 is $e, 'did it', 'And, yes, preventDefault *was* actually called.';
+
+# -------------------------#
+use tests 6; # event dispatch: event handlers
+#  (accessors for event handlers are tested specifically further down)
+
+clear_event_listeners($grandchild, 'click');
+{
+ ($event = $doc->createEvent)->initEvent('click',1,1);
+ $grandchild->onclick(sub { 0 });
+ ok !$grandchild->dispatchEvent($event),
+  'defined false retval from attr event handler calls preventDefault';
+ ($event = $doc->createEvent)->initEvent('click',1,1);
+ $grandchild->onclick(sub{});
+ ok $grandchild->dispatchEvent($event),
+  'undef retval from attr event handler does not call preventDefault';
+ ($event = $doc->createEvent)->initEvent('mouseover',1,1);
+ $grandchild->onmouseover(sub{});
+ ok $grandchild->dispatchEvent($event),
+  'undef retval from onmouseover handler does not call preventDefault';
+ ($event = $doc->createEvent)->initEvent('mouseover',1,1);
+ $grandchild->onmouseover(sub{1});
+ ok !$grandchild->dispatchEvent($event),
+  'true retval from onmouseover handler calls preventDefault';
+ my @scratch;
+ *Function::call_with = sub { @scratch = @_ };
+ $grandchild->onclick(bless[], 'Function');
+ $grandchild->trigger_event('click');
+ is $scratch[1], $grandchild, 'target is passed to call_with';
+ isa_ok $scratch[2], 'HTML::DOM::Event', 'second arg to call_with';
+}
 
 # -------------------------#
 use tests 6; # exceptions thrown by dispatchEvent

@@ -45,7 +45,7 @@ Each of these returns the corresponding HTML attribute. If you pass an
 argument, it will become the new value of the attribute, and the old value
 will be returned.
 
-It also overrides L<HTML::DOM::EventTarget>'s C<attr_event_listener> method
+It also overrides L<HTML::DOM::EventTarget>'s C<event_handler> method
 to delegate event handlers associated with HTML or DOM attributes with the
 window object (more precisely, whatever object is assigned to the
 document's L<C<event_parent>|HTML::DOM::EventTarget/event_parent>) instead

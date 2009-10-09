@@ -58,7 +58,7 @@ isa_ok $doc, 'HTML::DOM';
 
 
 # -------------------------#
-use tests 53; # Element types that just use the HTMLElement interface
+use tests 62; # Element types that just use the HTMLElement interface
               # (and general tests for that interface)
 
 for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
@@ -112,7 +112,7 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	my $html = $elem->innerHTML;
 	is $elem->innerHTML('<div><p>foo<b>bar</b></div>'), $html,
 		'return value of innerHTML with argument';
-	is $elem->innerHTML, '<div><p>foo<b>bar</b></div>',
+	like $elem->innerHTML, qr'^<div><p>foo<b>bar</b>(?:</p>)?</div>\z',
 		'result of setting innerHTML';
 	$elem->innerHTML('<body><head><br></html>'); # :-)
 	is $elem->innerHTML,'<br>', 'innerHTML(mangled stuff)';
@@ -122,6 +122,50 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 
 	ok eval{$elem->innerHTML('<a onclick="">');1},
 		'innerHTML doesn\'t die when fed an event attribute';
+
+	# Test for what I consider a bug in HTML::TreeBuilder, but which
+	# others may not consider so....
+	$elem->innerHTML('<p></p><table><tr><td></table>');
+	$elem->innerHTML($elem->innerHTML);
+	is $elem->find('p')->childNodes->length, 0, 'innerHTML round-trip';
+
+	# Yes, the weird capitalisation is on purpose. I forgot the ‘lc’
+	# in these insertAdj* routines at first.
+	$elem->innerHTML('<b></b>');
+	$elem->firstChild->insertAdjacentHTML('bEforebegin','<i></i>');
+	is $elem->innerHTML, '<i></i><b></b>',
+	 'insertAdjacentHTML beforebegin';
+	$elem->firstChild->insertAdjacentHTML('aFterend','<u></u>');
+	is $elem->innerHTML, '<i></i><u></u><b></b>',
+	 'insertAdjacentHTML afterend';
+	$elem->insertAdjacentHTML('aftErbegin','<tt></tt>');
+	is $elem->innerHTML, '<tt></tt><i></i><u></u><b></b>',
+	 'insertAdjacentHTML afterbegin';
+	$elem->insertAdjacentHTML('befOreend','prext');
+	is $elem->innerHTML, '<tt></tt><i></i><u></u><b></b>prext',
+	 'insertAdjacentHTML beforeend';
+
+	$elem->innerHTML('<b></b>');
+	$elem->firstChild->insertAdjacentElement(
+	 'beForebegin',$doc->createElement('i')
+	);
+	is $elem->innerHTML, '<i></i><b></b>',
+	 'insertAdjacentElement beforebegin';
+	$elem->firstChild->insertAdjacentElement(
+	 'afTerend',$doc->createElement('u')
+	);
+	is $elem->innerHTML, '<i></i><u></u><b></b>',
+	 'insertAdjacentElement afterend';
+	$elem->insertAdjacentElement(
+	 'afterbegiN',$doc->createElement('tt')
+	);
+	is $elem->innerHTML, '<tt></tt><i></i><u></u><b></b>',
+	 'insertAdjacentElement afterbegin';
+	$elem->insertAdjacentElement(
+	 'beforeenD',$doc->createTextNode('pred')
+	);
+	is $elem->innerHTML, '<tt></tt><i></i><u></u><b></b>pred',
+	 'insertAdjacentElement beforeend';
 }
 
 # -------------------------#

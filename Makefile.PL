@@ -6,6 +6,24 @@ BEGIN {
 }
 use ExtUtils::MakeMaker;
 
+# This little piece of code is to solve (at least for this module) the oft-
+# repeated problem of upgrades breaking code that relies on it. Releasing
+# working versions of the other code is not a complete solution; the user
+# has to be told as well.
+# Unfortunately, previous versions of the JS plugin wouldn’t compile with-
+# out WWW::Scripter loaded already. So this is a mess.
+%broken_deps = (
+ WWW'Scripter'Plugin'JavaScript => { breaks => 0.002, use => 0.003 }
+);
+while(my($mod,$vers) = each broken_deps) {
+ if(eval{require WWW'Scripter}
+    and eval"require $mod" and !eval{VERSION $mod $$vers{use}}) {
+  print"
+WARNING: This distribution breaks compatibility with
+$mod $$vers{breaks} and earlier.\n\n";
+ }
+}
+
 WriteMakefile(
     NAME                => 'HTML::DOM',
     AUTHOR              => 'Father Chrysostomos <sprout & cpan . org>',
@@ -20,6 +38,7 @@ WriteMakefile(
         'CSS::DOM::Style'          => 0.05, # modification_handler
                                             # and ::Style::parse’s
         'CSS::DOM::StyleSheetList' => 0,    # stringification
+         Date'Format               => 0,
          Exporter                  => 5.57, # for use Exporter 'import'
          Hash'Util'FieldHash'Compat=> 0,
 	'HTML::Tagset'             => 0,
@@ -47,4 +66,6 @@ WriteMakefile(
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz',
                              TAR => 'COPYFILE_DISABLE=1 tar' },
     clean               => { FILES => 'HTML-DOM-*' },
-);
+    META_ADD            => { breaks => \%broken_deps }, # Hopefully this
+);                       # will be recognised by the toolchain some day....
+                     

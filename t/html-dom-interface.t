@@ -8,7 +8,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 113;
+use Test::More tests => 116;
 
 
 # -------------------------#
@@ -171,3 +171,9 @@ ok exists $HTML::DOM::Interface{HTMLAnchorElement}{$_} for
  qw/ hash host hostname pathname port protocol search /;
 ok exists $HTML::DOM::Interface{HTMLAreaElement}{$_} for
  qw/ hash host hostname pathname port protocol search /;
+
+# -------------------------#
+# Tests 114-16: changes made in 0.032
+ok exists $HTML::DOM::Interface{HTMLElement}{$_}
+ for qw/ insertAdjacentHTML insertAdjacentElement /;
+ok eval 'HTML::DOM::Interface->import("UTF16");1', 'UTF16 is exportable';

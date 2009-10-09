@@ -5,7 +5,7 @@
 
 use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => 82;
+use Test::More tests => 83;
 
 
 # -------------------------#
@@ -327,7 +327,7 @@ is $doc->{fred}, $doc->forms->[0],           'hashness (1)';
 is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 
 # -------------------------#
-# Tests 72-5: innerHTML
+# Tests 72-6: innerHTML
 {
 	my $doc = new HTML::DOM;
 	$doc->write('
@@ -366,11 +366,17 @@ is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 	}
 	$doc->body->appendChild($doc->createTextNode(bless[],'StringObj'));
 	like eval{$doc->innerHTML}, qr/#mi_down_0/,
-	 'innerHTML with text nodes made from objs with string overloading'
+	 'innerHTML w/text nodes made from objs with string overloading';
+
+	# Test for what I consider a bug in HTML::TreeBuilder, but which
+	# others may not consider so....
+	$doc->body->innerHTML('<p></p><table><tr><td></table>');
+	$doc->innerHTML($doc->innerHTML);
+	is $doc->find('p')->childNodes->length, 0, 'innerHTML round-trip';
 }
 
 # -------------------------#
-# Tests 76-8: location
+# Tests 77-9: location
 {
 	my $href;
 	no warnings 'once';
@@ -385,7 +391,7 @@ is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 }
 
 # -------------------------#
-# Tests 79-82: lastModified
+# Tests 80-3: lastModified
 SKIP: {
 	my $doc = new HTML::DOM;
 	is $doc->lastModified, '',

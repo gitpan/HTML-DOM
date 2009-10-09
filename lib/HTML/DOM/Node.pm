@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.031';
+our $VERSION = '0.032';
 
 
 use strict;
@@ -523,12 +523,12 @@ they work correctly with comment and text nodes.
 
 sub as_text{
 	(my $clone = shift->clone)->deobjectify_text;
-	$clone->SUPER::as_text;
+	$clone->SUPER::as_text(@_);
 }
 
 sub as_HTML{
 	(my $clone = shift->clone)->deobjectify_text;
-	$clone->SUPER::as_HTML;
+	$clone->SUPER::as_HTML(@_);
 }
 
 sub push_content {
