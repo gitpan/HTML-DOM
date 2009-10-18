@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.032';
+our $VERSION = '0.033';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.032 (alpha)
+Version 0.033 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -439,7 +439,12 @@ handy for reporting line numbers for script errors.)
 
 sub elem_handler {
 	my ($self,$elem_name,$sub) = @_;
-	$self->{_HTML_DOM_elem_handlers}{$elem_name} =
+
+# ~~~ temporary; for internal use only:
+	@_ < 3 and return $$self{_HTML_DOM_nih}{$elem_name}; 
+
+	$$self{_HTML_DOM_nih}{$elem_name} = $sub; # nih = node inser-
+	$self->{_HTML_DOM_elem_handlers}{$elem_name} =  # tion handler
 	($self->content_list)[0]->{"_tweak_$elem_name"} = sub {
 		# I can’t put $doc_elem outside the closure, because
 		# ->open replaces it with another object, and we’d be
@@ -1315,11 +1320,12 @@ URL passed to C<new>.
 
 sub base {
 	my $doc = shift;
-	if(my $base_elem = $doc->look_down(_tag => 'base')){
+	if(my $base_elem = $doc->look_down(_tag => 'base', href => qr)))){
 		return ''.$base_elem->attr('href');
 	}
 	else {
-		$doc->URL
+		no warnings 'uninitialized';
+		''.base{$$doc{_HTML_DOM_response}||return$doc->URL}
 	}
 }
 

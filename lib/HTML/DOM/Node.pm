@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.032';
+our $VERSION = '0.033';
 
 
 use strict;
@@ -260,7 +260,8 @@ sub insertBefore {
 	my $old_parent = $new_node->parent;
 	$old_parent and $new_node->trigger_event('DOMNodeRemoved',
 		rel_node => $old_parent);
-	if($new_node->is_inside($doc)) {
+	my $was_inside_doc = $new_node->is_inside($doc);
+	if($was_inside_doc) {
 		$_->trigger_event('DOMNodeRemovedFromDocument')
 		  for $new_node, $new_node->descendants;
 	}
@@ -273,8 +274,15 @@ sub insertBefore {
 
 	$new_node->trigger_event('DOMNodeInserted', rel_node => $self);
 	if($self->is_inside($doc)) {
-		$_->trigger_event('DOMNodeInsertedIntoDocument')
-		  for $new_node, $new_node->descendants;
+		for($new_node, $new_node->descendants) {
+			if(
+			 !$was_inside_doc
+			 and my $sub = $doc->elem_handler(lc $_->tag)
+			) {
+				&$sub($doc,$_)
+			}
+			$_->trigger_event('DOMNodeInsertedIntoDocument')
+		}
 	}
 	$_->trigger_event('DOMSubtreeModified')
 	  for _nearest_common_parent($old_parent, $self);
@@ -336,8 +344,12 @@ sub replaceChild {
 
 	$new_node->trigger_event('DOMNodeInserted', rel_node => $self);
 	if($in_doc) {
-		$_->trigger_event('DOMNodeInsertedIntoDocument')
-		  for $new_node, $new_node->descendants;
+		for($new_node, $new_node->descendants) {
+			if(my $sub = $doc->elem_handler(lc $_->tag)) {
+				&$sub($doc,$_)
+			}
+			$_->trigger_event('DOMNodeInsertedIntoDocument')
+		}
 	}
 	$_->trigger_event('DOMSubtreeModified')
 	  for _nearest_common_parent($old_parent, $self);
@@ -401,7 +413,8 @@ sub appendChild {
 	my $old_parent = $new_node->parent;
 	$old_parent and $new_node->trigger_event('DOMNodeRemoved',
 		rel_node => $old_parent);
-	if($new_node->is_inside($doc)) {
+	my $was_inside_doc = $new_node->is_inside($doc);
+	if($was_inside_doc) {
 		$_->trigger_event('DOMNodeRemovedFromDocument')
 		  for $new_node, $new_node->descendants;
 	}
@@ -412,8 +425,15 @@ sub appendChild {
 
 	$new_node->trigger_event('DOMNodeInserted', rel_node => $self);
 	if($self->is_inside($doc)) {
-		$_->trigger_event('DOMNodeInsertedIntoDocument')
-		  for $new_node, $new_node->descendants;
+		for($new_node, $new_node->descendants) {
+			if(
+			 !$was_inside_doc
+			 and my $sub = $doc->elem_handler(lc $_->tag)
+			) {
+				&$sub($doc,$_)
+			}
+			$_->trigger_event('DOMNodeInsertedIntoDocument')
+		}
 	}
 	$_->trigger_event('DOMSubtreeModified')
 	  for _nearest_common_parent($old_parent, $self);

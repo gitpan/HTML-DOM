@@ -10,7 +10,7 @@
 
 use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => 37;
+use Test::More tests => 39;
 
 
 # -------------------------#
@@ -243,7 +243,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Tests 35-7: base
+# Tests 35-9: base
 
 {
  my $doc = new HTML::DOM url => 'file:///';
@@ -253,4 +253,16 @@ is $doc->charset, 'utf-16be', 'get charset after set';
  is $doc->base, 'file:///Volumes/', '->base from <base>';
  $doc->find('base')->getAttributeNode('href'); # autoviv the attr node
  ok !ref $doc->base, 'base returns a plain scalar';
+
+ require HTTP'Response;
+ $doc = new HTML::DOM response => new HTTP'Response 200, OK => [
+  content_type => 'text/html',
+  content_base => 'http://websms.rogers.page.ca/skins/rogers-oct2009/',
+ ], '';
+ is $doc->base, 'http://websms.rogers.page.ca/skins/rogers-oct2009/',
+     'base from response object';
+
+ $doc->innerHTML("<base target=_blank><base href='http://rext/'>");
+ is $doc->base, "http://rext/",
+  'retval of base when <base target> comes bofer <base href>';
 }

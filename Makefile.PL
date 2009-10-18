@@ -24,13 +24,7 @@ $mod $$vers{breaks} and earlier.\n\n";
  }
 }
 
-WriteMakefile(
-    NAME                => 'HTML::DOM',
-    AUTHOR              => 'Father Chrysostomos <sprout & cpan . org>',
-    VERSION_FROM        => 'lib/HTML/DOM.pm',
-    ABSTRACT_FROM       => 'lib/HTML/DOM.pm',
-    PL_FILES            => {},
-    PREREQ_PM => {
+my %prq = (
          Carp                      => 0,
          constant                  => 1.03, # multiple at once
          constant::lexical         => 0,
@@ -60,9 +54,21 @@ WriteMakefile(
 # used only in the tests:
          CSS'DOM                   => 0.07, # !important ua rules
          Scalar::Util              => 1.14, # refaddr with ties
+         HTTP'Response             => 0,
         'Test::More'               => 0,
 	 utf8                      => 0,
-    },
+);
+# also for the tests:
+$prq{HTTP'Message} = 1.34 unless exists $prq{HTTP'Message}; # array ref
+                                                            # headers
+
+WriteMakefile(
+    NAME                => 'HTML::DOM',
+    AUTHOR              => 'Father Chrysostomos <sprout & cpan . org>',
+    VERSION_FROM        => 'lib/HTML/DOM.pm',
+    ABSTRACT_FROM       => 'lib/HTML/DOM.pm',
+    PL_FILES            => {},
+    PREREQ_PM     => \%prq,
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz',
                              TAR => 'COPYFILE_DISABLE=1 tar' },
     clean               => { FILES => 'HTML-DOM-*' },

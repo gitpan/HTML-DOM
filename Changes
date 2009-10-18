@@ -1,6 +1,19 @@
 Revision history for HTML::DOM
 
-0.032   ???????
+0.033   18 October, 2009
+        New feature:
+        • HTML::DOM’s base  method now falls back to the HTTP headers
+          (of the response object)  if the document  lacks  a  <base>
+          elem.  It is also better at dealing with invalid  documents
+          that include a <base target> before a <base href>.
+        • Coderefs registered via elem_handler are now triggered when
+          a node is inserted  into  the  document,  as  well  as  dur-
+          ing parsing.
+        Bug fix:
+        • HTML::DOM::Interface now includes the contentWindow  method
+          in the HTMLFrameElement  and  HTMLIFrameElement  interfaces.
+
+0.032   9 October, 2009
         Incompatible change:
         • An  event_attr_handler  that provides a  subroutine  ending
           with a line like

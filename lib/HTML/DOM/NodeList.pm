@@ -6,7 +6,7 @@ use overload fallback => 1, '@{}' => sub { ${$_[0]} };
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.032';
+our $VERSION = '0.033';
 
 
 # new NodeList \@array;

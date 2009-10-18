@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.032';
+our $VERSION = '0.033';
 
 =head1 NAME
 
@@ -991,6 +991,7 @@ gory details, look at the source code. In fact, here it is:
   		scrolling => STR,
   		src => STR,
   		contentDocument => OBJ | READONLY,
+  		contentWindow => OBJ | READONLY,
   	 },
   	 HTMLIFrameElement => {
 		_isa => 'HTMLElement',
@@ -1007,6 +1008,7 @@ gory details, look at the source code. In fact, here it is:
   		src => STR,
   		width => STR,
   		contentDocument => OBJ | READONLY,
+  		contentWindow => OBJ | READONLY,
   	 },
   	 Event => {
 		_hash => 0,
