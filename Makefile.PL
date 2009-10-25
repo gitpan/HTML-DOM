@@ -13,16 +13,40 @@ use ExtUtils::MakeMaker;
 # Unfortunately, previous versions of the JS plugin wouldn’t compile with-
 # out WWW::Scripter loaded already. So this is a mess.
 %broken_deps = (
+ WWW'Scripter                   => { breaks => 0.008, use => 0.009 },
  WWW'Scripter'Plugin'JavaScript => { breaks => 0.002, use => 0.003 }
 );
-while(my($mod,$vers) = each broken_deps) {
+while(my($mod,$vers) = each %broken_deps) {
  if(eval{require WWW'Scripter}
     and eval"require $mod" and !eval{VERSION $mod $$vers{use}}) {
-  print"
-WARNING: This distribution breaks compatibility with
-$mod $$vers{breaks} and earlier.\n\n";
+  push @broken_deps, $mod;
  }
 }
+
+if(@broken_deps == 1) {
+  my $mod = shift @broken_deps;
+  my $vers = $broken_deps{$mod};
+  $message = "WARNING: This distribution breaks compatibility with"
+           ." $mod $$vers{breaks} and earlier. Please consider upgrading"
+           ." to version $$vers{use}.";
+  print "\n";
+  write;
+  print "\n";
+}
+elsif(@broken_deps) {
+ print "
+WARNING: This distribution breaks compatibility with the follow-
+ing modules:
+",
+  map "  $_ $broken_deps{$_}{breaks} and earlier - use $broken_deps{$_}{use}\n",
+     @broken_deps;
+ print "\n";
+}
+
+format STDOUT =
+^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<~~
+$message
+.
 
 my %prq = (
          Carp                      => 0,

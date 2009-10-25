@@ -187,17 +187,17 @@ cmp_ok $@, '==',
 		' node type throws a ' .
 		'hierarchy error';
 
-	eval {
-		my $another_doc = new HTML::DOM;
+	my $another_doc = new HTML::DOM;
+	my $another_node = createTextNode $another_doc 'ddk';
+	ok eval {
 		$attr->replaceChild(
-			(createTextNode $another_doc 'ddk'),
+			$another_node,
 			(childNodes $attr)[0],
 		);
-	};
-	isa_ok $@, 'HTML::DOM::Exception',
-		'$@ (after replaceChild with wrong doc)';
-	cmp_ok $@, '==', HTML::DOM::Exception::WRONG_DOCUMENT_ERR,
-	    'replaceChild with wrong doc throws the appropriate error';
+		1
+	}, 'replaceChild with wrong doc no longer dies';
+	is $another_node->ownerDocument, $doc,
+		'replaceChild with wrong doc changes the owner doc';
 
 	eval {
 		$attr-> replaceChild(

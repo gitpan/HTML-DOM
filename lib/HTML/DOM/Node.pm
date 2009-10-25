@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.033';
+our $VERSION = '0.034';
 
 
 use strict;
@@ -24,7 +24,7 @@ use constant {
 use Exporter 5.57 'import';
 use HTML::DOM::Event;
 use HTML::DOM::Exception qw'NO_MODIFICATION_ALLOWED_ERR NOT_FOUND_ERR
-                               HIERARCHY_REQUEST_ERR WRONG_DOCUMENT_ERR
+                               HIERARCHY_REQUEST_ERR 
                                  UNSPECIFIED_EVENT_TYPE_ERR';
 use Scalar::Util qw'refaddr weaken blessed';
 
@@ -236,12 +236,7 @@ sub insertBefore {
 		die new HTML::DOM::Exception HIERARCHY_REQUEST_ERR,
 		'A node cannot be inserted into one of its descendants';
 
-	my $doc = $new_node->ownerDocument; # not $self->... because $self
-	                                    # might be the document, in
-	                                    # which case its owner is null.
-	$doc == $self || $doc == $self->ownerDocument or
-		die new HTML::DOM::Exception WRONG_DOCUMENT_ERR,
-		'The node to be inserted belongs to another document';
+	my $doc = $self->ownerDocument || $self;
 
 	my $index;
 	my @kids = $self->content_list;
@@ -266,11 +261,12 @@ sub insertBefore {
 		  for $new_node, $new_node->descendants;
 	}
 
-	$self->splice_content($index, 0,
+	$self->splice_content($index, 0, my @nodes =
 		$new_node->isa('HTML::DOM::DocumentFragment')
 		? $new_node->childNodes
 		: $new_node
 	);
+	$_->_set_ownerDocument($doc) for @nodes;
 
 	$new_node->trigger_event('DOMNodeInserted', rel_node => $self);
 	if($self->is_inside($doc)) {
@@ -304,12 +300,7 @@ sub replaceChild {
 		die new HTML::DOM::Exception HIERARCHY_REQUEST_ERR,
 		'A node cannot be inserted into one of its descendants';
 
-	my $doc = $new_node->ownerDocument; # not $self->... because $self
-	                                    # might be the document, in
-	                                    # which case its owner is null.
-	$doc == $self || $doc == $self->ownerDocument or
-		die new HTML::DOM::Exception WRONG_DOCUMENT_ERR,
-		'The node to be inserted belongs to another document';
+	my $doc = $self->ownerDocument || $self;
 
 	no warnings 'uninitialized';
 	$self == $old_node->parent or
@@ -337,10 +328,12 @@ sub replaceChild {
 	$old_node->ownerDocument;
 
 	my $ret = $old_node->replace_with(
-		$new_node->isa('HTML::DOM::DocumentFragment')
-		? $new_node->childNodes
-		: $new_node
+		my @nodes
+		 = $new_node->isa('HTML::DOM::DocumentFragment')
+		 ? $new_node->childNodes
+		 : $new_node
 	);
+	$_->_set_ownerDocument($doc) for @nodes;
 
 	$new_node->trigger_event('DOMNodeInserted', rel_node => $self);
 	if($in_doc) {
@@ -403,12 +396,7 @@ sub appendChild {
 		die new HTML::DOM::Exception HIERARCHY_REQUEST_ERR,
 		'A node cannot be inserted into one of its descendants';
 
-	my $doc = $new_node->ownerDocument; # not $self->... because $self
-	                                    # might be the document, in
-	                                    # which case its owner is null.
-	$doc == $self || $doc == $self->ownerDocument or
-		die new HTML::DOM::Exception WRONG_DOCUMENT_ERR,
-		'The node to be inserted belongs to another document';
+	my $doc = $self->ownerDocument || $self;
 
 	my $old_parent = $new_node->parent;
 	$old_parent and $new_node->trigger_event('DOMNodeRemoved',
@@ -419,9 +407,12 @@ sub appendChild {
 		  for $new_node, $new_node->descendants;
 	}
 
-	$self->push_content($new_node->isa('HTML::DOM::DocumentFragment')
-		? $new_node->childNodes
-		: $new_node);
+	$self->push_content(
+	 my @nodes = $new_node->isa('HTML::DOM::DocumentFragment')
+	             ? $new_node->childNodes
+	             : $new_node
+	);
+	$_->_set_ownerDocument($doc) for @nodes;
 
 	$new_node->trigger_event('DOMNodeInserted', rel_node => $self);
 	if($self->is_inside($doc)) {

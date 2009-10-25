@@ -84,7 +84,7 @@ sub clear_event_listeners {
 
 
 # -------------------------#
-use tests 3; # event dispatch:
+use tests 4; # event dispatch:
 # First we'll make sure that the events are triggered in the right order,
 # and for the right event type.
 
@@ -118,6 +118,8 @@ $grandchild->addEventListener(
 $grandchild->addEventListener(
 	focus => sub { $e .= '-gcfocus2-capture' }, 1);
 
+$@ = 'drit'; # Make sure event dispatch leaves this alone.
+
 $e = '';
 ok $grandchild->dispatchEvent($event), 'dispatchEvent returns true';
 like $e, qr/^-cclick(\d)-capture      # Each pair can be run in any order,
@@ -135,6 +137,8 @@ like $e, qr/^-cfocus(\d)-capture      # Each pair can be run in any order,
              -gcfocus(\d)
              -gcfocus(?!\2)\d
           \z/x, 'order of flat event dispatch';
+
+is $@, 'drit', 'event dispatch leaves $@ alone'; # bug in 0.033 and earlier
 
 clear_event_listeners($child, 'click', 'focus');
 clear_event_listeners($grandchild, 'click', 'focus');
@@ -264,7 +268,7 @@ ok $grandchild->dispatchEvent($event),
 is $e, 'did it', 'And, yes, preventDefault *was* actually called.';
 
 # -------------------------#
-use tests 6; # event dispatch: event handlers
+use tests 7; # event dispatch: event handlers
 #  (accessors for event handlers are tested specifically further down)
 
 clear_event_listeners($grandchild, 'click');
@@ -291,6 +295,19 @@ clear_event_listeners($grandchild, 'click');
  $grandchild->trigger_event('click');
  is $scratch[1], $grandchild, 'target is passed to call_with';
  isa_ok $scratch[2], 'HTML::DOM::Event', 'second arg to call_with';
+ 
+ { package DelegatingEventTarget;
+   our @ISA = HTML::DOM::EventTarget::;
+   sub get_event_listeners { ${+shift}->get_event_listeners(@_) }
+   sub event_handler       { ${+shift}->event_handler(@_) }
+   sub addEventListener    { ${+shift}->addEventListener(@_) }
+   sub removeEventListener { ${+shift}->removeEventListener(@_) }
+ }
+ my $delegate = bless \do{my $x = $grandchild}, DelegatingEventTarget::;
+ $delegate->trigger_event('click');
+ ($event = $doc->createEvent)->init(type => 'click');
+ is $scratch[1], $delegate,
+  'event handler wrappers can be transferred to other objects';
 }
 
 # -------------------------#

@@ -85,15 +85,18 @@ is scalar(()=$elem->setAttributeNode($another_attr)), 0,
 	'setAttributeNode can return null';
 is $elem->getAttribute('name'), 'link', 'result of setAttributeNode (2)';
 
-eval {
-	$elem-> setAttributeNode(
-		createAttribute {new HTML::DOM} 'ddk'
-	);
-};
-isa_ok $@, 'HTML::DOM::Exception',
-	'$@ (after setAttributeNode with wrong doc)';
-cmp_ok $@, '==', HTML::DOM::Exception::WRONG_DOCUMENT_ERR,
-    'setAttributeNode with wrong doc throws the appropriate error';
+{
+	my $other_doc = new HTML::DOM;
+	my $attr = createAttribute $other_doc 'ddk';
+	ok eval {
+		$elem-> setAttributeNode(
+			$attr
+		);	
+		1
+	}, 'setAttributeNode with wrong doc no longer dies' ;
+	is $attr->ownerDocument, $elem->ownerDocument,
+	 'setAttributeNode with wrong doc sets the ownerDocument';
+}
 
 my $elem2 = $doc->createElement('a');
 $elem2->setAttributeNode($attr);

@@ -150,15 +150,15 @@ cmp_ok ownerDocument $frag, '==', $doc, 'ownerDocument';
 	cmp_ok $@, '==', HTML::DOM::Exception::HIERARCHY_REQUEST_ERR,
 	    'insertBefore with an ancestor node throws a hierarchy error';
 
-	eval {
+	my $other_elem = createElement $another_doc 'ddk';
+	ok eval {
 		$frag->insertBefore(
-			createElement $another_doc 'ddk'
+			$other_elem
 		);
-	};
-	isa_ok $@, 'HTML::DOM::Exception',
-		'$@ (after insertBefore with wrong doc)';
-	cmp_ok $@, '==', HTML::DOM::Exception::WRONG_DOCUMENT_ERR,
-	    'insertBefore with wrong doc throws the appropriate error';
+		1
+	}, 'insertBefore with wrong doc no longer dies';
+	is $other_elem->ownerDocument, $frag->ownerDocument,
+	 'insertBefore with wrong doc sets the owner doc';
 
 	eval {
 		$frag->insertBefore(
@@ -229,16 +229,16 @@ fill_frag($frag = createDocumentFragment $doc);
 	cmp_ok $@, '==', HTML::DOM::Exception::HIERARCHY_REQUEST_ERR,
 	    'replaceChild with an ancestor node throws a hierarchy error';
 
-	eval {
+	my $other_elem = createElement $another_doc 'ddk';
+	ok eval {
 		$elem->replaceChild(
-			(createElement $another_doc 'ddk'),
+			($other_elem),
 			(childNodes $elem)[0],
 		);
-	};
-	isa_ok $@, 'HTML::DOM::Exception',
-		'$@ (after replaceChild with wrong doc)';
-	cmp_ok $@, '==', HTML::DOM::Exception::WRONG_DOCUMENT_ERR,
-	    'replaceChild with wrong doc throws the appropriate error';
+		1
+	}, 'replaceChild with wrong doc no longer dies';
+	is $other_elem->ownerDocument, $elem->ownerDocument,
+	 'replaceChild with wrong doc sets the owner doc';
 
 	eval {
 		$frag-> replaceChild(
@@ -342,15 +342,12 @@ fill_frag($frag = createDocumentFragment $doc);
 	cmp_ok $@, '==', HTML::DOM::Exception::HIERARCHY_REQUEST_ERR,
 	    'appendChild with an ancestor node throws a hierarchy error';
 
-	eval {
-		$elem-> appendChild(
-			(createElement $another_doc 'ddk'),
-		);
-	};
-	isa_ok $@, 'HTML::DOM::Exception',
-		'$@ (after appendChild with wrong doc)';
-	cmp_ok $@, '==', HTML::DOM::Exception::WRONG_DOCUMENT_ERR,
-	    'appendChild with wrong doc throws the appropriate error';
+	my $other_elem = createElement $another_doc 'ddk';
+	ok eval {
+		$elem-> appendChild($other_elem);
+	}, 'appendChild with wrong doc no longer dies';
+	is $other_elem->ownerDocument, $elem->ownerDocument,
+	 'appendChild with wrong doc sets the owner doc';
 
 	my $dock = new HTML::DOM;
 	ok eval{

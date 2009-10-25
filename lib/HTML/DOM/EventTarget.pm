@@ -1,6 +1,6 @@
 package HTML::DOM::EventTarget;
 
-our $VERSION = '0.033';
+our $VERSION = '0.034';
 
 
 use strict;
@@ -79,7 +79,13 @@ C<< $target->ownerDocument->event_listeners_enabled >> is used instead.
 
 See C<error_handler> and C<event_listeners_enabled>.
 
+=back
+
 =head1 METHODS
+
+If a subclass needs to store event handlers and listeners elsewhere (e.g.,
+associating them with another object), it can override C<addEventListener>,
+C<removeEventListener>, C<event_handler> and C<get_event_listeners>.
 
 =over
 
@@ -138,7 +144,7 @@ sub AUTOLOAD {
 		or die "Can't locate object method \"$meth\" via package "
 			. qq'"$pack" at '.join' line ',(caller)[1,2]
 			,. "\n";
-	shift->attr_event_listener($1, @_);
+	shift->event_handler($1, @_);
 }
 sub DESTROY{}
 
@@ -152,11 +158,12 @@ methods. You can use it directly for efficiency's sake.
 
 This method used to be called C<attr_event_listener>, but that was a
 mistake, as there is a distinction between handlers and listeners. The old
-name is still available but will be removed in a future release.
+name is still available but will be removed in a future release. It simply
+calls C<event_handler>.
 
 =cut
 
-sub attr_event_listener {
+sub event_handler {
 	my ($self,$name) = (shift,shift);
 	$name = lc $name;
 	my $old = exists $aevh{$self} && exists $aevh{$self}{$name}
@@ -164,7 +171,7 @@ sub attr_event_listener {
 	@_ and $aevh{$self}{$name} = shift;
 	$old ||();
 }
-*event_handler = *attr_event_listener;
+sub attr_event_listener { shift->event_handler(@_) }
 
 
 =item get_event_listeners($event_name, $capture)
@@ -174,8 +181,12 @@ list of all event listeners for the given event name. C<$capture> is a
 boolean that indicates which list to return, either 'capture' listeners or
 normal ones.
 
+If there is an event handler for this event (and C<$capture> is false),
+then C<get_event_listeners> tacks a wrapper for the event handler on to the
+end of the list it returns.
+
 =for comment
-This is no longer true.
+This is no longer true. But we may need a similar warning in case other packages install listeners that must not be removed.
 B<Warning:> This method is intended mostly for internal use, but you can
 go ahead and use it if you like. Just beware that some of the event
 handlers returned may have been installed automatically by HTML::DOM, and
@@ -196,7 +207,7 @@ sub get_event_listeners { # uses underscores because it is not a DOM method
 		@ret, sub {
 			my $ret =
 			 defined blessed $aevh && $aevh->can('call_with')
-			 ? call_with $aevh $self, $_[0]
+			 ? call_with $aevh $_[0]->currentTarget, $_[0]
 			 : &$aevh($_[0]);
 			defined $ret
 			 && ($name eq 'mouseover' ? $ret : !$ret)
@@ -248,6 +259,8 @@ sub _dispatch_event { # This is where all the work is.
 		unless defined $name and length $name;
 
 	$event->_set_target($target) if $event && !$event->target;
+
+	local *@;
 
 	# Check to see whether we are supposed to skip event handlers, and
 	# short-circuit if that’s the case:

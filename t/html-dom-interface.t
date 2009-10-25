@@ -8,7 +8,7 @@
 
 use strict; use warnings;
 
-use Test::More tests => 116;
+use Test::More tests => 118;
 
 
 # -------------------------#
@@ -177,3 +177,8 @@ ok exists $HTML::DOM::Interface{HTMLAreaElement}{$_} for
 ok exists $HTML::DOM::Interface{HTMLElement}{$_}
  for qw/ insertAdjacentHTML insertAdjacentElement /;
 ok eval 'HTML::DOM::Interface->import("UTF16");1', 'UTF16 is exportable';
+
+# -------------------------#
+# Tests 117-18: changes made in 0.033
+ok exists $HTML::DOM::Interface{$_}{contentWindow}, "$_->contentWindow",
+ for qw/ HTMLFrameElement HTMLIFrameElement /;

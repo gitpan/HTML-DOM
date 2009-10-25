@@ -5,16 +5,10 @@
 
 use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => 83;
-
-
-# -------------------------#
-# Test 1: load the module
-
-BEGIN { use_ok 'HTML::DOM'; }
+use HTML::DOM;
 
 # -------------------------#
-# Tests 2: constructor
+use tests 1; # constructor
 
 my $doc = new HTML::DOM referrer => 'the other page',
                         url      => 'http://name:pwd@localhost:12345/1234';
@@ -41,7 +35,7 @@ $doc->write('
 $doc->close;
 
 # -------------------------#
-# Tests 3-12: simple attributes (not HTMLCollections or cookie)
+use tests 12; # simple attributes (not HTMLCollections or cookie)
 #     (not including the weird ones [fgColor, et al.]; see below for those)
 
 is    title $doc, 'Titlos', 'title';
@@ -49,6 +43,14 @@ is $doc->title('new title'), 'Titlos', 'set title';
 is    title $doc, 'new title', 'see whether the title was set';
 $doc->find('title')->delete_content;
 is title $doc, '', 'title returns "" when the title element is empty';
+$doc->find('title')->detach;
+is $doc->title, "", 'title returns "" when there is no title element';
+$doc->title("sclext");
+{
+ my $title_elem = $doc->find('head')->find('title');
+ ok $title_elem && $title_elem->innerHTML eq 'sclext',
+  'arg to title creates a title elem under head if it does not exist';
+}
 
 # These three are read-only:
 
@@ -71,7 +73,7 @@ is body $doc ->id, 'soma',                                'body';
 
 
 # -------------------------#
-# Tests 13-22: HTMLCollection attributes
+use tests 10; # HTMLCollection attributes
 
 # list context
 is_deeply [map id $_, images $doc], ['eikona1','eikona2'], 'images (list)';
@@ -99,7 +101,7 @@ is_deeply [map id $_, @{anchors$doc}], ['anchorlink','anchor2'],
 #     updated.
 
 # -------------------------#
-# Tests 23-6: URL and referrer with a response object
+use tests 4; # URL and referrer with a response object
 
 SKIP: {
 	skip 'HTTP::Re(sponse|quest) not installed', 4,
@@ -129,7 +131,7 @@ SKIP: {
 }
 
 # -------------------------#
-# Tests 27-33: cookies
+use tests 7; # cookies
 
 # Some things here are stolen from LWP's t/base/cookies.t.
 
@@ -183,7 +185,7 @@ SKIP: {
 }
 
 # -------------------------#
-# Tests 34-52: open, close, unbuffaloed write(ln)
+use tests 19; # open, close, unbuffaloed write(ln)
 
 # Buffaloed write is tested in html-dom.t together with
 # elem_handler with which it is closely tied.
@@ -272,13 +274,13 @@ SKIP: {
 }
 
 # -------------------------#
-# Tests 53-7: ^getElements?By
+use tests 6; # ^getElements?By
 
 $doc->write('<p name=para>para 1</p><p name=para>para 2</p><p id=p>3');
 $doc->close;
 
 { package oVerload;
-	use overload '""' => sub {${+shift}};
+	use overload '""' => sub {${+shift}}, fallback => 1;
  }
 
 is_deeply [map data{firstChild $_}, getElementsByName $doc 'para'],
@@ -296,9 +298,15 @@ is_deeply [map data{firstChild $_}, @{
 is $doc->getElementById('p')->firstChild->data, 3, 'getElementById';
 is $doc->getElementById(bless \do{my $v = 'p'}, 'oVerload')->firstChild
 	->data, 3, 'getElementById stringification';
+for($doc->getElementById('p')) {
+ my $x;
+ $_->attr('id',\$x);
+ is $doc->getElementById("".\$x), $_,
+  "getElementById when the element's id is a reference";
+}
 
 # -------------------------#
-# Tests 58-69: weird attributes (fgColor et al.)
+use tests 12; # weird attributes (fgColor et al.)
 
 $doc->write('<body alink=red background=white.gif bgcolor=white
                    text=black link=blue vlink=fuschia>');
@@ -318,7 +326,7 @@ is $doc->vlinkColor('silver'),      'fuschia', 'set/get vlinkColor';
 is $doc->vlinkColor,'silver',                , 'get vlinkColor';
 
 # -------------------------#
-# Tests 70-1: hashness
+use tests 2; # hashness
 
 $doc->write('<form name=fred></form><form name=alcibiades></form>');
 $doc->close;
@@ -327,7 +335,7 @@ is $doc->{fred}, $doc->forms->[0],           'hashness (1)';
 is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 
 # -------------------------#
-# Tests 72-6: innerHTML
+use tests 6; # innerHTML
 {
 	my $doc = new HTML::DOM;
 	$doc->write('
@@ -373,10 +381,14 @@ is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 	$doc->body->innerHTML('<p></p><table><tr><td></table>');
 	$doc->innerHTML($doc->innerHTML);
 	is $doc->find('p')->childNodes->length, 0, 'innerHTML round-trip';
+
+	my $pre = $doc->createElement('pre');
+	$pre->innerHTML("smed\ndrit");
+	is $pre->innerHTML, "smed\ndrit", 'pre->innerHTML';
 }
 
 # -------------------------#
-# Tests 77-9: location
+use tests 3; # location
 {
 	my $href;
 	no warnings 'once';
@@ -391,7 +403,7 @@ is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 }
 
 # -------------------------#
-# Tests 80-3: lastModified
+use tests 4; # lastModified
 SKIP: {
 	my $doc = new HTML::DOM;
 	is $doc->lastModified, '',

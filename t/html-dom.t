@@ -10,7 +10,7 @@
 
 use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => 39;
+use Test::More tests => 40;
 
 
 # -------------------------#
@@ -25,7 +25,7 @@ my $doc = new HTML::DOM;
 isa_ok $doc, 'HTML::DOM';
 
 # -------------------------#
-# Tests 3-20: elem_handler, parse, eof and write
+# Tests 3-21: elem_handler, parse, eof and write
 
 $doc->elem_handler(script => sub {
 	eval($_[1]->firstChild->data);
@@ -65,8 +65,15 @@ $doc->close;
 	}
 }
 
+{
+ my $script = $doc->createElement('script');
+ $script->appendChild($doc->createTextNode('$doc->title("scred")'));
+ $doc->body->appendChild($script);
+ is $doc->title, 'scred', "elem_handlers are triggered on node insertion";
+}
+
 # -------------------------#
-# Tests 21-9: parse_file & charset
+# Tests 22-30: parse_file & charset
 
 use File::Basename;
 use File::Spec::Functions 'catfile';
@@ -162,7 +169,7 @@ is_deeply traverse $doc, [
                 data => '‼',
               },
               '#text' => {
-                data => ' ', # the line break after </html>
+                data => "\n", # the line break after </html>
               },
             ],
           }
@@ -188,7 +195,7 @@ is $doc->charset('utf-16be'), 'iso-8859-1', 'charset get/set';
 is $doc->charset, 'utf-16be', 'get charset after set';
 
 # -------------------------#
-# Test 30: another elem_handler test with nested <script> elems
+# Test 31: another elem_handler test with nested <script> elems
 #          This was causing infinite recursion before version 0.004.
 
 {
@@ -213,7 +220,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Test 31: Yet another elem_handler test, this time with '*' for the tag.
+# Test 32: Yet another elem_handler test, this time with '*' for the tag.
 #          I broke this in 0.009 and fixed it in 0.010.
 
 {
@@ -229,7 +236,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 
 
 # -------------------------#
-# Tests 32-4: event_parent
+# Tests 33-5: event_parent
 
 {
 	my $doc = new HTML::DOM;
@@ -243,7 +250,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Tests 35-9: base
+# Tests 36-40: base
 
 {
  my $doc = new HTML::DOM url => 'file:///';

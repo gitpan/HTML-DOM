@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.033';
+our $VERSION = '0.034';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.033 (alpha)
+Version 0.034 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -253,6 +253,12 @@ C<response>.
 		$tb->unbroken_text(1); # necessary, con-  # script han-
 		                     # sidering what        # dler's view
 		                   # _tweak_~text does       # of the tree
+
+		# Web browsers preserve whitespace, at least from the point
+		# of view of the DOM; but the main reason we are using this
+		# option is that  a  parser  for  innerHTML  doesn’t  know
+		# whether the nodes will be inserted in a <pre>.
+		no_space_compacting $tb 1;
 
 		$tb->handler(text => "text",         # so we can get line
 		    "self, text, is_cdata, offset"); # numbers for scripts
@@ -938,7 +944,17 @@ headers are supported.
 
 sub title {
 	my $doc = shift;
-	return $doc->find('title')->text(@_);
+	if(my $title_elem = $doc->find('title')) {
+		$title_elem->text(@_);
+	}
+	else {
+		return "" unless @_;
+		$doc->find('head')->appendChild(
+			my $t = $doc->createElement('title')
+		);
+		$t->text(@_);
+		return "";
+	}
 }
 
 sub referrer {
@@ -1117,7 +1133,16 @@ context is probably more efficient.
 =cut
 
 sub getElementById {
-	shift->look_down(id => ''.shift) || ();
+  my(@pile) = grep ref($_), @{shift->{'_content'}};
+  my $id = shift;
+  my $this;
+  while(@pile) {
+    no warnings 'uninitialized';
+    $this = shift @pile;
+    $this->id eq $id and return $this;
+    unshift @pile, grep ref($_), @{$this->{'_content'} || next};
+  }
+  return;
 }
 
 sub getElementsByName {

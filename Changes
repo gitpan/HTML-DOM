@@ -1,7 +1,33 @@
 Revision history for HTML::DOM
 
+0.034   25 October, 2009
+        Incompatible change:
+        • Node insertion methods no longer produce WRONG_DOCUMENT_ERR
+          errors.  It turns out that every web browser  (except IE 6)
+          completely disregards the DOM spec in this regard.
+        • When attr_event_listener was renamed event_handler, the old
+          name was kept for  temporary  backward  compatibility.  The
+          internals still used the old name, so subclasses overriding
+          it would have to use it. Now the internals use the new name,
+          so subclasses have to change.
+        Bug fixes:  
+        • HTML::DOM’s title  method no longer dies when the title ele-
+          ment does not exist.
+        • Event dispatch no longer leaves junk in $@.
+        • Whitespace is now preserved when a  <pre>  element’s  inner-
+          HTML is assigned to.  We fixed this by preserving all white-
+          space everywhere,  which is what  web  browsers  do  anyway.
+        • The event handler wrapper that get_event_listeners  returns
+          no longer closes over the event target,  but gets  it  from
+          the event object passed as its first argument.  This allows
+          the listener to be used on another object  (e.g.,  if a sub-
+          class overrides  get_event_listeners  to retrieve listeners
+          from another object).
+        • getElementById now works when the element’s ID attribute is
+          set to a reference.
+
 0.033   18 October, 2009
-        New feature:
+        New features:
         • HTML::DOM’s base  method now falls back to the HTTP headers
           (of the response object)  if the document  lacks  a  <base>
           elem.  It is also better at dealing with invalid  documents

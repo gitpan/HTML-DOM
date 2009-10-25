@@ -24,7 +24,7 @@ use overload fallback => 1,
 	'bool' => sub{1};
 
 use HTML::DOM::Exception qw'NOT_FOUND_ERR NO_MODIFICATION_ALLOWED_ERR
-                            HIERARCHY_REQUEST_ERR WRONG_DOCUMENT_ERR';
+                            HIERARCHY_REQUEST_ERR ';
 use HTML::DOM::Node 'ATTRIBUTE_NODE';
 use Scalar::Util qw'weaken blessed refaddr';
 
@@ -33,7 +33,7 @@ require HTML::DOM::NodeList;
 
 our @ISA = 'HTML::DOM::EventTarget';
 
-our $VERSION = '0.033';
+our $VERSION = '0.034';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 
@@ -232,16 +232,13 @@ sub replaceChild {
 	   isa $new_node 'HTML::DOM::DocumentFragment') {
 		(($new_node) = $new_node->childNodes) != 1 and
 		die HTML::DOM::Exception->new(HIERARCHY_REQUEST_ERR,
-			'The document fragment to replaceChild does not ' .
-			'have exactly one child node');
+			'The document fragment passed to replaceChild ' .
+			'does not have exactly one child node');
 	}
 	die HTML::DOM::Exception->new(HIERARCHY_REQUEST_ERR,
 		'The node passed to replaceChild is not a text node')
 		if !defined blessed $new_node ||
 			!$new_node->isa('HTML::DOM::Text');
-	$self->ownerDocument == $new_node->ownerDocument or
-		die new HTML::DOM::Exception WRONG_DOCUMENT_ERR,
-		'The node to be inserted belongs to another document';
 
 	$old_node->trigger_event('DOMNodeRemoved',
 		rel_node => $self);
@@ -256,6 +253,11 @@ sub replaceChild {
 		rel_node => $old_parent);
 	if($new_node->is_inside($self->[_doc])){
 		$new_node->trigger_event('DOMNodeRemovedFromDocument')
+	}
+	else {
+		# Even if it’s already the same document, it’s actually
+		# quicker just to set it than to check first.
+		$new_node->_set_ownerDocument( $self->[_doc] );
 	}
 
 	($_[0][_val][0] = $new_node)->detach;

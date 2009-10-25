@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               HTML-DOM
-version:            0.033
+version:            0.034
 abstract:           A Perl implementation of the HTML Document Object Model
 author:
     - Father Chrysostomos <sprout & cpan . org>
@@ -46,6 +46,9 @@ meta-spec:
     url:      http://module-build.sourceforge.net/META-spec-v1.4.html
     version:  1.4
 breaks:
+    WWW::Scripter:
+        breaks:  0.008
+        use:     0.009
     WWW::Scripter::Plugin::JavaScript:
         breaks:  0.002
         use:     0.003
