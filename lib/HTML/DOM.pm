@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.034';
+our $VERSION = '0.035';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.034 (alpha)
+Version 0.035 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -1140,7 +1140,7 @@ sub getElementById {
     no warnings 'uninitialized';
     $this = shift @pile;
     $this->id eq $id and return $this;
-    unshift @pile, grep ref($_), @{$this->{'_content'} || next};
+    unshift @pile, grep ref($_), $this->content_list;
   }
   return;
 }
@@ -1345,7 +1345,9 @@ URL passed to C<new>.
 
 sub base {
 	my $doc = shift;
-	if(my $base_elem = $doc->look_down(_tag => 'base', href => qr)))){
+	if(
+	 my $base_elem = $doc->look_down(_tag => 'base', href => qr)(?:\)))
+	){
 		return ''.$base_elem->attr('href');
 	}
 	else {

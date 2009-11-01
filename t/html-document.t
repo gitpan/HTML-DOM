@@ -274,7 +274,7 @@ use tests 19; # open, close, unbuffaloed write(ln)
 }
 
 # -------------------------#
-use tests 6; # ^getElements?By
+use tests 8; # ^getElements?By
 
 $doc->write('<p name=para>para 1</p><p name=para>para 2</p><p id=p>3');
 $doc->close;
@@ -304,6 +304,14 @@ for($doc->getElementById('p')) {
  is $doc->getElementById("".\$x), $_,
   "getElementById when the element's id is a reference";
 }
+$doc->innerHTML("<form id=phext><input id=sned>");
+
+# We need to test forms specifically because of hash overloading (which
+# broke this in a previous version).
+is $doc->getElementById('phext'), $doc->body->firstChild,
+  'getElementById with forms';
+is $doc->getElementById('sned'), $doc->body->firstChild->firstChild,
+  'getElementById return sub-elements of a form';
 
 # -------------------------#
 use tests 12; # weird attributes (fgColor et al.)

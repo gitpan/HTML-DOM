@@ -1,5 +1,17 @@
 Revision history for HTML::DOM
 
+0.035   1 November, 2009
+        Bug fixes:
+        • Silly me.  I fixed a bug in getElementById  in the previous
+          release,  and in doing so caused  a  more  serious  bug.  I
+          blinded  getElementById  to sub-elements of forms.  This is
+          now  fixed.
+        • The note below under 0.033 about base being ‘better at deal-
+          ing with invalid documents’ is wrong.  That change actually
+          made it worse.  Sometimes it would work,  and sometimes not,
+          depending on previous regular expression matches.  (This is
+          now fixed, of course.)
+
 0.034   25 October, 2009
         Incompatible change:
         • Node insertion methods no longer produce WRONG_DOCUMENT_ERR

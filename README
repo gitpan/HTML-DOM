@@ -1,4 +1,4 @@
-HTML::DOM, version 0.034
+HTML::DOM, version 0.035
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,11 @@ sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.035
+-----
+• getElementById can now once more see sub-elements of forms.
+• The base method is no longer affected by  previous  regexp  matches.
 
 0.034
 -----
@@ -32,24 +37,6 @@ See the Changes file for the long version.
   is inserted into the document, as well as during parsing.
 • HTML::DOM::Interface now includes the  contentWindow  method in the
   HTMLFrameElement and HTMLIFrameElement interfaces.
-
-0.032
------
-Incompatible change:
-• An event_attr_handler that provides a subroutine ending with a line
-  like  ‘defined $ret and !$ret and $event->preventDefault’  will now
-  end up triggering preventDefault in the case of an  undefined  $ret.
-  This is the result of the first new feature:
-New features:
-• Distinction between event listeners and  event  handlers  based  on
-  HTML 5;  preventDefault  is  called  automatically based on the lat-
-  ter’s return value.
-• An event handler can now be  an  object  with  a  call_with  method.
-• insertAdjacentHTML and insertAdjacentElement
-Various bug fixes
-Other changes:
-• attr_event_listener has been renamed to event_handler. The old name
-  is still  available  but  will  be  removed  in  a  future  release.
 
 
 TO DO

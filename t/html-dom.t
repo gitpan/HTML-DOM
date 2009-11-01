@@ -10,7 +10,7 @@
 
 use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => 40;
+use Test::More tests => 41;
 
 
 # -------------------------#
@@ -250,7 +250,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Tests 36-40: base
+# Tests 36-41: base
 
 {
  my $doc = new HTML::DOM url => 'file:///';
@@ -271,5 +271,9 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 
  $doc->innerHTML("<base target=_blank><base href='http://rext/'>");
  is $doc->base, "http://rext/",
-  'retval of base when <base target> comes bofer <base href>';
+  'retval of base when <base target> comes before <base href>';
+
+ "z" =~ /z/;  # (test for weird bug introduced in 0.033 & fixed in 0.034)
+ is $doc->base, "http://rext/",
+  'base after regexp match that does not match the base';
 }
