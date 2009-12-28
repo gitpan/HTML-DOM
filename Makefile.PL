@@ -83,8 +83,7 @@ my %prq = (
 	 utf8                      => 0,
 );
 # also for the tests:
-$prq{HTTP'Message} = 1.34 unless exists $prq{HTTP'Message}; # array ref
-                                                            # headers
+$prq{HTTP'Message} = 1.34 unless $prq{HTTP'Message}; # array ref headers
 
 WriteMakefile(
     NAME                => 'HTML::DOM',

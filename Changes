@@ -1,5 +1,38 @@
 Revision history for HTML::DOM
 
+0.036   27 December, 2009
+        Incompatible change:
+        • A newly-created HTML::DOM  object no longer has html,  head
+          and body elements.  These are not created until open, write
+          or parse_file is called.
+        New features:
+        • New innerText method on HTML elements
+        • css_url_fetcher  used to  have  no  return  value.  Now  it
+          returns a previously assigned callback function.
+        • css_url_fetcher no longer clobbers an existing link element
+          handler,  because it now uses  a  new,  separate  mechanism.
+        Bug fixes:
+        • $elem->innerHTML  now encodes HTML  character  entities  in
+          text nodes that are the element’s direct children.
+        • Modifying the  href  attribute of a link element whose  rel
+          attribute is set to stylesheet now resets the  style  sheet.
+        • The target and  currentTarget  methods of events now return
+          empty lists  (instead of  lists  containing  undef)  before
+          event dispatch.
+        • If an  elem_handler  removes the root element from the docu-
+          ment,  it no longer causes an  error  when  HTML::DOM  next
+          tries to call an elem_handler.
+        • parse_file no longer dies if called after  ‘close’  or when
+          the root element has been removed.
+        • The close,  innerHTML and elem_handler  methods of the docu-
+          ment no longer die if the root  element  has  been  removed.
+        • HTML::DOM’s innerHTML (as opposed to Element’s) now returns
+          an empty string when the document has no children.  It used
+          to return undef.
+        Other changes:
+        • HTML::DOM::Interface no longer lists HTML::DOM::TreeBuilder,
+          as that internal-only class has gone.
+
 0.035   1 November, 2009
         Bug fixes:
         • Silly me.  I fixed a bug in getElementById  in the previous

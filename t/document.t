@@ -1,7 +1,7 @@
 #!/usr/bin/perl -T
 
 # This script tests the Document interface of HTML::DOM. For the other fea-
-# tures, see html-dom.t.
+# tures, see html-dom.t and html-document.t.
 
 use strict; use warnings; use lib 't';
 
@@ -30,8 +30,10 @@ is_deeply [attributes $doc], [], 'attributes';
 # -------------------------#
 # Tests 7-10: attributes
 
-# set them first, to make sure they're read-only
+# Open the doc, so we actually have a doc elem.
+$doc->open;
 
+# set them first, to make sure they're read-only
 doctype $doc 42; implementation $doc 43; documentElement $doc 44;
 
 is_deeply [doctype $doc], [], 'doctype';

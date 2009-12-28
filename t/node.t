@@ -40,7 +40,7 @@ BEGIN { &use_ok(qw'HTML::DOM::Node :all'); } # & so I can use qw
 # -------------------------#
 # Tests 15-17: constructor
 
-my $doc = new HTML::DOM;
+my $doc = new HTML::DOM; $doc->open;
 isa_ok $doc, 'HTML::DOM';
 my $frag = $doc->createDocumentFragment;
 isa_ok $frag, 'HTML::DOM::DocumentFragment';
@@ -251,12 +251,14 @@ fill_frag($frag = createDocumentFragment $doc);
 		'replaceChild with a 2nd arg that\'s not a child of ' .
 		'this node throws a "not found" error';
 
-	my $dock = new HTML::DOM;
+	my $dock = new HTML::DOM; $dock->open;
+	$dock->close; # avoid messing up the parser with this test
 	ok eval{
 	    $dock->replaceChild(
 		$dock->createElement('html'),$dock->firstChild
 	    ); 1
-	}, '$doc->replaceChild doesn’t produce an invalid wrong doc error';
+	}, '$doc->replaceChild doesn’t produce an invalid wrong doc error'
+	 or diag $@;
 
 	$dock->write('<p id=foo><a></a></p>');
 	is $dock->getElementById('foo')->replaceChild(

@@ -3,14 +3,14 @@
 # This script tests HTML::DOM features that are not part of the DOM inter-
 # faces.
 
-# See html-element.t for css_url_fetcher.
+# See css.t for css_url_fetcher.
 
 # ~~~ I need a test that makes sure HTML::TreeBuilder doesn’t spit out
 #     warnings because of hash deref overloading.
 
 use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => 41;
+use Test::More tests => reverse 48;
 
 
 # -------------------------#
@@ -27,6 +27,7 @@ isa_ok $doc, 'HTML::DOM';
 # -------------------------#
 # Tests 3-21: elem_handler, parse, eof and write
 
+# It is important that this
 $doc->elem_handler(script => sub {
 	eval($_[1]->firstChild->data);
 	$@ and die;
@@ -73,7 +74,7 @@ $doc->close;
 }
 
 # -------------------------#
-# Tests 22-30: parse_file & charset
+# Tests 22-34: parse_file & charset
 
 use File::Basename;
 use File::Spec::Functions 'catfile';
@@ -188,6 +189,20 @@ ok !(new HTML::DOM)
 like $doc->getElementsByTagName('p')->[-1]->as_text, qr/‚Äº/,
 	'parse_file respects existing charset';
 
+# Pathological cases (fixed in 0.036):
+{
+ my $filename = catfile(dirname ($0),'test.html');
+ $doc->open; $doc->close;
+ ok eval { $doc->parse_file($filename); 1 },
+   'parse_file does not die when close has been called' or diag $@;
+ like $doc->innerHTML, qr/ssalc/, 'parse_file works after close';
+ $doc->open;
+ $doc->removeChild($doc->documentElement);
+ ok eval { $doc->parse_file($filename); 1 },
+   'parse_file does not die when the root element has been removed';
+ like $doc->innerHTML, qr/ssalc/,
+  'parse_file works after the removal of the root';
+} 
 
 $doc = new HTML::DOM charset => 'iso-8859-1';
 is $doc->charset, 'iso-8859-1', 'charset in constructor';
@@ -195,7 +210,7 @@ is $doc->charset('utf-16be'), 'iso-8859-1', 'charset get/set';
 is $doc->charset, 'utf-16be', 'get charset after set';
 
 # -------------------------#
-# Test 31: another elem_handler test with nested <script> elems
+# Test 35: another elem_handler test with nested <script> elems
 #          This was causing infinite recursion before version 0.004.
 
 {
@@ -220,7 +235,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Test 32: Yet another elem_handler test, this time with '*' for the tag.
+# Test 36: Yet another elem_handler test, this time with '*' for the tag.
 #          I broke this in 0.009 and fixed it in 0.010.
 
 {
@@ -236,7 +251,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 
 
 # -------------------------#
-# Tests 33-5: event_parent
+# Tests 37-9: event_parent
 
 {
 	my $doc = new HTML::DOM;
@@ -250,11 +265,11 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Tests 36-41: base
+# Tests 40-5: base
 
 {
  my $doc = new HTML::DOM url => 'file:///';
- $doc->close;
+ $doc->open, $doc->close;
  is $doc->base, 'file:///', '->base with no <base>';
  $doc->find('head')->innerHTML('<base href="file:///Volumes/">');
  is $doc->base, 'file:///Volumes/', '->base from <base>';
@@ -276,4 +291,30 @@ is $doc->charset, 'utf-16be', 'get charset after set';
  "z" =~ /z/;  # (test for weird bug introduced in 0.033 & fixed in 0.034)
  is $doc->base, "http://rext/",
   'base after regexp match that does not match the base';
+}
+
+# -------------------------#
+# Test 46-8: Yet another elem_handler test, for when elem_handlers orphan
+#            the <html> element.  This also makes sure elem_handers  are
+#            called even without closing tags. (Both were fixed 0.036.)
+
+
+{
+	my $doc = new HTML::DOM;
+	my $accum = '';
+	my $doc_elem;
+	$doc->elem_handler('p' => sub {
+	 $accum .= 'p';
+	 my $doc = shift;
+	 if(my $de = $doc->documentElement) {
+	  $doc_elem = $de;
+	  $doc->removeChild($de)
+	 }
+	});
+
+	ok eval { $doc->write('<p><p>'); $doc->close; 1; },
+	 'orphaning the doc elem does not stop parsing';
+	is $accum,'pp',  'implicit closing tags trigger elem_handler';
+	is $doc_elem->innerHTML,'<head></head><body><p></p><p></p></body>',
+	  'parsing continues in the orphaned element';
 }

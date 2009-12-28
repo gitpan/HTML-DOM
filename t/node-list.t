@@ -75,7 +75,7 @@ ok $::bye_bye, 'make sure the dustbin man does his job';
 # Test 21: second arg to magic node list’s constructor
 
 require HTML::DOM;
-my $doc = new HTML::DOM;
+my $doc = new HTML::DOM; $doc->open;
 $magic = new HTML::DOM::NodeList::Magic sub { $doc->childNodes }, $doc;
 $magic->length;  # call the sub and populate it
 $doc->appendChild($doc->createElement('br'));

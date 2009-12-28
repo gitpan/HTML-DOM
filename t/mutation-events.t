@@ -1038,7 +1038,7 @@ use tests 8; # Mutations affecting Attr nodes
 use tests 2; # Default event handlers triggered by mutation events
              # (there’s special handling for this case [auto-vivacious
 {            # events] in EventTarget.pm/trigger_event)
-	my $doc = new HTML::DOM;
+	my $doc = new HTML::DOM; $doc->open;
 	my $e;
 	$doc->default_event_handler(sub { $e = shift });
 

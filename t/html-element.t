@@ -8,8 +8,6 @@
 # particularly ‘align’, have weird capitalisations of their values when
 # they are set. This is intentional.
 
-# ~~~ I need to write tests for content_offset
-
 use strict; use warnings;
 
 use lib 't';
@@ -58,7 +56,7 @@ isa_ok $doc, 'HTML::DOM';
 
 
 # -------------------------#
-use tests 62; # Element types that just use the HTMLElement interface
+use tests 67; # Element types that just use the HTMLElement interface
               # (and general tests for that interface)
 
 for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
@@ -129,6 +127,15 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$elem->innerHTML($elem->innerHTML);
 	is $elem->find('p')->childNodes->length, 0, 'innerHTML round-trip';
 
+	# Make sure that !doctypes are ignored in innerHTML
+	$doc->open; $doc->close;
+	$doc->body->innerHTML('
+		<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+			"http://www.w3.org/TR/html4/strict.dtd">
+	');
+	unlike $doc->innerHTML, qr/doctype/i,
+	 'innerHTML’s parser ignores !doctypes';
+
 	# Yes, the weird capitalisation is on purpose. I forgot the ‘lc’
 	# in these insertAdj* routines at first.
 	$elem->innerHTML('<b></b>');
@@ -166,6 +173,22 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	);
 	is $elem->innerHTML, '<tt></tt><i></i><u></u><b></b>pred',
 	 'insertAdjacentElement beforeend';
+
+	$elem->innerHTML(
+	 "<p>This is a&#32;sentence w/<b>bold <i>and</i></b><i> italics."
+	);
+	is $elem->innerText, 'This is a sentence w/bold and italics.',
+	 'innerText retval';
+	is $elem->innerText("<frow>"),
+	  "This is a sentence w/bold and italics.",
+	  'retval of innerText when setting';
+	is $elem->innerText, "<frow>",
+	 'setting innerText';
+	is $elem->innerHTML, "&lt;frow&gt;",
+	 'setting innerText does not create HTML elems';
+	 # This is also a test for innerHTML, too, which would return lit-
+	 # eral angle brackets for text nodes that were direct children of
+	 # the element.
 }
 
 # -------------------------#
@@ -225,9 +248,6 @@ use tests 28; # HTMLLinkElement
 	test_attr $elem, qw\ rev      ver             ekd             \;
 	test_attr $elem, qw/ target   tegrat          guitar          /;
 	test_attr $elem, qw\ type     application/pdf text/richtext   \;
-
-	my $doc = new HTML::DOM;
-	$doc->css_url_fetcher(sub { "" });
 }
 
 # -------------------------#
@@ -343,7 +363,7 @@ use tests 21; # HTMLBodyElement
 	test_attr $elem, qw 6 text       blue    mple              6;
 	test_attr $elem, qw 7 vLink      dingo   eidos_skylou      7;
 
-	my $doc = new HTML::DOM;
+	my $doc = new HTML::DOM; $doc->open;
 	@Window::ISA = qw (HTML::DOM::EventTarget);
 	my $wind = bless [], "Window";
 	$elem = $doc->body;
@@ -1211,4 +1231,23 @@ use tests 4; # HTMLParagraphElement
 	$elem->attr(align     => 'leFT');
 
 	test_attr $elem, qw 2 align left right       2;
+}
+
+# -------------------------#
+use tests 2; # content_offset
+{
+ my $doc = new HTML::DOM;
+ $doc->elem_handler(script => sub {
+  my $doc = shift;
+  eval shift->firstChild->data;
+ });
+ $doc->write(
+   '<a href="clon">skext</a>'
+  .'<script>$doc->write("<br>")</script>'
+  .'<a href="squed">glit</a>'
+ );
+ for(scalar $doc->links) {
+  is $$_[0]->content_offset, 15, 'content_offset';
+  is $$_[1]->content_offset, 76, 'content_offset after document.write';
+ }
 }

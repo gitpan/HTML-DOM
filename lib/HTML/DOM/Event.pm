@@ -1,6 +1,6 @@
 package HTML::DOM::Event;
 
-our $VERSION = '0.035';
+our $VERSION = '0.036';
 
 
 use strict;
@@ -38,8 +38,8 @@ sub create_event {
 # (all read-only)
 
 sub type          { $_[0]{name      } }
-sub target        { $_[0]{target    } }
-sub currentTarget { $_[0]{cur_target} }
+sub target        { $_[0]{target    }||() }
+sub currentTarget { $_[0]{cur_target}||() }
 sub eventPhase    { $_[0]{phase     } }
 sub bubbles       { $_[0]{froth     } }
 sub cancelable    { $_[0]{cancelable} }

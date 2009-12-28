@@ -6,7 +6,7 @@
 
 use strict; use warnings; use lib 't';
 
-use Test::More tests => 116+24+2;
+use Test::More tests => 116+24+1+2;
 
 BEGIN{	use_ok 'HTML::DOM' };
 
@@ -625,6 +625,15 @@ sub j {
     join(":", @_);
 }
 
+# -------- Miscellaneous Tests that Were Not Filched from LWP -------- #
+
+$doc->open; $doc->write(
+ '<form action="file:///dwile"><input name=plew value=glor>
+                               <input name=frat value=flin></form>'
+);
+is +($doc->forms)[0]->make_request->uri,
+   'file:///dwile?plew=glor&frat=flin',
+   'make_request with the file protocol';
 
 # -------- Bugs related to HTML::DOM’s HTML::Form imitation ---------- #
 {

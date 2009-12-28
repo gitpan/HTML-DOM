@@ -87,7 +87,7 @@ use tests 17; # ElementCSSInlineStyle
 }
 
 # -------------------------------- #
-use tests 6; # LinkStyle
+use tests 10; # LinkStyle
 
 {
 	(my $elem = $doc->createElement('style'))->appendChild(
@@ -118,6 +118,22 @@ use tests 6; # LinkStyle
 	 'sheet returns null when rel != stylesheet, even w/cuf';
 	isa_ok $links[1]->sheet, 'CSS::DOM',
 	 '<link> ->sheet when rel == stylesheet and cuf returns defined';
+
+	$css='a{color:green}';
+	$links[1]->setAttribute('href', 'dware');
+	is $links[1]->sheet->cssRules->length, 1,
+	 'setting the href attribute updates the sheet';
+	$css='a{color:green}p{text-align:center}';
+	$links[1]->getAttributeNode('href')->firstChild->data('cring');
+	is $links[1]->sheet->cssRules->length, 2,
+	 'modifying the href attribute node updates the sheet';
+
+	my $cuf = $doc->css_url_fetcher;
+	$css='ceck';
+	is &$cuf, 'ceck',
+	 'css_url_fetcher returns the previous assigned sub';
+	is $doc->css_url_fetcher(sub{}), $cuf,
+	 'css_url_fetcher returns the old value on assignment';
 }
 
 # -------------------------------- #

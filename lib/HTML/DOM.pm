@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.035';
+our $VERSION = '0.036';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.035 (alpha)
+Version 0.036 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -152,12 +152,15 @@ C<response>.
 =cut
 
 {
-	# This HTML::DOM::TreeBuilder package is represents the
-	# documentElement. It is also used as a parser for innerHTML.
+	# This  HTML::DOM::Element::HTML  package  represents  the
+	# documentElement. It inherits from HTML::TreeBuilder and acts
+	# as the parser.  It is also  used  as  a  parser  for  innerHTML.
 
 	# Note for potential developers: You can’t refer to ->parent in
 	# this package and expect it to provide the document, because
 	# that’s not the case with innerHTML.  Use ->ownerDocument.
+	# Use ->parent only to distinguish between innerHTML and
+	# the regular parser.
 
 	# Concerning magic associations between forms and fields: To cope
 	# with bad markup, an implicitly closed form (with no end tag) is
@@ -172,13 +175,13 @@ C<response>.
 	# stack is empty.
 
 
-	package HTML::DOM::TreeBuilder;
-	our @ISA = qw' HTML::DOM::Element::HTML HTML::TreeBuilder';
+	package HTML::DOM::Element::HTML;
+	our @ISA = qw' HTML::DOM::Element HTML::TreeBuilder';
 
 	use Scalar::Util qw 'weaken isweak';
 
 	# I have to override this so it doesn't delete _HTML_DOM_* attri-
-	# butes and so that it blesses the object into the right  class.
+	# butes and so that it doesn’t rebless the object.
 	sub elementify {
 	  my $self = shift;
 	  my %attrs = map /^[a-z_]*\z/ ? () : ($_ => $self->{$_}),
@@ -187,7 +190,6 @@ C<response>.
           $self->SUPER::elementify;
 	  %$self = (%$self, %attrs); # this invigorates feeble refs
 	  weaken $self->{$_} for @weak;
-	  bless $self, HTML::DOM::Element::class_for(tag $self);
 	}
 
 	sub new {
@@ -209,6 +211,14 @@ C<response>.
 			'tweak_*' => sub {
 				my($elem, $tag, $doc_elem) = @_;
 				$tag =~ /^~/ and return;
+
+				if(
+				 $tag eq 'link'
+				) {
+				 HTML'DOM'Element'Link'_reset_style_sheet(
+				  $elem
+				 );
+				}
 
 				# If a  form  is  being  closed,  determine
 				# whether it is closed implicitly and set
@@ -249,8 +259,8 @@ C<response>.
 			 },
 		 ))
 		   ->ignore_ignorable_whitespace(0); # stop eof()'s cleanup
-		$tb->store_comments(1);                # from changing the
-		$tb->unbroken_text(1); # necessary, con-  # script han-
+		$tb->store_comments(1);                # from changing an
+		$tb->unbroken_text(1); # necessary, con-  # elem_han-
 		                     # sidering what        # dler's view
 		                   # _tweak_~text does       # of the tree
 
@@ -365,14 +375,20 @@ C<response>.
 
 	sub declaration {
 		my($self,$tagname,$tokens,$source) = @_;
-		return unless $tagname eq 'doctype';
-		$self->{_HTML_DOM_doctype} = $source
-			unless defined $self->{_HTML_DOM_doctype};
+		return
+		 unless $tagname eq 'doctype'
+		    and my $parent = $self->parent;
+		package HTML::DOM; # bypass overloading
+		$parent->{_HTML_DOM_doctype} = $source
+			unless defined $parent->{_HTML_DOM_doctype};
 		return unless @$tokens > 3;
 		for ($self->{_HTML_DOM_version} = $tokens->[3]){
 			s/^['"]// and s/['"]\z//;
 		}
 	}
+
+	# HTMLHtmlElement interface
+	sub version { shift->_attr('version' => @_) }
 
 } # end of special TreeBuilder package
 
@@ -396,7 +412,6 @@ sub new {
 		}}
 	}
 	$self->{_HTML_DOM_jar} = $opts{cookie_jar}; # might be undef
-	$self->push_content(new HTML::DOM::TreeBuilder);
 	$self->{_HTML_DOM_cs} = $opts{charset};
 
 	$self;
@@ -450,12 +465,12 @@ sub elem_handler {
 	@_ < 3 and return $$self{_HTML_DOM_nih}{$elem_name}; 
 
 	$$self{_HTML_DOM_nih}{$elem_name} = $sub; # nih = node inser-
-	$self->{_HTML_DOM_elem_handlers}{$elem_name} =  # tion handler
-	($self->content_list)[0]->{"_tweak_$elem_name"} = sub {
+	                                          # tion handler
+	my $h = $self->{_HTML_DOM_elem_handlers}{$elem_name} = sub {
 		# I can’t put $doc_elem outside the closure, because
 		# ->open replaces it with another object, and we’d be
 		# referring to the wrong one.
-		my $doc_elem = ($self->content_list)[0];
+		my $doc_elem = $_[2];
 		$doc_elem->{_HTML_DOM_tweakall}->(@_);
 		$self->_modified; # in case there are node lists hanging
 		                  # around that the handler references
@@ -485,7 +500,7 @@ sub elem_handler {
 		                   # text portions if the  first  one
 		                  # is a node.
 
-		# We have to clear the write buffalo before calling write,
+		# We have to clear the write buffalo before calling parse,
 		# because if the  buffalo  contains  $elem_name  elements,
 		# parse will (indirectly) call this very routine while the
 		# buffalo is still full, so we will end up passing the same
@@ -494,6 +509,9 @@ sub elem_handler {
 		$p->parse(delete $$self{_HTML_DOM_write_buffer});
 		$p->eof;
 	};
+	if(my $p = $$self{_HTML_DOM_parser}) {
+		$$p{"_tweak_$elem_name"} = $h
+	}
 	weaken $self;
 	return;
 }
@@ -516,40 +534,12 @@ turns
 it into a style sheet object accessible via the link element's
 L<C<sheet>|HTML::DOM::Element::Link/sheet> method.
 
-In the current implementation, this simply uses C<elem_handler>, clobbering
-any handler for 'link'
-elements already registered. This may change in the future.
-
 =cut
 
 sub css_url_fetcher {
- my $fetcher = $_[1];
- $_[0]->elem_handler( link => sub {
-  my($doc,$elem) = @_;
-  return unless ($elem->attr('rel')||'') =~
-		/(?:^|\p{IsSpacePerl})stylesheet(?:\z|\p{IsSpacePerl})/i;
-  my $base = $doc->base;
-  my $url = defined $base
-   ? new_abs URI $elem->href, $doc->base
-   : $elem->href;
-  my ($css_code, %args) = $fetcher->($url);
-  return unless defined $css_code;
-  require CSS'DOM;
-  VERSION CSS'DOM 0.03;
-  my $hint = $doc->charset || 'iso-8859-1'; # default HTML charset
-  $elem->sheet(
-   CSS'DOM'parse(      # ’Tis true we create a new closure for each style
-    $css_code,               # sheet, but what if the charset changes?
-    url_fetcher => sub {           # ~~~ Is that even possible?
-     my @ret = $fetcher->(shift);
-     @ret ? ( $ret[0], encoding_hint => $hint, @ret[1..$#ret]) : ()
-    },
-    encoding_hint => $hint,
-    %args
-   )
-  );
- });
- return;
+ my $old = (my $self = shift)->{_HTML_DOM_cuf};
+ $self->{_HTML_DOM_cuf} = shift if @_;
+ $old||();
 }
 
 =item $tree->write(...) (DOM method)
@@ -618,11 +608,13 @@ value is returned.
 sub parse_file {
 	my $file = $_[1];
 
+	$_[0]->open;
+
 	# This ‘if’ statement uses the same check that HTML::Parser uses.
 	# We are not strictly checking to see whether it’s a handle,
 	# but whether  HTML::Parser  would  consider  it  one.
 	if (ref($file) || ref(\$file) eq "GLOB") {
-		(my $a = (shift->content_list)[0])
+		(my $a = shift->{_HTML_DOM_parser})
 			->parse_file($file) || return;
 		 $a	->elementify;
 		return 1;
@@ -633,7 +625,7 @@ sub parse_file {
 		open my $fh, $file or return;
 		$charset =~ s/^(?:x-?)?mac-?/mac/i;
 		binmode $fh, ":encoding($charset)";
-		($_->content_list)[0]->parse_file($fh) || return,
+		$$_{_HTML_DOM_parser}->parse_file($fh) || return,
 		$_->close
 			for shift;
 		return 1;
@@ -668,9 +660,9 @@ sub write {
 		$$self{_HTML_DOM_write_buffer} .= shift;
 	}
 	else {
-		eval {($self->content_list)[0]->isa('HTML::TreeBuilder')}
-			or $self->open;
-		my $parser = ($self->content_list)[0];
+		my $parser
+		 = $$self{_HTML_DOM_parser}
+		   || ($self->open, $$self{_HTML_DOM_parser});
 		$parser->parse($_) for @_;
 	}
 	$self->_modified;
@@ -680,15 +672,17 @@ sub write {
 sub writeln { shift->write(@_,"\n") }
 
 sub close {
-	my $a = (shift->content_list)[0];
+	my $a = (my $self = shift)->{_HTML_DOM_parser};
+	return unless $a;
 
 	# We can’t use eval { $a->eof } because that would catch errors
 	# that are meant to propagate  (a  nasty  bug  [the  so-called
 	# ‘content—offset’ bug] was hidden because of an eval in ver-
 	#  sion 0.010).
-	return unless $a->can('eof');
+#	return unless $a->can('eof');
 	                             
 	$a->eof(@_);
+	delete $$self{_HTML_DOM_parser};
 	$a->elementify;
 	return # nothing;
 }
@@ -699,9 +693,11 @@ sub open {
 	# We have to use push_content instead of simply putting it there
 	# ourselves,  because push_content  takes care of weakening the
 	# parent  (and that code  doesn’t  belong  in  this  package).
-	$self->push_content(my $tb = new HTML::DOM::TreeBuilder);
+	$self->push_content(
+	 my $tb = $$self{_HTML_DOM_parser} = new HTML::DOM::Element::HTML
+	);
 
-	delete $$self{_HTML_DOM_sheets};
+	delete @$self{<_HTML_DOM_sheets _HTML_DOM_doctype>};
 
 	return unless $self->{_HTML_DOM_elem_handlers};
 	for(keys %{$self->{_HTML_DOM_elem_handlers}}) {
@@ -752,6 +748,10 @@ Each of these creates a node of the appropriate type.
 =item createEntityReference
 
 These two throw an exception.
+
+=for comment
+=item createCSSStyleSheet
+This creates a style sheet (L<CSS::DOM> object).
 
 =item getElementsByTagName ( $name )
 
@@ -821,6 +821,12 @@ sub createEntityReference {
 	die HTML::DOM::Exception->new( NOT_SUPPORTED_ERR,
 		'The HTML DOM does not support entity references' );
 }
+
+#sub createCSSStyleSheet {
+# shift;
+# require CSS'DOM;
+# ~~~
+#}
 
 sub getElementsByTagName {
 	my($self,$tagname) = @_;
@@ -1168,7 +1174,7 @@ Creates a new event object, believe it or not.
 
 The C<$category> is the DOM event category, which determines what type of
 event object will be returned. The currently supported event categories
-are MouseEvents, UIEvents and MutationEvents.
+are MouseEvents, UIEvents, HTMLEvents and MutationEvents.
 
 You can omit the C<$category> to create an instance of the event base class
 (not officially part of the DOM).
@@ -1243,7 +1249,7 @@ returning a serialisation of the old contents.
 sub innerHTML  {
 	my $self = shift;
 	my $old;
-	$old = join '' , $self->documentElement->{_HTML_DOM_doctype}||'',
+	$old = join '' , $self->{_HTML_DOM_doctype}||'',
 		map substr((
 		 as_HTML $_ (undef)x2,{}
 		), 0, -1), $self->content_list

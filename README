@@ -1,4 +1,4 @@
-HTML::DOM, version 0.035
+HTML::DOM, version 0.036
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,18 @@ sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.036
+-----
+Incompatible change:  A newly-created HTML::DOM  object no longer has
+html, head and body elements. These are not created until open, write
+or parse_file is called.
+New features:
+• New innerText method on HTML elements
+• css_url_fetcher now returns the previously assigned value.
+• css_url_fetcher no longer clobbers an existing link element handler,
+  because it now uses a new, separate mechanism.
+A long list of bug fixes.
 
 0.035
 -----
@@ -27,16 +39,6 @@ See the Changes file for the long version.
 • get_event_listeners works better with subclasses.
 • getElementById  now works when the element’s ID attribute is set to
   a reference.
-
-0.033
------
-• HTML::DOM’s base  method now falls back to the HTTP headers if  the
-  document lacks a  <base>  elem.  It is also better at dealing  with
-  cate <base> elements.
-• Coderefs registered via elem_handler  are now triggered when a node
-  is inserted into the document, as well as during parsing.
-• HTML::DOM::Interface now includes the  contentWindow  method in the
-  HTMLFrameElement and HTMLIFrameElement interfaces.
 
 
 TO DO

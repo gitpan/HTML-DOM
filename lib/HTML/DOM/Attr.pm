@@ -33,7 +33,7 @@ require HTML::DOM::NodeList;
 
 our @ISA = 'HTML::DOM::EventTarget';
 
-our $VERSION = '0.035';
+our $VERSION = '0.036';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 
@@ -164,6 +164,7 @@ sub value {
 		if(ref $old) {
 			$old = $old->data;
 			$_[0][_val][0]->data($_[1]);
+			# ~~~ Can we combine these two statements by using data’s retval?
 		}
 		elsif((my $new_val = $_[0][_val][0] = "$_[1]") ne $old) {
 			if($_[0]->get_event_listeners(	

@@ -10,15 +10,15 @@ plan tests => $tests;
 use HTML::DOM;
 
 # -------------------------#
-use tests 4; # Make sure that HTML::DOM::TreeBuilder’s @ISA is in the
+use tests 4; # Make sure that HTML::DOM::Element::HTML’s @ISA is in the
              # right order, and that it isan HTML element.
 {
 	my $doc = new HTML::DOM;
 	$doc->write('<title></title><body>some text</body>');
-	# Note that documentElement is still blessed into HTML::DOM::TB.
 	is+(my $elem = $doc->documentElement)->as_text, 'some text',
-		'HTML::DOM::TreeBuilder->as_text';
-	like $elem->as_HTML,qr/^[^~]+\z/,'HTML::DOM::TreeBuilder->as_HTML';
+		'HTML::DOM::Element::HTML->as_text';
+	like $elem->as_HTML,qr/^[^~]+\z/,
+	 'HTML::DOM::Element::HTML->as_HTML';
 	isa_ok $elem, HTML::DOM::Element::class_for('html');
 	can_ok $elem, 'version';
 }

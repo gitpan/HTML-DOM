@@ -57,10 +57,9 @@ By default, this returns null. If you provide the HTML::DOM object with a
 L<C<css_url_fetcher>|HTML::DOM/css_url_fetcher>, then this returns a style
 sheet when applicable.
 
-You can also pass an argument to set it. You normally only do this if 'rel' 
+You can also pass an argument to set it. This only works if 'rel' 
 is
-set to 'stylesheet', but CSS::DOM is kind, and trusts you know what you are
-doing if you set it when that is not the case.
+set to 'stylesheet'.
 
 =back
 

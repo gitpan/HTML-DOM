@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.035';
+our $VERSION = '0.036';
 
 
 use strict;
@@ -252,7 +252,7 @@ sub insertBefore {
 		$index = @kids;
 	}
 
-$new_node->can('parent') or warn JE::Code::add_line_number("cant parent");
+#$new_node->can('parent') or warn JE::Code::add_line_number("cant parent");
 	my $old_parent = $new_node->parent;
 	$old_parent and $new_node->trigger_event('DOMNodeRemoved',
 		rel_node => $old_parent);

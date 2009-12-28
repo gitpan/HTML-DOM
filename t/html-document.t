@@ -185,7 +185,7 @@ SKIP: {
 }
 
 # -------------------------#
-use tests 19; # open, close, unbuffaloed write(ln)
+use tests 20; # open, close, unbuffaloed write(ln)
 
 # Buffaloed write is tested in html-dom.t together with
 # elem_handler with which it is closely tied.
@@ -202,7 +202,7 @@ use tests 19; # open, close, unbuffaloed write(ln)
 
 	is $doc->close, undef, 'close';
 
-	ok!$doc->documentElement->isa('HTML::TreeBuilder'),
+	ok!$doc->documentElement->{_hparser_xs_state},
 		'close calls eof';
 
 	isa_ok $doc->getElementById('para'), 'HTML::DOM::Element',
@@ -271,6 +271,12 @@ use tests 19; # open, close, unbuffaloed write(ln)
 	$doc->close;
 	is $doc->find('script')->firstChild->data, "a\nb",
 	 'multi-arg writeln';
+
+	# bug fixed in 0.036
+	$doc->open;
+	$doc->removeChild($doc->firstChild);
+	ok eval{$doc->close;1},
+	  'Close does not die when doc elem does not exist';
 }
 
 # -------------------------#
@@ -343,7 +349,7 @@ is $doc->{fred}, $doc->forms->[0],           'hashness (1)';
 is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 
 # -------------------------#
-use tests 6; # innerHTML
+use tests 9; # innerHTML
 {
 	my $doc = new HTML::DOM;
 	$doc->write('
@@ -393,6 +399,20 @@ use tests 6; # innerHTML
 	my $pre = $doc->createElement('pre');
 	$pre->innerHTML("smed\ndrit");
 	is $pre->innerHTML, "smed\ndrit", 'pre->innerHTML';
+
+	# bug fixed in 0.036: innerHTML used to die without a
+	# documentElement
+	$doc->open; # reset
+	$doc->removeChild($doc->firstChild);
+	is eval { $doc->innerHTML }, "",
+	 'innerHTML retval when doc elem does not exist';
+	$doc->appendChild($doc->createComment('ploe'));
+	is eval { $doc->innerHTML }, '<!--ploe-->',
+	 "innerHTML uses the doc's other children even when doc-elemless";
+	$doc->open; $doc->write('<!doctype html>'); $doc->close;
+	$doc->removeChild($doc->documentElement);
+	like eval { $doc->innerHTML }, qr/^\s*<!doctype\s+html\s*>\s*\z/i,
+	 'innerHTML includes the !doctype even when there is no doc elem';
 }
 
 # -------------------------#

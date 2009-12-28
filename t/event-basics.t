@@ -167,8 +167,8 @@ is $event->type, undef, 'event type before init';
 is $event->eventPhase, undef, 'eventPhase before init';
 ok!$event->bubbles, 'event is flat before init';
 ok!$event->cancelable, 'event is not cancelable before init';
-is scalar $event->currentTarget, undef, 'no currentTarget before init';
-is scalar $event->target, undef, 'no target before init';
+is +()=$event->currentTarget, 0, 'no currentTarget before init';
+is +()=$event->target, 0, 'no target before init';
 
 my $event2;
 {
@@ -597,7 +597,7 @@ use tests 1; # modification of Attr objects for event attributes
 
 {
 	my $accum;
-	my $h = new HTML::DOM;
+	(my $h = new HTML::DOM)->open;
 	$h->event_attr_handler( sub { my $n = $_[2]; sub{$accum .= $n}});
 	my $b = $h->body;
 	$b->setAttribute("onclick","foo");
@@ -620,4 +620,15 @@ use tests 3; # HTML::DOM::event_listeners_enabled
 		'subsequent call (to e_l_e) return the newly-assigned val';
 }
 
+__END__
 
+# -------------------------#
+use tests 3; # Letter case
+
+{
+ my $elem = $doc->createElement('viididi');
+ 
+ $elem->addEventListener('DOMActivate', sub { ...
+ # ~~~ This will check to see whether clICK (intentially miscapitalised)
+ #     triggers DOMActivate
+}
