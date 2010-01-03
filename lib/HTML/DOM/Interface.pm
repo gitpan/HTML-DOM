@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.036';
+our $VERSION = '0.037';
 
 =head1 NAME
 
@@ -390,6 +390,7 @@ gory details, look at the source code. In fact, here it is:
   		write => METHOD | VOID,
   		writeln => METHOD | VOID,
   		getElementsByName => METHOD | OBJ,
+  		getElementsByClassName => METHOD | OBJ,
   		createEvent => METHOD | OBJ,
   		defaultView => OBJ | READONLY,
   		styleSheets => OBJ | READONLY,
@@ -427,6 +428,7 @@ gory details, look at the source code. In fact, here it is:
   		innerHTML => STR,
   		insertAdjacentHTML => METHOD | VOID,
   		insertAdjacentElement => METHOD | VOID,
+  		getElementsByClassName => METHOD | OBJ,
   	 },
   	 HTMLHtmlElement => {
 		_isa => 'HTMLElement',

@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.036';
+our $VERSION = '0.037';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.036 (alpha)
+Version 0.037 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -95,7 +95,7 @@ The following DOM modules are currently supported:
   Views           2.0
 
 StyleSheets, CSS and CSS2 are actually provided by L<CSS::DOM>. This list
-corresponds to CSS::DOM versions 0.02 to 0.07.
+corresponds to CSS::DOM versions 0.02 to 0.08.
 
 =for comment
 Level 2 interfaces not yet included: Range, Traversal
@@ -1132,6 +1132,8 @@ sub cookie {
 
 =item getElementsByName
 
+=item getElementsByClassName
+
 These two do what their names imply. The latter will return a list in list
 context, or a node list object in scalar context. Calling it in list
 context is probably more efficient.
@@ -1165,6 +1167,32 @@ sub getElementsByName {
 	}
 }
 
+sub getElementsByClassName {
+	my($self,$names) = @_;
+
+	my $cref;
+	if(defined $names) {
+	 no warnings 'uninitialized';
+ 	 $names
+	  = join ".*", map "\\b$_\\b", sort split /[ \t\n\f\r]+/, $names;
+	 $cref = sub {
+	  join(" ", sort split /[ \t\n\f\r]+/, $_[0]->attr('class'))
+	   =~ $names
+	 };
+	}
+	else { $cref = sub {} }
+
+	if (wantarray) {
+		return $self->look_down($cref);
+	}
+	else {
+		my $list = HTML::DOM::NodeList::Magic->new(
+			  sub { $self->look_down($cref); }
+		);
+		$self-> _register_magic_node_list($list);
+		$list;
+	}
+}
 
 # ---------- DocumentEvent interface -------------- #
 

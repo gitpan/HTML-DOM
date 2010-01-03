@@ -1,4 +1,4 @@
-HTML::DOM, version 0.036
+HTML::DOM, version 0.037
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,10 @@ sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.037
+-----
+New feature: getElementsByClassName
 
 0.036
 -----
@@ -27,18 +31,6 @@ A long list of bug fixes.
 -----
 • getElementById can now once more see sub-elements of forms.
 • The base method is no longer affected by  previous  regexp  matches.
-
-0.034
------
-• A couple of incompatible changes that affect  only  those  who  are
-  doing arcane things with this distribution.
-• HTML::DOM’s title method no longer dies when the title element does
-  not exist.
-• Event dispatch no longer leaves junk in $@.
-• We now preserve whitespace in the DOM.
-• get_event_listeners works better with subclasses.
-• getElementById  now works when the element’s ID attribute is set to
-  a reference.
 
 
 TO DO

@@ -1,5 +1,8 @@
 Revision history for HTML::DOM
 
+0.037   2 January, 2010
+        New feature: getElementsByClassName
+
 0.036   27 December, 2009
         Incompatible change:
         • A newly-created HTML::DOM  object no longer has html,  head

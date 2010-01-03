@@ -1,6 +1,6 @@
 package HTML::DOM::Event::Mouse;
 
-our $VERSION = '0.036';
+our $VERSION = '0.037';
 
 use warnings; no warnings qw 'utf8 parenthesis';
 use strict;

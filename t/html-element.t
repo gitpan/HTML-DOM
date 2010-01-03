@@ -56,7 +56,7 @@ isa_ok $doc, 'HTML::DOM';
 
 
 # -------------------------#
-use tests 67; # Element types that just use the HTMLElement interface
+use tests 72; # Element types that just use the HTMLElement interface
               # (and general tests for that interface)
 
 for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
@@ -189,6 +189,39 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	 # This is also a test for innerHTML, too, which would return lit-
 	 # eral angle brackets for text nodes that were direct children of
 	 # the element.
+
+	{ package oVerload;
+		use overload '""' => sub {${+shift}}, fallback => 1;
+	 }
+	$elem->innerHTML('
+	  <p id="p1" class="aaa bbb">
+	  <p id="p2" class="aaa ccc">
+	  <p id="p3" class="bbb ccc">
+	');
+	is_deeply [map id $_, getElementsByClassName $elem 'aaa'],
+		['p1', 'p2'],
+		'getElementsByClassName';
+	is_deeply
+	  [
+	   map id $_, getElementsByClassName $elem
+	                             bless \do{my $v = 'aaa'}, 'oVerload'
+	  ],
+	  ['p1', 'p2'],
+	 'getElementsByClassName stringfication';
+	is_deeply
+	  [map id $_, @{
+	   getElementsByClassName $elem
+	    bless \do{my $v = 'aaa'}, 'oVerload'
+	  }],
+	  ['p1', 'p2'],
+	 'getElementsByClassName stringfication in scalar context';
+	is_deeply
+	  [map id $_, getElementsByClassName $elem 'ccc bbb'],
+	  ['p3'],
+	 'getElementsByClassName with multiple classes';
+	is getElementsByClassName $elem 'aaa,bbb'=>->length, 0,
+	 'getElementsByClassName("aaa,bbb")'
+	
 }
 
 # -------------------------#
