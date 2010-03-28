@@ -1,4 +1,4 @@
-HTML::DOM, version 0.037
+HTML::DOM, version 0.038
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,11 @@ sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.038
+-----
+Bug fix:  A run-time require  that was causing problems in taint mode
+has been removed.
 
 0.037
 -----
@@ -93,7 +98,7 @@ Or try using man (it's faster, in my experience):
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2007-9 Father Chrysostomos
+Copyright (C) 2007-10 Father Chrysostomos
 
 This program is free software; you may redistribute it and/or modify
 it under the same terms as perl.
