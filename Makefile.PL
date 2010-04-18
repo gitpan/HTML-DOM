@@ -95,6 +95,5 @@ WriteMakefile(
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz',
                              TAR => 'COPYFILE_DISABLE=1 tar' },
     clean               => { FILES => 'HTML-DOM-*' },
-    META_ADD            => { breaks => \%broken_deps }, # Hopefully this
-);                       # will be recognised by the toolchain some day....
+);
                      

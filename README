@@ -1,4 +1,4 @@
-HTML::DOM, version 0.038
+HTML::DOM, version 0.039
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -11,6 +11,11 @@ RECENT CHANGES
 
 See the Changes file for the long version.
 
+0.039
+-----
+Submitting a GET form with a data:  URL  (or any URI object without a
+query_form method) now just uses the URL itself,  discarding any data.
+
 0.038
 -----
 Bug fix:  A run-time require  that was causing problems in taint mode
@@ -19,23 +24,6 @@ has been removed.
 0.037
 -----
 New feature: getElementsByClassName
-
-0.036
------
-Incompatible change:  A newly-created HTML::DOM  object no longer has
-html, head and body elements. These are not created until open, write
-or parse_file is called.
-New features:
-• New innerText method on HTML elements
-• css_url_fetcher now returns the previously assigned value.
-• css_url_fetcher no longer clobbers an existing link element handler,
-  because it now uses a new, separate mechanism.
-A long list of bug fixes.
-
-0.035
------
-• getElementById can now once more see sub-elements of forms.
-• The base method is no longer affected by  previous  regexp  matches.
 
 
 TO DO

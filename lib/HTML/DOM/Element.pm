@@ -9,7 +9,6 @@ use HTML::DOM::Node 'ELEMENT_NODE';
 use HTML'Entities;
 use Scalar::Util qw'refaddr blessed weaken';
 
-require HTML::DOM;
 require HTML::DOM::Attr;
 require HTML::DOM::Element::Form;
 require HTML::DOM::Element::Table;
@@ -18,7 +17,7 @@ require HTML::DOM::Node;
 require HTML::DOM::NodeList::Magic;
 
 our @ISA = qw'HTML::DOM::Node';
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 
 
 {
@@ -147,10 +146,11 @@ sub new {
 	my $ret;
 	eval {
 		$ret = bless shift->SUPER::new(@_), class_for $tagname;
-# This line was causing problems for someone it taint mode. I suspect it’s
-# actually a bug in another piece of code, in which case I will re-enable
-# it once that is fixed.
-#		$tagname =~ /^html\z/i and require HTML'DOM; # paranoia
+
+		# require can sometimes fail if it’s part of a tainted
+		# statement. That’s why it’s in a do block.
+		$tagname =~ /^html\z/i
+		 and do { require HTML'DOM }; # paranoia
 	};
 	$@ or return $ret;
 	die HTML::DOM::Exception->new( INVALID_CHARACTER_ERR, $@);
@@ -762,14 +762,14 @@ L<HTML::DOM/CLASSES AND DOM INTERFACES>
 # ------- HTMLHeadElement interface ---------- #
 
 package HTML::DOM::Element::Head;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub profile { shift->_attr('profile' => @_) }
 
 # ------- HTMLLinkElement interface ---------- #
 
 package HTML::DOM::Element::Link;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 use Scalar::Util 'blessed';
 sub disabled {
@@ -895,7 +895,7 @@ sub _reset_style_sheet {
 # ------- HTMLTitleElement interface ---------- #
 
 package HTML::DOM::Element::Title;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 # This is what I call FWP (no lexical vars):
 sub text {
@@ -910,7 +910,7 @@ sub text {
 # ------- HTMLMetaElement interface ---------- #
 
 package HTML::DOM::Element::Meta;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub content   { shift->_attr('content'    => @_) }
 sub httpEquiv { shift->_attr('http-equiv' => @_) }
@@ -920,7 +920,7 @@ sub scheme    { shift->_attr('scheme'     => @_) }
 # ------- HTMLBaseElement interface ---------- #
 
 package HTML::DOM::Element::Base;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *href =\& HTML::DOM::Element::Link::href;
 *target =\& HTML::DOM::Element::Link::target;
@@ -928,7 +928,7 @@ our @ISA = 'HTML::DOM::Element';
 # ------- HTMLIsIndexElement interface ---------- #
 
 package HTML::DOM::Element::IsIndex;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub form     { (shift->look_up(_tag => 'form'))[0] || () }
 # ~~~ Should this be the same as Select::form? I.e., should isindex ele-
@@ -938,7 +938,7 @@ sub prompt   { shift->_attr('prompt'  => @_) }
 # ------- HTMLStyleElement interface ---------- #
 
 package HTML::DOM::Element::Style;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *disabled = \&HTML::DOM::Element::Link::disabled;
 *media =\& HTML::DOM::Element::Link::media;
@@ -958,7 +958,7 @@ sub sheet {
 # ------- HTMLBodyElement interface ---------- #
 
 package HTML::DOM::Element::Body;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub aLink      { shift->_attr( aLink      => @_) }
 sub background { shift->_attr( background => @_) }
@@ -983,7 +983,7 @@ sub event_handler {
 # ------- HTMLUListElement interface ---------- #
 
 package HTML::DOM::Element::UL;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub compact { shift->_attr( compact => @_) }
 sub type { lc shift->_attr( type => @_) }
@@ -991,7 +991,7 @@ sub type { lc shift->_attr( type => @_) }
 # ------- HTMLOListElement interface ---------- #
 
 package HTML::DOM::Element::OL;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub start { shift->_attr( start => @_) }
 *compact=\&HTML::DOM::Element::UL::compact;
@@ -1000,28 +1000,28 @@ sub start { shift->_attr( start => @_) }
 # ------- HTMLDListElement interface ---------- #
 
 package HTML::DOM::Element::DL;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *compact=\&HTML::DOM::Element::UL::compact;
 
 # ------- HTMLDirectoryElement interface ---------- #
 
 package HTML::DOM::Element::Dir;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *compact=\&HTML::DOM::Element::UL::compact;
 
 # ------- HTMLMenuElement interface ---------- #
 
 package HTML::DOM::Element::Menu;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *compact=\&HTML::DOM::Element::UL::compact;
 
 # ------- HTMLLIElement interface ---------- #
 
 package HTML::DOM::Element::LI;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *type =\& HTML::DOM::Element::Link::type;
 sub value { shift->_attr( value => @_) }
@@ -1029,49 +1029,49 @@ sub value { shift->_attr( value => @_) }
 # ------- HTMLDivElement interface ---------- #
 
 package HTML::DOM::Element::Div;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub align { lc shift->_attr( align => @_) }
 
 # ------- HTMLParagraphElement interface ---------- #
 
 package HTML::DOM::Element::P;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *align =\& HTML::DOM::Element::Div::align;
 
 # ------- HTMLHeadingElement interface ---------- #
 
 package HTML::DOM::Element::Heading;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *align =\& HTML::DOM::Element::Div::align;
 
 # ------- HTMLQuoteElement interface ---------- #
 
 package HTML::DOM::Element::Quote;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub cite { shift->_attr( cite => @_) }
 
 # ------- HTMLPreElement interface ---------- #
 
 package HTML::DOM::Element::Pre;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub width { shift->_attr( width => @_) }
 
 # ------- HTMLBRElement interface ---------- #
 
 package HTML::DOM::Element::Br;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub clear { lc shift->_attr( clear => @_) }
 
 # ------- HTMLBaseFontElement interface ---------- #
 
 package HTML::DOM::Element::BaseFont;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub color { shift->_attr( color => @_) }
 sub face  { shift->_attr( face  => @_) }
@@ -1080,7 +1080,7 @@ sub size  { shift->_attr( size  => @_) }
 # ------- HTMLBaseFontElement interface ---------- #
 
 package HTML::DOM::Element::Font;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *color =\& HTML::DOM::Element::BaseFont::color;
 *face =\& HTML::DOM::Element::BaseFont::face;
@@ -1089,7 +1089,7 @@ our @ISA = 'HTML::DOM::Element';
 # ------- HTMLHRElement interface ---------- #
 
 package HTML::DOM::Element::HR;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *align =\& HTML::DOM::Element::Div::align;
 sub noShade  { shift->_attr( noshade  => @_) }
@@ -1099,7 +1099,7 @@ sub noShade  { shift->_attr( noshade  => @_) }
 # ------- HTMLModElement interface ---------- #
 
 package HTML::DOM::Element::Mod;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *cite =\& HTML::DOM::Element::Quote::cite;
 sub dateTime  { shift->_attr( datetime  => @_) }
@@ -1107,7 +1107,7 @@ sub dateTime  { shift->_attr( datetime  => @_) }
 # ------- HTMLAnchorElement interface ---------- #
 
 package HTML::DOM::Element::A;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub accessKey  { shift->_attr(               accesskey  => @_) }
 *   charset    =\&HTML::DOM::Element::Link::charset           ;
@@ -1245,7 +1245,7 @@ sub search {
 # ------- HTMLImageElement interface ---------- #
 
 package HTML::DOM::Element::Img;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub lowSrc  { shift->attr(               lowsrc  => @_) }
 *   name  = \&HTML::DOM::Element::Meta::name            ;
@@ -1264,7 +1264,7 @@ sub vspace   { shift->_attr(              vspace   => @_) }
 # ------- HTMLObjectElement interface ---------- #
 
 package HTML::DOM::Element::Object;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *form=\&HTML::DOM::Element::Select::form;
 sub code  { shift->_attr(               code  => @_) }
@@ -1289,7 +1289,7 @@ sub contentDocument{}
 # ------- HTMLParamElement interface ---------- #
 
 package HTML::DOM::Element::Param;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *name=\&HTML::DOM::Element::Meta::name;
 *type=\&HTML::DOM::Element::Link::type;
@@ -1299,7 +1299,7 @@ sub valueType{lc shift->_attr(valuetype=>@_)}
 # ------- HTMLAppletElement interface ---------- #
 
 package HTML::DOM::Element::Applet;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 * align    = \ & HTML::DOM::Element::Div::align       ;
 * alt      = \ & HTML::DOM::Element::Img::alt         ;
@@ -1316,7 +1316,7 @@ sub object { shift -> _attr ( object => @_ ) }
 # ------- HTMLMapElement interface ---------- #
 
 package HTML::DOM::Element::Map;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub areas { # ~~~ I need to make this cache the resulting collection obj
 	my $self = shift;
@@ -1337,7 +1337,7 @@ sub areas { # ~~~ I need to make this cache the resulting collection obj
 # ------- HTMLAreaElement interface ---------- #
 
 package HTML::DOM::Element::Area;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 * alt       = \ & HTML::DOM::Element::Img::alt         ;
 sub coords { shift -> _attr ( coords => @_ ) }
@@ -1354,7 +1354,7 @@ sub noHref { shift -> attr ( nohref => @_ ) }
 # ------- HTMLScriptElement interface ---------- #
 
 package HTML::DOM::Element::Script;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 * text    = \ &HTML::DOM::Element::Title::text   ;
 sub htmlFor { shift -> _attr ( for   => @_ )      }
@@ -1367,7 +1367,7 @@ sub defer   { shift -> _attr ( defer => @_ )      }
 # ------- HTMLFrameSetElement interface ---------- #
 
 package HTML::DOM::Element::FrameSet;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub rows { shift -> _attr ( rows   => @_ )      }
 sub cols   { shift -> _attr ( cols => @_ )      }
@@ -1375,7 +1375,7 @@ sub cols   { shift -> _attr ( cols => @_ )      }
 # ------- HTMLFrameElement interface ---------- #
 
 package HTML::DOM::Element::Frame;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 sub frameBorder { lc shift -> _attr ( frameBorder  => @_ )      }
 sub longDesc    { shift -> _attr ( longdesc     => @_ )      }
@@ -1395,7 +1395,7 @@ sub contentWindow {
 # ------- HTMLIFrameElement interface ---------- #
 
 package HTML::DOM::Element::IFrame;
-our $VERSION = '0.038';
+our $VERSION = '0.039';
 our @ISA = 'HTML::DOM::Element';
 *align  = \&HTML::DOM::Element::Div::align;
 *frameBorder = \&HTML::DOM::Element::Frame::frameBorder;
