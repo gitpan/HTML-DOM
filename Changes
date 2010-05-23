@@ -1,5 +1,12 @@
 Revision history for HTML::DOM
 
+0.040   23 May, 2010
+        Bug fix:  Calling $doc->write from an elem handler now parses
+        the HTML code immediately instead of buffering it and waiting
+        for the elem handler to return.  This allows aberrations like
+          $doc->write("<img id='img1'); $doc->getElementById('img')...
+        to work.
+
 0.039   18 April, 2010
         Bug fix:  Submitting a GET form with a data: URL  (or any URI
         object without a  query_form  method)  now just uses the  URL

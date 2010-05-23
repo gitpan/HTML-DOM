@@ -1,4 +1,4 @@
-HTML::DOM, version 0.039
+HTML::DOM, version 0.040
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -11,6 +11,15 @@ RECENT CHANGES
 
 See the Changes file for the long version.
 
+0.040
+-----
+
+Bug fix: Calling $doc->write from an elem handler now parses the HTML
+code immediately instead of buffering it and waiting for the elem han-
+dler to return. This allows aberrations like
+  $doc->write("<img id='img1'); $doc->getElementById('img')...
+to work.
+
 0.039
 -----
 Submitting a GET form with a data:  URL  (or any URI object without a
@@ -20,10 +29,6 @@ query_form method) now just uses the URL itself,  discarding any data.
 -----
 Bug fix:  A run-time require  that was causing problems in taint mode
 has been removed.
-
-0.037
------
-New feature: getElementsByClassName
 
 
 TO DO

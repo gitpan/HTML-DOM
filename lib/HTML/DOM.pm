@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.039';
+our $VERSION = '0.040';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.039 (alpha)
+Version 0.040 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -474,40 +474,20 @@ sub elem_handler {
 		$doc_elem->{_HTML_DOM_tweakall}->(@_);
 		$self->_modified; # in case there are node lists hanging
 		                  # around that the handler references
-		{ local $$self{_HTML_DOM_buffered} = 1;
-		  &$sub($self, $_[0]); }
-		return unless exists $$self{_HTML_DOM_write_buffer};
+		&$sub($self, $_[0]);
 
-		# These handlers delegate the handling to methods of
-		# *another* HTML::Parser object.
-		my $p = HTML::Parser->new(
-			start_h => [ 
-				sub { $doc_elem->start(@_) },
-				'tagname, attr, attrseq'
-			],
-			end_h => [ 
-				sub { $doc_elem->end(@_) },
-				'tagname, text'
-			],
-			text_h => [ 
-				sub { $doc_elem->text(@_) },
-				'text, is_cdata'
-			],
-		);
-
-		$p->unbroken_text(1); # push_content, which is called by
-		                     # H:TB:text, won't concatenate two
-		                   # text portions if the  first  one
-		                  # is a node.
-
-		# We have to clear the write buffalo before calling parse,
-		# because if the  buffalo  contains  $elem_name  elements,
-		# parse will (indirectly) call this very routine while the
-		# buffalo is still full, so we will end up passing the same
-		# value to parse yet again....  (This is  what  we  usually
-		# call infinite recursion, I think. :-)
-		$p->parse(delete $$self{_HTML_DOM_write_buffer});
-		$p->eof;
+		# See the comment in sub write.
+		(my $level = $$self{_HTML_DOM_buffered});
+		if(  $level
+		 and ($level -= 1, 1)
+		 and $$self{_HTML_DOM_p}
+		 and $$self{_HTML_DOM_p}[$level]
+		  ) {
+			 $$self{_HTML_DOM_p}[$level]->eof;
+			 $level
+			  ? --$#{$$self{_HTML_DOM_p}}
+			  :  delete $$self{_HTML_DOM_p};
+		}
 	};
 	if(my $p = $$self{_HTML_DOM_parser}) {
 		$$p{"_tweak_$elem_name"} = $h
@@ -657,12 +637,72 @@ sub charset {
 sub write {
 	my $self = shift;
 	if($$self{_HTML_DOM_buffered}) {
-		$$self{_HTML_DOM_write_buffer} .= shift;
+		# Although we call this buffered, it’s actually not. Before
+		# version 0.040,  a recursive call to ->write  on the same
+		# doc object would simply record the HTML code in a buffer
+		# that was processed when the elem handler that  made  the
+		# inner call to ->write finished. Every elem handler would
+		# have a wrapper  (created in the elem_handler  sub above)
+		# that took care of this after calling the handler, by cre-
+		# ating a new, temporary, parser object that would call the
+		# start/end, etc., methods of our tree builder.
+		#
+		# This approach stops JS code like this from working (yes,
+		# there *are* websites with code like this!):
+		#   document.write("<img id=img1>")
+		#   document.getElementById("img").src="..."
+		#
+		# So, now we take care of creating a new parser immedi-
+		# ately. This does mean, however that we end up with mul-
+		# tiple parser objects floating around  in  the  case  of
+		# nested <scripts>. So we have to be careful to create and
+		# delete them at the right time.
+
+		# $$self{_HTML_DOM_buffered} actually contains a number
+		# indicating the number of nested calls to ->write.
+		my $level = $$self{_HTML_DOM_buffered};
+		local $$self{_HTML_DOM_buffered} = $level + 1;
+
+		my($doc_elem) = $self->content_list;
+
+		# These handlers delegate the handling to methods of
+		# *another* HTML::Parser object.
+		my $p = $$self{_HTML_DOM_p}[$level-1] ||=
+		 HTML::Parser->new(
+		  start_h => [ 
+		    sub { $doc_elem->start(@_) },
+		   'tagname, attr, attrseq'
+		  ],
+		  end_h => [ 
+		    sub { $doc_elem->end(@_) },
+		   'tagname, text'
+		  ],
+		  text_h => [ 
+		    sub { $doc_elem->text(@_) },
+		   'text, is_cdata'
+		  ],
+		 );
+
+		$p->unbroken_text(1); # push_content, which is called by
+		                     # H:TB:text, won't concatenate two
+		                   # text portions if the  first  one
+		                  # is a node.
+
+		$p->parse(shift);
+
+		# We can’t get rid of our parser at this point, as a subse-
+		# quent ->write call from the same nested level (e.g., from
+		# the same <script> block) will need the same one,  in case
+		# what we are parsing ends with a partial token. But if the
+		# calling elem handler  finishes  (e.g.,  if  we  reach  a
+		# </script>),  then we need to remove  it,  so  we  have
+		# elem_handler do that for us.
 	}
 	else {
 		my $parser
 		 = $$self{_HTML_DOM_parser}
 		   || ($self->open, $$self{_HTML_DOM_parser});
+		local $$self{_HTML_DOM_buffered} = 1;
 		$parser->parse($_) for @_;
 	}
 	$self->_modified;

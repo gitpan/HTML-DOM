@@ -189,6 +189,8 @@ use tests 20; # open, close, unbuffaloed write(ln)
 
 # Buffaloed write is tested in html-dom.t together with
 # elem_handler with which it is closely tied.
+# Actually, that type of write is no longer buffered, but I like the term
+# ‘buffaloed’, so I’ll keep using it. :-)
 
 {
 	my $response = \'esnopser'; # This isn't a response object, but

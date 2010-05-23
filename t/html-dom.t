@@ -10,7 +10,7 @@
 
 use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => reverse 48;
+use Test::More tests => reverse 49;
 
 
 # -------------------------#
@@ -25,9 +25,11 @@ my $doc = new HTML::DOM;
 isa_ok $doc, 'HTML::DOM';
 
 # -------------------------#
-# Tests 3-21: elem_handler, parse, eof and write
+# Tests 3-22: elem_handler, parse, eof and write
 
 # It is important that this
+# 18 May, 2010: I’ve just discovered the previous line, which I apparently
+# wrote five months ago; but I have no idea what it was going to say.
 $doc->elem_handler(script => sub {
 	eval($_[1]->firstChild->data);
 	$@ and die;
@@ -73,8 +75,28 @@ $doc->close;
  is $doc->title, 'scred', "elem_handlers are triggered on node insertion";
 }
 
+{
+ # Test that elements are accessible as soon as they are written (i.e.,
+ # that write is not actually buffered, even though we call it that). This
+ # was fixed in 0.040.
+ $doc->write(<<' -----');
+  <script>
+   # This is based on a horrid piece of code at
+   # http://www.tmxmoney.com/en/scripts/homepage.js
+   $doc->write("<img id='img1' height='1' width='1'>");
+   $doc->getElementById("img1")->src(
+    "http://beacon.securestudies.com/scripts/beacon.dll?blah-blah-blah..."
+   );
+  </script>
+ -----
+ $doc->close;
+ is $doc->find('img')->src,
+   'http://beacon.securestudies.com/scripts/beacon.dll?blah-blah-blah...',
+   'so-called buffered write is not actually buffered' 
+}
+
 # -------------------------#
-# Tests 22-34: parse_file & charset
+# Tests 23-35: parse_file & charset
 
 use File::Basename;
 use File::Spec::Functions 'catfile';
@@ -210,7 +232,7 @@ is $doc->charset('utf-16be'), 'iso-8859-1', 'charset get/set';
 is $doc->charset, 'utf-16be', 'get charset after set';
 
 # -------------------------#
-# Test 35: another elem_handler test with nested <script> elems
+# Test 36: another elem_handler test with nested <script> elems
 #          This was causing infinite recursion before version 0.004.
 
 {
@@ -235,7 +257,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Test 36: Yet another elem_handler test, this time with '*' for the tag.
+# Test 37: Yet another elem_handler test, this time with '*' for the tag.
 #          I broke this in 0.009 and fixed it in 0.010.
 
 {
@@ -251,7 +273,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 
 
 # -------------------------#
-# Tests 37-9: event_parent
+# Tests 38-40: event_parent
 
 {
 	my $doc = new HTML::DOM;
@@ -265,7 +287,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Tests 40-5: base
+# Tests 41-6: base
 
 {
  my $doc = new HTML::DOM url => 'file:///';
@@ -294,7 +316,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Test 46-8: Yet another elem_handler test, for when elem_handlers orphan
+# Test 47-9: Yet another elem_handler test, for when elem_handlers orphan
 #            the <html> element.  This also makes sure elem_handers  are
 #            called even without closing tags. (Both were fixed 0.036.)
 
