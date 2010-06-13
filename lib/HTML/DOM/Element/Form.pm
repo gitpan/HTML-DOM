@@ -10,7 +10,7 @@ require HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 #require HTML::DOM::Collection::Elements;
 
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 our @ISA = qw'HTML::DOM::Element';
 
 use overload fallback => 1,
@@ -407,7 +407,7 @@ package HTML::DOM::NodeList::Radio; # solely for HTML::Form compatibility
 use Carp 'croak';
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 our @ISA = qw'HTML::DOM::NodeList';
 
 sub type { 'radio' }
@@ -479,7 +479,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 
 require HTML::DOM::Collection;
 our @ISA = 'HTML::DOM::Collection';
@@ -656,7 +656,7 @@ L<HTML::Form>
 # ------- HTMLSelectElement interface ---------- #
 
 package HTML::DOM::Element::Select;
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 our @ISA = 'HTML::DOM::Element';
 
 use overload fallback=>1, '@{}' => sub { shift->options };
@@ -666,32 +666,27 @@ use Scalar'Util 'weaken';
 
 sub type      { 'select-' . qw/one multiple/[!!shift->attr('multiple')] }
 sub selectedIndex   {
+	# Unfortunately, we cannot cache this (as in v. 0.040 and earlier)
+	# as any change to the DOM will require it to be reset.
 	my $self = shift;
 	my $ret;
-	if(!defined $self->{_HTML_DOM_sel_index}) {
+	if(defined wantarray) {
 		my $x=0;
 		# ~~~ I can optimise this by using $self->traverse since
 		#     I don't need the rest of the list once I've found
-		#     a selceted item.
+		#     a selected item.
 		for($self->options) {
 			$_->selected and
-				@_ || ($self->{_HTML_DOM_sel_index} = $x),
 				$ret = $x,
 				last;
 			$x++;
 		}
 		defined $ret or
 			$ret = -1,
-			@_ || ($self->{_HTML_DOM_sel_index} = -1);
 	}
-	else {
-		$ret = $self->{_HTML_DOM_sel_index}
-	}
-	@_ and $self->{_HTML_DOM_sel_index} = $_[0],
-	       ($self->options)[$_[0]]->selected(1);
+	@_ and ($self->options)[$_[0]]->selected(1);
 	return $ret;
 }
-sub _reset_sel_index { delete shift->{_HTML_DOM_sel_index} }
 sub value   { shift->options->value(@_) }
 sub length { scalar(()= shift->options ) }
 sub form           { 
@@ -720,8 +715,12 @@ sub options { # ~~~ I need to make this cache the resulting collection obj
 		$collection;
 	}
 }
-sub disabled  { shift->_attr( disabled => @_) }
-sub multiple  { shift->_attr( multiple => @_) }
+sub disabled  {
+ shift->_attr( disabled => @_ ? $_[0] ? 'disabled' : undef : () )
+}
+sub multiple  {
+ shift->_attr( multiple => @_ ? (undef,'multiple')[!!$_[0]] : () )
+}
 *name = \&HTML::DOM::Element::Form::name;
 sub size      { shift->_attr( size => @_) }
 sub tabIndex  { shift->_attr( tabindex => @_) }
@@ -741,7 +740,7 @@ sub remove {
 
 sub blur { shift->trigger_event('blur') }
 sub focus { shift->trigger_event('focus') }
-sub _reset {  (my $self = shift)->_reset_sel_index;
+sub _reset {  my $self = shift;
                $_->_reset for $self->options  }
 
 
@@ -750,7 +749,7 @@ package HTML::DOM::Collection::Options;
 use strict;
 use warnings;
 
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 
 use Carp 'croak';
 use constant::lexical sel => 5; # must not conflict with super
@@ -826,7 +825,7 @@ sub length { # override
 # ------- HTMLOptGroupElement interface ---------- #
 
 package HTML::DOM::Element::OptGroup;
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 our @ISA = 'HTML::DOM::Element';
 
 sub label  { shift->_attr( label => @_) }
@@ -836,13 +835,15 @@ sub label  { shift->_attr( label => @_) }
 # ------- HTMLOptionElement interface ---------- #
 
 package HTML::DOM::Element::Option;
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
 
 *form = \&HTML::DOM::Element::Select::form;
-sub defaultSelected   { shift->_attr( selected => @_) }
+sub defaultSelected   {
+ shift->_attr( selected => @_ ? $_[0] ? 'selected' : undef : () )
+}
 
 sub text { 
 	shift->as_text
@@ -890,9 +891,8 @@ sub selected {
 		$ret = $self->{_HTML_DOM_sel}
 	}
 	if(@_ && !$ret != !$_[0]) {
-		(my $sel = $self->look_up(_tag => 'select'))
-			->_reset_sel_index;
-		if($sel->multiple) {
+		my $sel = $self->look_up(_tag => 'select');
+		if(!$sel || $sel->multiple) {
 			$self->{_HTML_DOM_sel} = shift;
 		}
 		elsif($_[0]) { # You can't deselect the only selected
@@ -947,13 +947,15 @@ sub _reset { delete shift->{_HTML_DOM_sel} }
 # ------- HTMLInputElement interface ---------- #
 
 package HTML::DOM::Element::Input;
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
 
 sub defaultValue   { shift->_attr( value => @_) }
-sub defaultChecked { shift->_attr( checked => @_) }
+sub defaultChecked {
+ shift->_attr( checked => @_ ? $_[0] ? 'checked' : undef : () )
+}
 *form = \&HTML::DOM::Element::Select::form;
 sub accept         { shift->_attr( accept => @_) }
 sub accessKey      { shift->_attr( accesskey => @_) }
@@ -974,7 +976,7 @@ sub checked        {
 *disabled = \&HTML::DOM::Element::Select::disabled;
 sub maxLength { shift->_attr( maxlength => @_) }
 *name = \&HTML::DOM::Element::Form::name;
-sub readOnly  { shift->_attr( readonly => @_) }
+sub readOnly { shift->_attr(readonly => @_ ? $_[0]?'readonly':undef : ()) }
 *size = \&HTML::DOM::Element::Select::size;
 sub src       { shift->_attr( src => @_) }
 *tabIndex = \&HTML::DOM::Element::Select::tabIndex;
@@ -1156,7 +1158,7 @@ sub content {
 # ------- HTMLTextAreaElement interface ---------- #
 
 package HTML::DOM::Element::TextArea;
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 our @ISA = qw'HTML::DOM::Element';
 
 sub defaultValue { # same as HTML::DOM::Element::Title::text
@@ -1204,7 +1206,7 @@ sub _reset {
 # ------- HTMLButtonElement interface ---------- #
 
 package HTML::DOM::Element::Button;
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1219,7 +1221,7 @@ sub value      { shift->attr( value       => @_) }
 # ------- HTMLLabelElement interface ---------- #
 
 package HTML::DOM::Element::Label;
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1229,7 +1231,7 @@ sub htmlFor { shift->_attr( for       => @_) }
 # ------- HTMLFieldSetElement interface ---------- #
 
 package HTML::DOM::Element::FieldSet;
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1237,7 +1239,7 @@ our @ISA = qw'HTML::DOM::Element';
 # ------- HTMLLegendElement interface ---------- #
 
 package HTML::DOM::Element::Legend;
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;

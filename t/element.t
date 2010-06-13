@@ -36,12 +36,15 @@ use tests 1; # getAttribute
 is $elem->getAttribute('href'), 'about:blank', 'getAttribute';
 
 # -------------------------#
-use tests 2; # setAttribute
+use tests 3; # setAttribute
 
 is scalar(()=setAttribute $elem href=>'http://www.synodinresistance.org/'),
 	0, 'setAttribute';
 is $elem->getAttribute('href'),'http://www.synodinresistance.org/',
 	'result of setAttribute';
+setAttribute $elem pnin => [];
+isa_ok $elem->getAttributeNode('pnin'), 'HTML::DOM::Attr',
+ 'retval of getAttributeNode after ref assignment to setAttribute';
 
 # -------------------------#
 use tests 3; # removeAttribute
@@ -183,7 +186,7 @@ is $elem->getAttribute('href'), '', 'result of removeAttributeNode';
 
 
 # -------------------------#
-use tests 6; # getElementsByTagName
+use tests 8; # getElementsByTagName
 
 {
 	$doc->write('
@@ -236,6 +239,13 @@ use tests 6; # getElementsByTagName
 
 	is_deeply [map $_->id || tag $_, @$node_list],
 		[qw[ one four i ]], '* node list is updated';
+
+
+	# Bug in 0.040 and earlier
+	is $elem->getElementsByTagName('form')->length, 0,
+	 'getEBTN looks only at the descendants, not the elem itself';
+	is +()=$elem->getElementsByTagName('form'), 0,
+	 'getEBTN (list cx) looks only @ descendants, not the elem itself';
 }
 
 # -------------------------#

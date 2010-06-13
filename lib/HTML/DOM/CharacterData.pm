@@ -12,7 +12,7 @@ use Scalar::Util qw'blessed weaken';
 require HTML::DOM::Node;
 
 our @ISA = 'HTML::DOM::Node';
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 
 
 sub   surrogify($);
@@ -24,8 +24,8 @@ sub desurrogify($);
 sub data {
 	my $old = (my $self = shift)->attr('text');
 	if(@_) {
-		$self->attr(text => $_[0]);
-		$self->_modified($old,$_[0]);
+		$self->attr(text => my $strung = "$_[0]");
+		$self->_modified($old,$strung);
 	}
 	$old
 }

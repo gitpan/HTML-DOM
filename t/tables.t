@@ -28,6 +28,10 @@ sub test_attr {
 	is $obj->$attr,$new_val,     ,     "get $attr_name again";
 }
 
+# A useful value for testing boolean attributes:
+{package false; use overload 'bool' => sub {0}, '""'=>sub{"oenuueo"};}
+my $false = bless [], 'false';
+
 # -------------------------#
 use tests 87; # HTMLTableElement
 {
@@ -337,7 +341,7 @@ use tests 36; # HTMLTableRowElement
 }
 
 # -------------------------#
-use tests 45; # HTMLTableCellElement
+use tests 47; # HTMLTableCellElement
 {
 	my $cell;
 	is ref(
@@ -380,4 +384,12 @@ use tests 45; # HTMLTableCellElement
 	test_attr $cell, qw/scope row col /;
 	test_attr $cell, qw/vAlign top bottom /;
 	test_attr $cell, qw/width 12 234 /;
+
+	$cell->noWrap(1);
+	is $cell->getAttribute('nowrap'), 'nowrap',
+	 'table cell’s nowrap is set to "nowrap" when true';
+	$cell->noWrap($false);
+	is $cell->attr('nowrap'), undef,
+	 'table cell’s nowrap is deleted when set to false';
+
 }

@@ -35,7 +35,7 @@ $doc->write('
 $doc->close;
 
 # -------------------------#
-use tests 12; # simple attributes (not HTMLCollections or cookie)
+use tests 14; # simple attributes (not HTMLCollections or cookie)
 #     (not including the weird ones [fgColor, et al.]; see below for those)
 
 is    title $doc, 'Titlos', 'title';
@@ -51,6 +51,9 @@ $doc->title("sclext");
  ok $title_elem && $title_elem->innerHTML eq 'sclext',
   'arg to title creates a title elem under head if it does not exist';
 }
+$doc->title([]);
+is ref $doc->title, "", 'retval of title is a string after ref assignment';
+ok eval{$doc->as_text}, 'as_text does not die because of ref assignment';
 
 # These three are read-only:
 

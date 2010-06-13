@@ -1,4 +1,4 @@
-HTML::DOM, version 0.040
+HTML::DOM, version 0.041
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -11,9 +11,23 @@ RECENT CHANGES
 
 See the Changes file for the long version.
 
+0.041
+-----
+Bug fixes:
+• A  CharacterData  node’s  data  method now stringifies its argument.
+• Setting the selected attribute of an  orphaned  option  element  no
+  longer causes errors.
+• innerText is now listed in %HTML::DOM::Interface.
+• $element->getElementsByTagName  now  ignores  the  $element  itself.
+• $element->setAttribute now stringifies the value,  so  getAttribute-
+  Node is no longer confused.
+• cloneNode with a true argument (deep clone)  now sets the ownerDocu-
+  ment properly.
+• Setting a  boolean  attribute  through  the  DOM  0  interface  now
+  works properly.
+
 0.040
 -----
-
 Bug fix: Calling $doc->write from an elem handler now parses the HTML
 code immediately instead of buffering it and waiting for the elem han-
 dler to return. This allows aberrations like
@@ -24,11 +38,6 @@ to work.
 -----
 Submitting a GET form with a data:  URL  (or any URI object without a
 query_form method) now just uses the URL itself,  discarding any data.
-
-0.038
------
-Bug fix:  A run-time require  that was causing problems in taint mode
-has been removed.
 
 
 TO DO

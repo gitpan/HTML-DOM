@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.040 (alpha)
+Version 0.041 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -1875,12 +1875,6 @@ L<Hash::Util::FieldHash::Compat>
 L<HTML::DOM::Element::Option/BUGS|HTML::DOM::Element::Option>)
 
 =over 4
-
-=item -
-
-Setting a boolean attribute to true through the DOM Level 0 interface is 
-supposed to set the attribute's value to the attribute's name. Right now it
-sets the value to whatever true value you pass it.
 
 =item -
 

@@ -1,5 +1,30 @@
 Revision history for HTML::DOM
 
+0.041   13 June, 2010
+        Bug fixes:
+        • A CharacterData node’s data method now stringifies its argu-
+          ment,  to avoid  tripping  up  HTML::Element  methods  like
+          as_text by storing a reference in the attribute.  This also
+          affects other methods,  including a  title  element’s  text
+          method and a document’s title method.
+        • Setting the selected attribute of an  orphaned  option  ele-
+          ment  (one that is not inside  a  select  elem)  no  longer
+          causes errors.
+        • innerText is now listed in %HTML::DOM::Interface.
+        • $element->getElementsByTagName  used to start searching  at
+          the $element itself, instead of its children. Now it starts
+          with the children.
+        • $element->setAttribute  now  stringifies  the  value.  This
+          solves the problem of getAttributeNode’s returning just the
+          value instead of an Attr node,  if the value happened to be
+          a reference.
+        • cloneNode  with a true argument  (deep clone)  now sets the
+          ownerDocument properly.
+        • Setting a boolean attribute through the DOM 0 interface now
+          works properly:  instead of being set to whatever value you
+          pass in converted to a string, it is set to the name of the
+          attribute (for true values)  or deleted  (for false values).
+
 0.040   23 May, 2010
         Bug fix:  Calling $doc->write from an elem handler now parses
         the HTML code immediately instead of buffering it and waiting

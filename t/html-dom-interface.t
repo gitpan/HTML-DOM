@@ -169,10 +169,12 @@ ok exists $HTML::DOM::Interface{$_}{contentWindow}, "$_->contentWindow",
  for qw/ HTMLFrameElement HTMLIFrameElement /;
 
 # -------------------------#
-use tests 1; # changes made in 0.036
+use tests 2; # changes made in 0.036
 ok !exists $HTML::DOM::Interface{"HTML::DOM::TreeBuilder"};
+ok exists $HTML::DOM::Interface{"HTMLElement"}{innerText}, 'innerText';
 
 # -------------------------#
 use tests 2; # changes made in 0.037
 ok exists $HTML::DOM::Interface{"HTMLDocument"}{getElementsByClassName};
 ok exists $HTML::DOM::Interface{"HTMLElement"}{getElementsByClassName};
+

@@ -12,7 +12,7 @@
 
 use strict; use warnings; use lib 't';
 
-use Test::More tests => scalar reverse '601';
+use Test::More tests => scalar reverse '801';
 
 
 # -------------------------#
@@ -369,7 +369,7 @@ $frag->appendChild(createTextNode $doc 'eoteuht');
 ok  hasChildNodes $frag, 'hasChildNodes';
 
 # -------------------------#
-# Tests 79-89: cloneNode
+# Tests 79-91: cloneNode
 
 use Scalar::Util 'refaddr';
 {
@@ -404,10 +404,24 @@ use Scalar::Util 'refaddr';
 	       refaddr $attr, 'deep clone clones attributes...';
 	cmp_ok refaddr $clone->firstChild->getAttributeNode('align'), '!=',
 	       refaddr $childattr, '...recursively';
+
+	# Test that cloneNode sets the ownerDocument properly.
+	# We have to set it up this way, as it’s only parser-generated ele-
+	# ments that do not already explicitly reference their documents.
+	# And then we have to do it twice, as the first clone sets it.
+	my $div = $doc->createElement('div');
+	$div->innerHTML("<input>");
+	$clonee = $div->firstChild;
+	is cloneNode $clonee->ownerDocument, $doc,
+	 'shallow cloneNode sets the ownerDocument';
+	$div->innerHTML("<input>");
+	$clonee = $div->firstChild;
+	is cloneNode $clonee 1=>->ownerDocument, $doc,
+	 'deep cloneNode sets the ownerDocument';
 }
 
 # -------------------------#
-# Tests 90-3: as_text and as_HTML
+# Tests 92-5: as_text and as_HTML
 
 {
 	my $element = $doc->createElement('p');
@@ -437,7 +451,7 @@ use Scalar::Util 'refaddr';
 
 
 # -------------------------#
-# Tests 94-7: normalize
+# Tests 96-9: normalize
 
 {
 	my $element = $doc->createElement('p');
@@ -467,12 +481,12 @@ use Scalar::Util 'refaddr';
 }
 
 # -------------------------#
-# Tests 98-100: XML namespace stuff
+# Tests 100-2: XML namespace stuff
 
 is +()=$frag->$_, 0, $_ for qw / namespaceURI prefix localName /;
 
 # -------------------------#
-# Tests 101-3: hasAttributes
+# Tests 103-5: hasAttributes
 
 ok !$frag->hasAttributes, 'hasAttributes (non-Element node)';
 {
@@ -483,13 +497,13 @@ ok !$frag->hasAttributes, 'hasAttributes (non-Element node)';
 }
 
 # -------------------------#
-# Tests 104-5: isSupported
+# Tests 106-7: isSupported
 
 ok $frag->isSupported('hTML', '1.0'), 'isSupported';
 ok!$frag->isSupported('onfun') ,'isn’tSupported';
 
 # -------------------------#
-# Test 106: push_content on an empty node
+# Test 108: push_content on an empty node
 
 ok eval{$doc->createElement('foo')->push_content()},
 	'push_content with no args on an empty node doesn\'t die';

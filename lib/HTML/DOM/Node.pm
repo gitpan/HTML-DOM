@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 
 
 use strict;
@@ -462,7 +462,9 @@ sub hasChildNodes {
 sub cloneNode {
 	my($self,$deep) = @_;
 	if($deep) {
-		$self->clone
+		(my $clown = $self->clone)
+		  ->_set_ownerDocument($self->ownerDocument);
+		$clown;
 	}
 	else {
 		# ~~~ Do I need to reweaken any attributes?

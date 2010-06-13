@@ -1050,7 +1050,7 @@ use tests 2; # Default event handlers triggered by mutation events
 }
 
 # -------------------------#
-use tests 466; # MutationEvents caused by DOM Level 0 attribute attributes
+use tests 444; # MutationEvents caused by DOM Level 0 attribute attributes
 {
 	my $doc = new HTML::DOM;
 
@@ -1066,6 +1066,9 @@ use tests 466; # MutationEvents caused by DOM Level 0 attribute attributes
 		chOff           charoff
 		defaultChecked  checked
 	);
+	my %booleans = map +($_=>1), # boolean attributes
+	qw< disabled multiple defaultSelected readOnly isMap
+	    defaultChecked compact noShade declare defer noWrap noResize >;
 
 	for(
 		[span     => qw[ id title lang dir className ]],
@@ -1133,7 +1136,6 @@ use tests 466; # MutationEvents caused by DOM Level 0 attribute attributes
 		[iframe   => qw[ align frameBorder height longDesc
 		                 marginHeight marginWidth name scrolling
 		                 src width ]],
-	# booleans:
 		[select   => qw[ disabled multiple ]],
 		[optgroup => qw[ disabled ]],
 		[option   => qw[ disabled defaultSelected ]],
@@ -1171,13 +1173,16 @@ use tests 466; # MutationEvents caused by DOM Level 0 attribute attributes
 		for my $attr_m( @$_ ) {
 			# attr_m == attribute method; _n == name
 			my $attr_n = $attrnames{$attr_m} || lc $attr_m;
+			my $is_bool = $booleans{$attr_m};
 			@scratch = ();
 			eval { $e->$attr_m("foo");}; $@ and (warn tag $e),die;
 # Test right here --------
+			my $testval = $is_bool ? $attr_n : 'foo';
 			is_deeply \@scratch, [
-			  "${attr_n}foo-1-$attr_n-2--foo" ,
+			  "${attr_n}$testval-1-$attr_n-2--$testval" ,
 			], "$tag elem  ->$attr_m(foo) creating the attr";
-			@scratch = ();
+			next if $is_bool; # The next test doesn’t apply to
+			@scratch = ();    # boolean attrs.
 			$e->$attr_m("bar");
 # A second test right here --
 			is_deeply \@scratch, [

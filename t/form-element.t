@@ -65,6 +65,10 @@ sub test_attr {
 my $doc = new HTML::DOM;	
 my $form;
 
+# A useful value for testing boolean attributes:
+{package false; use overload 'bool' => sub {0}, '""'=>sub{"oenuueo"};}
+my $false = bless [], 'false';
+
 # -------------------------#
 use tests 34; # HTMLFormElement
 
@@ -136,7 +140,7 @@ use tests 34; # HTMLFormElement
 }
 
 # -------------------------#
-use tests 45; # HTMLSelectElement and HTMLOptionsCollection
+use tests 49; # HTMLSelectElement and HTMLOptionsCollection
 
 SKIP: { skip 'not written yet', 5; # ~~~ just a guess
 use tests 5;
@@ -186,9 +190,19 @@ use tests 5;
 	ok!$elem->disabled              ,     'select: get disabled';
 	ok!$elem->disabled(1),          , 'select: set/get disabled';
 	ok $elem->disabled              ,     'select: get disabled again';
+	is $elem->getAttribute('disabled'), 'disabled',
+	 'select’s disabled is set to "disabled" when true';
+	$elem->disabled($false);
+	is $elem->attr('disabled'), undef,
+	 'select’s disabled is deleted when set to false';
 	ok!$elem->multiple              ,     'select: get multiple';
 	ok!$elem->multiple(1),          , 'select: set/get multiple';
 	ok $elem->multiple              ,     'select: get multiple again';
+	is $elem->getAttribute('multiple'), 'multiple',
+	 'select’s multiple is set to "multiple" when true';
+	$elem->multiple($false);
+	is $elem->attr('multiple'), undef,
+	 'select’s multiple is deleted when set to false';
 	$elem->name('foo');
 	$elem->size(5);
 	$elem->tabIndex(3);
@@ -219,7 +233,7 @@ use tests 5;
 }
 
 # -------------------------#
-use tests 7; # HTMLOptGroupElement
+use tests 9; # HTMLOptGroupElement
 
 {
 	is ref(
@@ -230,13 +244,18 @@ use tests 7; # HTMLOptGroupElement
 	ok!$elem->disabled            ,     'optgroup: get disabled';
 	ok!$elem->disabled(1),        , 'optgroup: set/get disabled';
 	ok $elem->disabled            ,     'optgroup: get disabled again';
+	is $elem->getAttribute('disabled'), 'disabled',
+	 'optgroup’s disabled is set to "disabled" when true';
+	$elem->disabled($false);
+	is $elem->attr('disabled'), undef,
+	 'optgroup’s disabled is deleted when set to false';
 
 	$elem->attr(label => 'foo');
 	test_attr $elem, qw;label   foo bar;;
 }
 
 # -------------------------#
-use tests 27; # HTMLOptionElement
+use tests 31; # HTMLOptionElement
 
 {
 	is ref(
@@ -254,6 +273,12 @@ use tests 27; # HTMLOptionElement
 		'option->defaultSelected reflects the selected attribute';
 	ok $elem->defaultSelected(0),  'option: set/get defaultSelected';
 	ok!$elem->defaultSelected,     'option: get defaultSelected again';
+	$elem->defaultSelected(1);
+	is $elem->getAttribute('selected'), 'selected',
+	 'option’s selected is set to "selected" when defaultSelected';
+	$elem->defaultSelected($false);
+	is $elem->attr('selected'), undef,
+	 'option’s selected is deleted when defaultSelected is false';
 	
 	is $elem->text, '', 'option->text when empty';
 	$elem->appendChild($doc->createTextNode(''));
@@ -274,6 +299,11 @@ use tests 27; # HTMLOptionElement
 	ok!$elem->disabled            ,     'option: get disabled';
 	ok!$elem->disabled(1),        , 'option: set/get disabled';
 	ok $elem->disabled            ,     'option: get disabled again';
+	is $elem->getAttribute('disabled'), 'disabled',
+	 'option’s disabled is set to "disabled" when true';
+	$elem->disabled($false);
+	is $elem->attr('disabled'), undef,
+	 'option’s disabled is deleted when set to false';
 
 	$elem->attr(label => 'foo');
 	test_attr $elem, qw;label   foo bar;;
@@ -287,13 +317,28 @@ use tests 27; # HTMLOptionElement
 	ok!$elem->selected, 'set option->selected worked';
 	ok $elem->defaultSelected, 'and defaultSelected was unaffected';
 
+	# Make sure that selected can be set when the option is orphaned.
+	{
+		use tests 2; # just the tests in this block
+		my $sel = $doc->createElement('select');
+		my $opt = $doc->createElement('option');
+		ok eval{
+		 $opt->selected(1); 1
+		}, 'opt->selected does not die when opt is orphaned';
+		$sel->selectedIndex; # it used to cache this
+		$sel->appendChild($_)
+		 for $doc->createElement('option'), $opt;
+		is $sel->selectedIndex, 1,
+		 'opt->selected affects selectIndex when unorphaned';
+	}
+
 	test_attr $elem, value => 'foo', 'bar';; # gets its value from text
 	is $elem->text,'foo', 'text is unaffected when value is set';
 	
 }
 
 # -------------------------#
-use tests 69; # HTMLInputElement
+use tests 75; # HTMLInputElement
 
 {
 	is ref(
@@ -309,6 +354,11 @@ use tests 69; # HTMLInputElement
 	ok $elem->attr('checked')  ,
 		'defaultChecked is linked to the checked attribute';
 	ok $elem->defaultChecked   ,     'input: get defaultChecked again';
+	is $elem->getAttribute('checked'), 'checked',
+	 'input’s checked is set to "checked" when defaultChecked is true';
+	$elem->defaultChecked($false);
+	is $elem->attr('checked'), undef,
+	 'input’s checked is deleted when defaultChecked is set to false';
 
 	is_deeply [$elem->form], [], 'input->form when there isn’t one';
 	$form->appendChild($elem);
@@ -325,6 +375,7 @@ use tests 69; # HTMLInputElement
 	test_attr $elem, qw-align     top                 middle         -;
 	test_attr $elem, qw-alt       __                  KanUreediss?   -;
 
+	$elem->defaultChecked(1);
 	$elem->checked(0);
 	ok $elem->defaultChecked,
 		'changing input->checked does not affect defaultChecked';
@@ -335,6 +386,11 @@ use tests 69; # HTMLInputElement
 	ok!$elem->disabled            ,     'input: get disabled';
 	ok!$elem->disabled(1),        , 'input: set/get disabled';
 	ok $elem->disabled            ,     'input: get disabled again';
+	is $elem->getAttribute('disabled'), 'disabled',
+	 'input’s disabled is set to "disabled" when true';
+	$elem->disabled($false);
+	is $elem->attr('disabled'), undef,
+	 'input’s disabled is deleted when set to false';
 
 	$elem->attr(maxlength  => 783);
 	$elem->attr(name => 'Achaimenides');
@@ -345,6 +401,12 @@ use tests 69; # HTMLInputElement
 	ok $elem->readOnly            ,     'input: get readOnly';
 	ok $elem->readOnly(0),        , 'input: set/get readOnly';
 	ok!$elem->readOnly            ,     'input: get readOnly again';
+	$elem->readOnly(1);
+	is $elem->getAttribute('readonly'), 'readonly',
+	 'input’s readonly is set to "readonly" when true';
+	$elem->readOnly($false);
+	is $elem->attr('readonly'), undef,
+	 'input’s readonly is deleted when set to false';
 
 	$elem->attr(size  => 783);
 	$elem->attr(src => 'arnold.gif');
@@ -371,7 +433,7 @@ use tests 69; # HTMLInputElement
 }
 
 # -------------------------#
-use tests 44; # HTMLTextAreaElement
+use tests 48; # HTMLTextAreaElement
 
 {
 	is ref(
@@ -399,6 +461,11 @@ use tests 44; # HTMLTextAreaElement
 	ok!$elem->disabled            ,     'textarea: get disabled';
 	ok!$elem->disabled(1),        , 'textarea: set/get disabled';
 	ok $elem->disabled            ,     'textarea: get disabled again';
+	is $elem->getAttribute('disabled'), 'disabled',
+	 'textarea’s disabled is set to "disabled" when true';
+	$elem->disabled($false);
+	is $elem->attr('disabled'), undef,
+	 'textarea’s disabled is deleted when set to false';
 
 	$elem->attr(name => 'Achaimenides');
 	test_attr $elem, qw-name Achaimenides Gormistas-;
@@ -407,6 +474,12 @@ use tests 44; # HTMLTextAreaElement
 	ok $elem->readOnly            ,     'textarea: get readOnly';
 	ok $elem->readOnly(0),        , 'textarea: set/get readOnly';
 	ok!$elem->readOnly            ,     'textarea: get readOnly again';
+	$elem->readOnly(1);
+	is $elem->getAttribute('readonly'), 'readonly',
+	 'textarea’s readonly is set to "readonly" when true';
+	$elem->readOnly($false);
+	is $elem->attr('readonly'), undef,
+	 'textarea’s readonly is deleted when set to false';
 
 	$elem->attr(rows  => 783);
 	$elem->attr(tabindex => '7');
@@ -424,7 +497,7 @@ use tests 44; # HTMLTextAreaElement
 }
 
 # -------------------------#
-use tests 19; # HTMLButtonElement
+use tests 21; # HTMLButtonElement
 
 {
 	is ref(
@@ -442,6 +515,11 @@ use tests 19; # HTMLButtonElement
 	ok!$elem->disabled            ,     'button: get disabled';
 	ok!$elem->disabled(1),        , 'button: set/get disabled';
 	ok $elem->disabled            ,     'button: get disabled again';
+	is $elem->getAttribute('disabled'), 'disabled',
+	 'button’s disabled is set to "disabled" when true';
+	$elem->disabled($false);
+	is $elem->attr('disabled'), undef,
+	 'button’s disabled is deleted when set to false';
 
 	$elem->attr(name => 'Achaimenides');
 	test_attr $elem, qw-name Achaimenides Gormistas-;

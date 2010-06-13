@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.040';
+our $VERSION = '0.041';
 
 =head1 NAME
 
@@ -429,6 +429,7 @@ gory details, look at the source code. In fact, here it is:
   		insertAdjacentHTML => METHOD | VOID,
   		insertAdjacentElement => METHOD | VOID,
   		getElementsByClassName => METHOD | OBJ,
+  		innerText => STR,
   	 },
   	 HTMLHtmlElement => {
 		_isa => 'HTMLElement',

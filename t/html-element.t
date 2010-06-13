@@ -26,6 +26,9 @@ sub test_attr {
 	is $obj->$attr,$new_val,     ,     "get $attr_name again";
 }
 
+# A useful value for testing boolean attributes:
+{package false; use overload 'bool' => sub {0}, '""'=>sub{"oenuueo"};}
+my $false = bless [], 'false';
 
 # -------------------------#
 use tests 1; # document constructor
@@ -417,7 +420,7 @@ use tests 21; # HTMLBodyElement
 }
 
 # -------------------------#
-use tests 7; # HTMLUListElement
+use tests 9; # HTMLUListElement
 
 {
 	is ref(
@@ -430,11 +433,18 @@ use tests 7; # HTMLUListElement
 	ok!$elem->compact                           ,      'get compact';
 	ok!$elem->compact       (1),                ,  'set/get compact';
 	ok $elem->compact                           ,'get compact again';
+	$elem->compact(1);
+	is $elem->getAttribute('compact'), 'compact',
+	 'ul’s compact is set to "compact" when true';
+	$elem->compact($false);
+	is $elem->attr('compact'), undef,
+	 'ul’s compact is deleted when set to false';
+
 	test_attr $elem, qw 2 type      disc square           2;
 }
 
 # -------------------------#
-use tests 10; # HTMLOListElement
+use tests 12; # HTMLOListElement
 
 {
 	is ref(
@@ -449,12 +459,19 @@ use tests 10; # HTMLOListElement
 	ok $elem->compact                           ,      'get compact';
 	ok $elem->compact       (0),                ,  'set/get compact';
 	ok!$elem->compact                           ,'get compact again';
+	$elem->compact(1);
+	is $elem->getAttribute('compact'), 'compact',
+	 'ol’s compact is set to "compact" when true';
+	$elem->compact($false);
+	is $elem->attr('compact'), undef,
+	 'ol’s compact is deleted when set to false';
+
 	test_attr $elem, qw 2 type      i a           2;
 	test_attr $elem, qw 2 start     4 5           2;
 }
 
 # -------------------------#
-use tests 4; # HTMLDListElement
+use tests 6; # HTMLDListElement
 
 {
 	is ref(
@@ -467,10 +484,16 @@ use tests 4; # HTMLDListElement
 	ok $elem->compact                           ,      'get compact';
 	ok $elem->compact       (0),                ,  'set/get compact';
 	ok!$elem->compact                           ,'get compact again';
+	$elem->compact(1);
+	is $elem->getAttribute('compact'), 'compact',
+	 'dl’s compact is set to "compact" when true';
+	$elem->compact($false);
+	is $elem->attr('compact'), undef,
+	 'dl’s compact is deleted when set to false';
 }
 
 # -------------------------#
-use tests 4; # HTMLDirectoryElement
+use tests 6; # HTMLDirectoryElement
 
 {
 	is ref(
@@ -483,10 +506,16 @@ use tests 4; # HTMLDirectoryElement
 	ok $elem->compact                           ,      'get compact';
 	ok $elem->compact       (0),                ,  'set/get compact';
 	ok!$elem->compact                           ,'get compact again';
+	$elem->compact(1);
+	is $elem->getAttribute('compact'), 'compact',
+	 'dir’s compact is set to "compact" when true';
+	$elem->compact($false);
+	is $elem->attr('compact'), undef,
+	 'dir’s compact is deleted when set to false';
 }
 
 # -------------------------#
-use tests 4; # HTMLMenuElement
+use tests 6; # HTMLMenuElement
 
 {
 	is ref(
@@ -498,7 +527,12 @@ use tests 4; # HTMLMenuElement
 
 	ok $elem->compact                           ,      'get compact';
 	ok $elem->compact       (0),                ,  'set/get compact';
-	ok!$elem->compact                           ,'get compact again';
+	ok!$elem->compact                           ,'get compact again';	$elem->compact(1);
+	is $elem->getAttribute('compact'), 'compact',
+	 'menu’s compact is set to "compact" when true';
+	$elem->compact($false);
+	is $elem->attr('compact'), undef,
+	 'menu’s compact is deleted when set to false';
 }
 
 # -------------------------#
@@ -636,7 +670,7 @@ use tests 10; # HTMLFontElement
 }
 
 # -------------------------#
-use tests 13; # HTMLHRElement
+use tests 15; # HTMLHRElement
 
 {
 	my $elem;
@@ -654,6 +688,13 @@ use tests 13; # HTMLHRElement
 	ok $elem->noShade                  ,      'get HR’s noShade';
 	ok $elem->noShade(0),              ,  'set/get HR’s noShade';
 	ok!$elem->noShade                  ,      'get HR’s noShade again';
+	$elem->noShade(1);
+	is $elem->getAttribute('noshade'), 'noshade',
+	 'hr’s noshade is set to "noshade" when true';
+	$elem->noShade($false);
+	is $elem->attr('noshade'), undef,
+	 'hr’s noshade is deleted when set to false';
+
 	test_attr $elem, qw 2 size  3      4       2;
 	test_attr $elem, qw 2 width 3      4       2;
 }
@@ -792,7 +833,7 @@ use tests 43+57; # HTMLAnchorElement
 }
 
 # -------------------------#
-use tests 37; # HTMLImageElement
+use tests 39; # HTMLImageElement
 
 {
 	my $elem;
@@ -821,9 +862,17 @@ use tests 37; # HTMLImageElement
 	test_attr $elem, qw 2 border   7       8         2;
 	test_attr $elem, qw 2 height   8       10        2;
 	test_attr $elem, qw 2 hspace   9       56        2;
+
 	ok $elem->isMap                  ,      'get Img’s isMap';
 	ok $elem->isMap(0),              ,  'set/get Img’s isMap';
 	ok!$elem->isMap                  ,      'get Img’s isMap again';
+	$elem->isMap(1);
+	is $elem->getAttribute('ismap'), 'ismap',
+	 'img’s ismap is set to "ismap" when true';
+	$elem->isMap($false);
+	is $elem->attr('ismap'), undef,
+	 'img’s ismap is deleted when set to false';
+
 	test_attr $elem, qw 2 longDesc phu     bah       2;
 	test_attr $elem, qw 2 src      circle  ellipsoid 2;
 	test_attr $elem, qw 2 useMap   1       two       2;
@@ -832,7 +881,7 @@ use tests 37; # HTMLImageElement
 }
 
 # -------------------------#
-use tests 55; # HTMLObjectElement
+use tests 57; # HTMLObjectElement
 
 {
 	my $elem;
@@ -873,9 +922,17 @@ use tests 55; # HTMLObjectElement
 	test_attr $elem, qw 2 codeBase 7        seen          2;
 	test_attr $elem, qw 2 codeType text/tcl thnig/wierd   2;
 	test_attr $elem, qw 2 data     text/tcl =1/(tcl/text) 2;
+
 	ok $elem->declare              ,      'get Object’s declare';
 	ok $elem->declare(0),          ,  'set/get Object’s declare';
 	ok!$elem->declare              ,      'get Object’s declare again';
+	$elem->declare(1);
+	is $elem->getAttribute('declare'), 'declare',
+	 'object’s declare is set to "declare" when true';
+	$elem->declare($false);
+	is $elem->attr('declare'), undef,
+	 'object’s declare is deleted when set to false';
+
 	test_attr $elem, qw 2 height   8         10      2;
 	test_attr $elem, qw 2 hspace   9         56      2;
 	test_attr $elem, qw 2 name     Fred      George  2;
@@ -974,7 +1031,7 @@ use tests 6; # HTMLMapElement
 }
 
 # -------------------------#
-use tests 25+57; # HTMLAreaElement
+use tests 27+57; # HTMLAreaElement
 
 {
 	my $elem;
@@ -999,9 +1056,17 @@ use tests 25+57; # HTMLAreaElement
 	test_attr $elem, qw 2 alt       left        alto        2;
 	test_attr $elem, qw 3 coords    1,2,2,4,5,6 9,8,7,6,5,4 3;
 	test_attr $elem, qw 2 href      e-doc       f-doc       2;
+
 	ok $elem->noHref              ,      'get Area’s noHref';
 	ok $elem->noHref(0),          ,  'set/get Area’s noHref';
 	ok!$elem->noHref              ,      'get Area’s noHref again';
+	$elem->noHref(1);
+	is $elem->getAttribute('nohref'), 'nohref',
+	 'area’s nohref is set to "nohref" when true';
+	$elem->noHref($false);
+	is $elem->attr('nohref'), undef,
+	 'area’s nohref is deleted when set to false';
+
 	test_attr $elem, qw 2 shape    rect     poly    2;
 	test_attr $elem, qw 2 tabIndex 9        56      2;
 	test_attr $elem, qw 2 target   Fred     George  2;
@@ -1083,7 +1148,7 @@ use tests 25+57; # HTMLAreaElement
 }
 
 # -------------------------#
-use tests 25; # HTMLScriptElement
+use tests 27; # HTMLScriptElement
 
 {
 	my $elem;
@@ -1113,9 +1178,17 @@ use tests 25; # HTMLScriptElement
 	test_attr $elem, qw 2 htmlFor L     M          2;
 	test_attr $elem, qw 2 event   left  alto       2;
 	test_attr $elem, qw 3 charset utf-8 iso-8859-7 3;
+
 	ok $elem->defer              ,      'get Script’s defer';
 	ok $elem->defer(0),          ,  'set/get Script’s defer';
 	ok!$elem->defer              ,      'get Script’s defer again';
+	$elem->defer(1);
+	is $elem->getAttribute('defer'), 'defer',
+	 'script’s defer is set to "defer" when true';
+	$elem->defer($false);
+	is $elem->attr('defer'), undef,
+	 'script’s defer is deleted when set to false';
+
 	test_attr $elem, qw-src  1                        3              -;
 	test_attr $elem, qw.type application/x-ecmascript text/javascript.;
 }
@@ -1141,7 +1214,7 @@ use tests 7; # HTMLFrameSetElement
 }
 
 # -------------------------#
-use tests 34; # HTMLFrameElement
+use tests 36; # HTMLFrameElement
 
 {
 	my $elem;
@@ -1167,9 +1240,17 @@ use tests 34; # HTMLFrameElement
 	test_attr $elem, qw 2 marginHeight 50      500  2;
 	test_attr $elem, qw 2 marginWidth  5010    1500 2;
 	test_attr $elem, qw 2 name         50,10,* Bob  2;
+
 	ok $elem->noResize             ,      'get Frame’s noResize';
 	ok $elem->noResize(0),         ,  'set/get Frame’s noResize';
 	ok!$elem->noResize             ,      'get Frame’s noResize again';
+	$elem->noResize(1);
+	is $elem->getAttribute('noresize'), 'noresize',
+	 'frame’s noresize is set to "noresize" when true';
+	$elem->noResize($false);
+	is $elem->attr('noresize'), undef,
+	 'frame’s noresize is deleted when set to false';
+
 	test_attr $elem, qw 2 scrolling yes     auto    2;
 	test_attr $elem, qw 2 src       50,10,* foo.gif 2;
 
