@@ -1,6 +1,6 @@
 package HTML::DOM::EventTarget;
 
-our $VERSION = '0.041';
+our $VERSION = '0.042';
 
 
 use strict;
@@ -8,10 +8,19 @@ use warnings;
 no warnings qw ' utf8 parenthesis ';
 
 use Carp 'croak';
-use Hash::Util::FieldHash::Compat 'fieldhashes';
 use HTML::DOM::Event;
 use HTML::DOM::Exception qw 'UNSPECIFIED_EVENT_TYPE_ERR';
 use Scalar::Util qw'refaddr  blessed';
+
+BEGIN {
+ if(eval { require Hash::Util::FieldHash }) {
+  import Hash::Util::FieldHash qw < fieldhashes >;
+ } else {
+  require Tie::RefHash::Weak;
+  VERSION Tie::RefHash::Weak 0.08; # fieldhashes
+  import Tie::RefHash::Weak qw < fieldhashes >;
+ }
+}
 
 fieldhashes \my(
 	%evh,  # event handlers

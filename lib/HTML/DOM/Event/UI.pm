@@ -1,6 +1,6 @@
 package HTML::DOM::Event::UI;
 
-our $VERSION = '0.041';
+our $VERSION = '0.042';
 
 use warnings; no warnings qw 'utf8 parenthesis';
 use strict;

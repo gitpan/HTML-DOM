@@ -3,7 +3,7 @@ package HTML::DOM::Implementation;
 use strict;
 use warnings;
 
-our $VERSION = '0.041';
+our $VERSION = '0.042';
 
 our $it = bless do{\my$x};
 
@@ -59,7 +59,7 @@ C<$HTML::DOM::Implementation::it> or C<< HTML::DOM->implementation >>.
 
 This returns true or false depending on whether the feature is supported.
 C<$name> is case-tolerant. C<$version> is optional. The supported features
-are listed under L<HTML::DOM/DESCRIPTION>. If C<$version is '1.0', this 
+are listed under L<HTML::DOM/DESCRIPTION>. If C<$version> is '1.0', this 
 method only returns true for 'Core' and 'HTML'.
 
 =head1 SEE ALSO

@@ -63,3 +63,27 @@ use tests 2; # Make sure comments get parsed and added to the tree as
 	isa_ok $doc->body->firstChild, 'HTML::DOM::Comment',
 	 'parsed comment';
 }
+
+# -------------------------#
+use tests 1; # </td> and </th> outside of their respective elements should
+{                      # not be allowed to close an elem outside the cur-
+	my $doc = new HTML::DOM;  # rent table (fixed in 0.042)
+	$doc->write(
+	  '<table><tr><th>'
+	 .'<table><tr><td>'
+	 .'<table><tr><th>A</td><td>B</th><td>C</table>'
+	 .'</table></table>'
+	);
+	$doc->close;
+	is $doc->innerHTML,
+	   '<html><head></head><body>'
+	  ."<table><tbody><tr><th>"
+	  ."<table><tbody><tr><td>"
+	  ."<table><tbody><tr>"
+	  ."<th>A</th><td>B</td><td>C</td>"
+	  ."</tr></tbody></table>"
+	  ."</td></tr></tbody></table>"
+	  ."</th></tr></tbody></table>"
+	  ."</body></html>",
+		'parsing unmatched </td> and </th>';
+}

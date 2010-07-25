@@ -5,7 +5,7 @@ package HTML::DOM;
 # something to be done still (except in this sentence).
 
 
-use 5.008002;
+use 5.008003;
 
 use strict;
 use warnings;
@@ -16,7 +16,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.041';
+our $VERSION = '0.042';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.041 (alpha)
+Version 0.042 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -358,15 +358,22 @@ C<response>.
 	}
 
 	sub end {
+		my $self = shift;
+
+		# If this is a form, record that we’ve seen an end tag, so
+		# that this does not become a ‘magic form’.
+		++$$self{_HTML_DOM_etif} # end tag is 'form'
+		 if $_[0] eq 'form';
+
+		# Make sure </t[hd]> cannot close a cell outside the cur-
+		# rent table.
+		$_[0] =~ /^t[hd]\z/ and @_ = (\$_[0], 'table');
+
 		# HTML::TreeBuilder expects the <html> element to be the
 		# topmost element, and gets confused when it’s inside the
 		# ~doc. It sets _pos to the doc when it encounters </html>.
 		# This works around that.
-
-		my $self = shift;
 		my $pos = $self->{_pos};
-		++$$self{_HTML_DOM_etif} # end tag is 'form'
-		 if $_[0] eq 'form';
 		my @ret = $self->SUPER::end(@_);
 		$self->{_pos} = $pos
 			if ($self->{_pos}||return @ret)->{_tag} eq '~doc';
@@ -1026,7 +1033,8 @@ sub body { # ~~~ this needs to return the outermost frameset element if
 		my $doc_elem = $_[0]->documentElement;
 		# I'm using the replaceChild rather than replace_with,
 		# despite the former's convoluted syntax, since the former
-		# has the appropriate error-checking code (or will).
+		# has the appropriate error-checking code (or will), and
+		# also because it triggers mutation events.
 		$doc_elem->replaceChild($_[1],($doc_elem->content_list)[1])
 	}
 	else {
@@ -1845,7 +1853,7 @@ the time as returned by Perl’s built-in C<time> function.
 
 =head1 PREREQUISITES
 
-L<perl> 5.8.2 or later
+L<perl> 5.8.3 or later
 
 L<Exporter> 5.57 or later
 
@@ -1863,9 +1871,7 @@ L<Scalar::Util> 1.14 or later
 L<HTML::Encoding> is required if a file name is passed to 
 C<parse_file>.
 
-L<constant::lexical>
-
-L<Hash::Util::FieldHash::Compat>
+L<Tie::RefHash::Weak> 0.08 or higher, if you are using perl 5.8.x
 
 =head1 BUGS
 

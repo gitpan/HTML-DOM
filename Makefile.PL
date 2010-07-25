@@ -51,14 +51,12 @@ $message
 my %prq = (
          Carp                      => 0,
          constant                  => 1.03, # multiple at once
-         constant::lexical         => 0,
         'CSS::DOM'                 => 0.06, # compute_style
         'CSS::DOM::Style'          => 0.05, # modification_handler
                                             # and ::Style::parse’s
         'CSS::DOM::StyleSheetList' => 0,    # stringification
          Date'Format               => 0,
          Exporter                  => 5.57, # for use Exporter 'import'
-         Hash'Util'FieldHash'Compat=> 0,
 	'HTML::Tagset'             => 0,
         'HTML::TreeBuilder'        => 0,
         'HTML::Element'            => 0,
@@ -73,6 +71,9 @@ my %prq = (
          overload                  => 0,
         'Scalar::Util'             => 1.09, # refaddr
          strict                    => 0,
+         eval { require Hash::Util::FieldHash } ? () : (
+          Tie'RefHash'Weak         =>  .08, # fieldhash
+         ),
          URI                       => 0,
          warnings                  => 0,
 # used only in the tests:

@@ -1,15 +1,21 @@
 package HTML::DOM::Attr;
 
 use warnings;
-use strict;
 
 # attribute constants (array elems)
-no constant 1.03 ();
-use constant::lexical +{ do {
-	my $x; map +($_=>$x++), qw[
-		_doc _elem _name _val _list _styl
-	]
-}};
+BEGIN{
+ my $x;
+ %constants
+  = map +($_=>$x++), qw[
+     _doc _elem _name _val _list _styl
+    ]
+}
+use constant 1.03 \%constants;
+# after compilation:
+delete @{__PACKAGE__."::"}{ keys %constants, 'constants' };
+
+use strict;
+
 # The internal fields are:
 #  _doc   # owner document
 #  _elem  # owner element
@@ -33,7 +39,7 @@ require HTML::DOM::NodeList;
 
 our @ISA = 'HTML::DOM::EventTarget';
 
-our $VERSION = '0.041';
+our $VERSION = '0.042';
 
 # -------- NON-DOM AND PRIVATE METHODS -------- #
 

@@ -1,4 +1,4 @@
-HTML::DOM, version 0.041
+HTML::DOM, version 0.042
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,11 @@ sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.042
+-----
+One bug fix:  Unmatched </td> and </th> tags no longer close elements
+that are outside the innermost enclosing table.
 
 0.041
 -----
@@ -31,13 +36,8 @@ Bug fixes:
 Bug fix: Calling $doc->write from an elem handler now parses the HTML
 code immediately instead of buffering it and waiting for the elem han-
 dler to return. This allows aberrations like
-  $doc->write("<img id='img1'); $doc->getElementById('img')...
+  $doc->write("<img id='img1'>); $doc->getElementById('img')...
 to work.
-
-0.039
------
-Submitting a GET form with a data:  URL  (or any URI object without a
-query_form method) now just uses the URL itself,  discarding any data.
 
 
 TO DO
@@ -71,7 +71,7 @@ Or you can use the following:
 
 DEPENDENCIES
 
-This module requires perl 5.8.2 or later and the following
+This module requires perl 5.8.3 or higher and the following
 Perl modules:
 
 - Scalar::Util 1.14 or later
@@ -83,7 +83,7 @@ Perl modules:
 - CSS::DOM 0.07 or later
 - HTML::Encoding is required if the parse_file method is to be used.
 - constant::lexical
-- Hash::Util::FieldHash::Compat
+- Tie::RefHash::Weak 0.08 or higher, if you are using perl 5.8.x
 
 
 DOCUMENTATION

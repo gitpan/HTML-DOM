@@ -1,5 +1,9 @@
 Revision history for HTML::DOM
 
+0.042   18 July, 2010
+        One bug fix:  Unmatched </td> and </th>  tags no longer close
+        elements that  are  outside  the  innermost  enclosing  table.
+
 0.041   13 June, 2010
         Bug fixes:
         • A CharacterData node’s data method now stringifies its argu-
@@ -29,7 +33,7 @@ Revision history for HTML::DOM
         Bug fix:  Calling $doc->write from an elem handler now parses
         the HTML code immediately instead of buffering it and waiting
         for the elem handler to return.  This allows aberrations like
-          $doc->write("<img id='img1'); $doc->getElementById('img')...
+          $doc->write("<img id='i1'>"); $doc->getElementById('i1')...
         to work.
 
 0.039   18 April, 2010
@@ -142,10 +146,10 @@ Revision history for HTML::DOM
           dlers (those assigned via attr_event_listener or one of the
           on*  methods),  calling preventDefault as appropriate based
           on the latter’s return value. To achieve this, we have made
-          get_event_listener return not the event handler itself, but
-          a closure that calls  the  event  handler  and  checks  its
+          get_event_listeners  return not the  event  handler  itself,
+          but a closure that calls the event handler and  checks  its
           return value.
-        • The closure  returned  by  get_event_listener  also  checks
+        • The closure returned  by  get_event_listeners  also  checks
           whether the handler is an object with  a  call_with  method.
           If it is,  it calls it with the current event target as its
           first argument and the event object as the second.
@@ -153,7 +157,7 @@ Revision history for HTML::DOM
         Bug fixes:
         • HTML::DOM::Interface now exports the UTF16 constant.
         • innerHTML no longer omits </p> before <table>. (In fact, it
-          simply turns of  TreeBuilder’s tag-omitting feature,  which
+          simply turns off TreeBuilder’s tag-omitting feature,  which
           has bugs in it.)
         • as_text and as_HTML used not to pass arguments to the super-
           class’s methods.
