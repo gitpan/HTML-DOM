@@ -434,16 +434,17 @@ use Scalar::Util 'refaddr';
 	$element->appendChild($doc->createComment('<no comment>'));
 
 	is $element->as_text, 'This text contains <tags>.', 'as_text';
-	is $element->as_HTML,
-	   '<p>This text contains <tt>&lt;tags&gt;</tt>.<!--<no comment>-->
-',	   "as_HTML";
+	like $element->as_HTML,
+	   qr\^<p>This text contains <tt>&lt;tags&gt;</tt>.(?x:
+              )<!--<no comment>-->$\,
+	   "as_HTML";
 
 	# We forgot to pass the arguments to the superclass in releases
 	# prior to 0.032.
-	is $element->as_HTML((undef)x2,{}),
-	   '<p>This text contains <tt>&lt;tags&gt;</tt>.'
-	  .'<!--<no comment>--></p>
-',	   "as_HTML with args";
+	like $element->as_HTML((undef)x2,{}),
+	     qr\^<p>This text contains <tt>&lt;tags&gt;</tt>.(?x:
+	        )<!--<no comment>--></p>$\,
+	   "as_HTML with args";
 	$belem->tag('del');
 	is $element->as_text(skip_dels => 1), "This text contains .",
 	 'as_text with args';

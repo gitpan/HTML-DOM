@@ -11,19 +11,19 @@ use strict;
 use warnings;
 
 use Carp 'croak';
+use HTML::DOM::Element;
 use HTML::DOM::Exception 'NOT_SUPPORTED_ERR';
 use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.042';
+our $VERSION = '0.043';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
 require         HTML::DOM::Comment;
 require HTML::DOM::DocumentFragment;
 require  HTML::DOM::Implementation;
-require         HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 require             HTML::DOM::Text;
 require                 HTML::Tagset;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.042 (alpha)
+Version 0.043 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -393,6 +393,8 @@ C<response>.
 			s/^['"]// and s/['"]\z//;
 		}
 	}
+
+	sub element_class { 'HTML::DOM::Element' }
 
 	# HTMLHtmlElement interface
 	sub version { shift->_attr('version' => @_) }
@@ -1326,9 +1328,13 @@ sub innerHTML  {
 	my $self = shift;
 	my $old;
 	$old = join '' , $self->{_HTML_DOM_doctype}||'',
-		map substr((
-		 as_HTML $_ (undef)x2,{}
-		), 0, -1), $self->content_list
+		map
+		 HTML'DOM'Element'_html_element_adds_newline
+		  ? substr((
+		     as_HTML $_ (undef)x2,{}
+		    ), 0, -1)
+		  : $_->as_HTML((undef)x2,{}),
+		 $self->content_list
 	  if defined wantarray;
 	if(@_){
 		$self->open();
@@ -1858,9 +1864,9 @@ L<perl> 5.8.3 or later
 L<Exporter> 5.57 or later
 
 L<HTML::TreeBuilder> and L<HTML::Element> (both part of the HTML::Tree
-distribution) (tested with 3.23)
+distribution)
 
-L<URI.pm|URI> (tested with 1.35 and higher)
+L<URI.pm|URI>
 
 L<LWP> 5.13 or later
 

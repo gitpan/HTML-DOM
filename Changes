@@ -1,5 +1,11 @@
 Revision history for HTML::DOM
 
+0.043   15 August, 2010
+        Bug fixes:
+        • Fixed to work with HTML::Tree 3.24
+        • HTML::DOM::Element  can now  be  loaded  without  HTML::DOM
+          already loaded.
+
 0.042   18 July, 2010
         One bug fix:  Unmatched </td> and </th>  tags no longer close
         elements that  are  outside  the  innermost  enclosing  table.

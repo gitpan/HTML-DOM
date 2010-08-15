@@ -92,6 +92,7 @@ t/form-charset.t
 t/form-element.t
 t/fragment.t
 t/html-document.t
+t/html-dom-element-require.t
 t/html-dom-interface.t
 t/html-dom.t
 t/html-element.t

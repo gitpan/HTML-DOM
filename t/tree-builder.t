@@ -29,9 +29,8 @@ use tests 1; # implicit tbody
 {
 	my $doc = new HTML::DOM;
 	$doc->write('<table><tr><td>foo</table>');
-	is $doc->find('table')->as_HTML,
-		'<table><tbody><tr><td>foo</td></tr></tbody></table>
-',
+	like $doc->find('table')->as_HTML,
+		qr\<table><tbody><tr><td>foo</td></tr></tbody></table>$\,
 		'implicit tbody';
 }
 
@@ -42,10 +41,12 @@ use tests 1; # make sure <td><td> doesn’t try to insert an extra <tr>
 	my $doc = new HTML::DOM;
 	$doc->write('<table><tr><td>a<td>b</table>');
 	$doc->close;
-	is $doc->documentElement->as_HTML,
-	   '<html><head></head><body>'
-	  ."<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>"
-	  ."</body></html>\n",
+	like $doc->documentElement->as_HTML,
+	 qr\^<html><head></head><body>(?x:
+	       )<table>(?x:
+	          )<tbody><tr><td>a</td><td>b</td></tr></tbody>(?x:
+	       )</table>(?x:
+	    )</body></html>$\,
 		'<td><td>';
 }
 
@@ -55,10 +56,10 @@ use tests 2; # Make sure comments get parsed and added to the tree as
 	my $doc = new HTML::DOM;
 	$doc->write('<body><!--foo-->');
 	$doc->close;
-	is $doc->documentElement->as_HTML,
-	   '<html><head></head><body>'
-	  ."<!--foo-->"
-	  ."</body></html>\n",
+	like $doc->documentElement->as_HTML,
+	   qr\^<html><head></head><body>(?x:
+	      )<!--foo-->(?x:
+	      )</body></html>$\,
 		'parsing comments';
 	isa_ok $doc->body->firstChild, 'HTML::DOM::Comment',
 	 'parsed comment';

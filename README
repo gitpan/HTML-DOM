@@ -1,4 +1,4 @@
-HTML::DOM, version 0.042
+HTML::DOM, version 0.043
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,13 @@ sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.043
+-----
+Bug fixes:
+• Fixed to work with HTML::Tree 3.24
+• HTML::DOM::Element  can now be  loaded  without  HTML::DOM  already
+  loaded.
 
 0.042
 -----
@@ -30,14 +37,6 @@ Bug fixes:
   ment properly.
 • Setting a  boolean  attribute  through  the  DOM  0  interface  now
   works properly.
-
-0.040
------
-Bug fix: Calling $doc->write from an elem handler now parses the HTML
-code immediately instead of buffering it and waiting for the elem han-
-dler to return. This allows aberrations like
-  $doc->write("<img id='img1'>); $doc->getElementById('img')...
-to work.
 
 
 TO DO
@@ -77,12 +76,11 @@ Perl modules:
 - Scalar::Util 1.14 or later
 - Exporter 5.57 or later
 - HTML::TreeBuilder and HTML::Element (both part of the HTML::Tree
-  distribution) (tested with 3.23)
-- URI (tested with 1.35)
+  distribution)
+- URI
 - LWP 1.13 or later
 - CSS::DOM 0.07 or later
 - HTML::Encoding is required if the parse_file method is to be used.
-- constant::lexical
 - Tie::RefHash::Weak 0.08 or higher, if you are using perl 5.8.x
 
 
