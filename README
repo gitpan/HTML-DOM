@@ -1,4 +1,4 @@
-HTML::DOM, version 0.043
+HTML::DOM, version 0.044
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -11,10 +11,14 @@ RECENT CHANGES
 
 See the Changes file for the long version.
 
+0.044
+-----
+Fixed to work with HTML::Tree 4
+
 0.043
 -----
 Bug fixes:
-• Fixed to work with HTML::Tree 3.24
+• Fixed to work with HTML::Tree 3.23_x
 • HTML::DOM::Element  can now be  loaded  without  HTML::DOM  already
   loaded.
 

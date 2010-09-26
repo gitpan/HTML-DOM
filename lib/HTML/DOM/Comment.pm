@@ -8,7 +8,7 @@ use HTML::DOM::Node 'COMMENT_NODE';
 require HTML::DOM::CharacterData;
 
 our @ISA = 'HTML::DOM::CharacterData';
-our $VERSION = '0.043';
+our $VERSION = '0.044';
 
 sub new { # $_[1] contains the text
 	$_[0]->SUPER::new('~comment', text => $_[1]);
@@ -23,6 +23,12 @@ sub nodeName { '#comment' }
 
 sub starttag { sprintf "<!--%s-->", shift->data }
 sub endtag   { '' }
+
+sub isa { # Lie to HTML::Element 4
+ caller eq 'HTML::Element' && VERSION HTML::Element >= 4
+  and $_[1] eq 'HTML::DOM::Element' and return 1;
+ goto &{;can{$_[0]}"SUPER::isa"};
+}
 
 1
 __END__

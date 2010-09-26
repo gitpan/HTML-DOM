@@ -1,8 +1,12 @@
 Revision history for HTML::DOM
 
+0.044   26 September, 2010
+        Bug fixes:
+        • Fixed to work with HTML::Tree 4
+
 0.043   15 August, 2010
         Bug fixes:
-        • Fixed to work with HTML::Tree 3.24
+        • Fixed to work with HTML::Tree 3.23_x
         • HTML::DOM::Element  can now  be  loaded  without  HTML::DOM
           already loaded.
 

@@ -1,8 +1,5 @@
 BEGIN {
-	require 5.008002; # for sub{} to mean sub{()}
-	$] == 5.009005 and require 5.01;
-	# I’m getting tired of failure reports that are due to the buggi-
-	# ness of 5.9.5.
+	require 5.008003; # substr fixes
 }
 use ExtUtils::MakeMaker;
 
@@ -13,7 +10,7 @@ use ExtUtils::MakeMaker;
 # Unfortunately, previous versions of the JS plugin wouldn’t compile with-
 # out WWW::Scripter loaded already. So this is a mess.
 %broken_deps = (
- WWW'Scripter                   => { breaks => 0.008, use => 0.009 },
+ WWW'Scripter                   => { breaks => 0.016, use => 0.017 },
  WWW'Scripter'Plugin'JavaScript => { breaks => 0.002, use => 0.003 }
 );
 while(my($mod,$vers) = each %broken_deps) {
