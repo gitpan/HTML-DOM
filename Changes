@@ -1,5 +1,11 @@
 Revision history for HTML::DOM
 
+0.045   21 November, 2010
+        Incompatible change:  event_parent now holds a weak reference.
+        New feature: weaken_response constructor argument to indicate
+        that the HTML::DOM object should hold a weak reference to the
+        response object.
+
 0.044   26 September, 2010
         Bug fixes:
         • Fixed to work with HTML::Tree 4

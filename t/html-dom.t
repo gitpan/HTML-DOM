@@ -10,7 +10,7 @@
 
 use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => reverse 49;
+use Test::More tests => reverse 51;
 
 
 # -------------------------#
@@ -19,13 +19,23 @@ use Test::More tests => reverse 49;
 BEGIN { use_ok 'HTML::DOM'; }
 
 # -------------------------#
-# Tests 2: constructor
+# Tests 2-3: constructor
 
 my $doc = new HTML::DOM;
 isa_ok $doc, 'HTML::DOM';
 
+# weaken_response
+{
+ require HTTP::Response;
+ my $res = new HTTP::Response;
+ my $doc = new HTML::DOM response => $res, weaken_response => 1;
+ require Scalar'Util;
+ Scalar'Util'weaken $res;
+ is $res, undef, 'weaken_response';
+}
+
 # -------------------------#
-# Tests 3-22: elem_handler, parse, eof and write
+# Tests 4-23: elem_handler, parse, eof and write
 
 # It is important that this
 # 18 May, 2010: I’ve just discovered the previous line, which I apparently
@@ -96,7 +106,7 @@ $doc->close;
 }
 
 # -------------------------#
-# Tests 23-35: parse_file & charset
+# Tests 24-36: parse_file & charset
 
 use File::Basename;
 use File::Spec::Functions 'catfile';
@@ -232,7 +242,7 @@ is $doc->charset('utf-16be'), 'iso-8859-1', 'charset get/set';
 is $doc->charset, 'utf-16be', 'get charset after set';
 
 # -------------------------#
-# Test 36: another elem_handler test with nested <script> elems
+# Test 37: another elem_handler test with nested <script> elems
 #          This was causing infinite recursion before version 0.004.
 
 {
@@ -257,7 +267,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Test 37: Yet another elem_handler test, this time with '*' for the tag.
+# Test 38: Yet another elem_handler test, this time with '*' for the tag.
 #          I broke this in 0.009 and fixed it in 0.010.
 
 {
@@ -273,7 +283,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 
 
 # -------------------------#
-# Tests 38-40: event_parent
+# Tests 39-42: event_parent
 
 {
 	my $doc = new HTML::DOM;
@@ -282,12 +292,13 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 	is $doc->event_parent($thing), undef,
 		'event parent returns undef when setting the first time';;
 	is $doc->event_parent, $thing,, 'and setting it actually worked';
-
-
+	require Scalar'Util;
+	Scalar'Util'weaken($thing);
+	is $thing, undef, 'event_parent holds a weak reference';
 }
 
 # -------------------------#
-# Tests 41-6: base
+# Tests 43-8: base
 
 {
  my $doc = new HTML::DOM url => 'file:///';
@@ -316,9 +327,9 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Test 47-9: Yet another elem_handler test, for when elem_handlers orphan
-#            the <html> element.  This also makes sure elem_handers  are
-#            called even without closing tags. (Both were fixed 0.036.)
+# Test 49-51: Yet another elem_handler test, for when elem_handlers orphan
+#             the <html> element.  This also makes sure elem_handers  are
+#             called even without closing tags. (Both were fixed 0.036.)
 
 
 {

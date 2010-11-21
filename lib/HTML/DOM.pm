@@ -17,7 +17,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.044';
+our $VERSION = '0.045';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.044 (alpha)
+Version 0.045 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -129,6 +129,11 @@ writing cookies. It is expected to have a reference to a request object
 (accessible via its C<request> method--see L<HTTP::Response>). Passing a 
 parameter to the 'cookie' method will be a no-op 
 without this.
+
+=item weaken_response
+
+If this is passed a true value, then the HTML::DOM object will hold a weak
+reference to the response.
 
 =item cookie_jar
 
@@ -419,6 +424,9 @@ sub new {
 				($opts{response}->request || last)
 				 ->header('Referer')
 		}}
+		if($opts{weaken_response}) {
+			weaken $self->{_HTML_DOM_response}
+		}
 	}
 	$self->{_HTML_DOM_jar} = $opts{cookie_jar}; # might be undef
 	$self->{_HTML_DOM_cs} = $opts{charset};
@@ -1601,6 +1609,8 @@ set it like this (see also L</defaultView>, above):
 
   $tree->event_parent( $tree->defaultView );
 
+This holds a weak reference.
+
 =item $tree->event_listeners_enabled
 
 =item $tree->event_listeners_enabled( $new_val )
@@ -1639,7 +1649,7 @@ sub error_handler {
 
 sub event_parent {
 	my $old = (my $self = shift) ->{_HTML_DOM_event_parent};
-	$self->{_HTML_DOM_event_parent} = shift if @_;
+	weaken($self->{_HTML_DOM_event_parent} = shift) if @_;
 	$old
 }
 

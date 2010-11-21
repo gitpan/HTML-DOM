@@ -1,4 +1,4 @@
-HTML::DOM, version 0.044
+HTML::DOM, version 0.045
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -11,6 +11,13 @@ RECENT CHANGES
 
 See the Changes file for the long version.
 
+0.045
+-----
+Incompatible change: event_parent now holds a weak reference.
+New feature:  weaken_response  constructor argument to indicate  that
+the  HTML::DOM  object should hold a weak reference to  the  response
+object.
+
 0.044
 -----
 Fixed to work with HTML::Tree 4
@@ -21,26 +28,6 @@ Bug fixes:
 • Fixed to work with HTML::Tree 3.23_x
 • HTML::DOM::Element  can now be  loaded  without  HTML::DOM  already
   loaded.
-
-0.042
------
-One bug fix:  Unmatched </td> and </th> tags no longer close elements
-that are outside the innermost enclosing table.
-
-0.041
------
-Bug fixes:
-• A  CharacterData  node’s  data  method now stringifies its argument.
-• Setting the selected attribute of an  orphaned  option  element  no
-  longer causes errors.
-• innerText is now listed in %HTML::DOM::Interface.
-• $element->getElementsByTagName  now  ignores  the  $element  itself.
-• $element->setAttribute now stringifies the value,  so  getAttribute-
-  Node is no longer confused.
-• cloneNode with a true argument (deep clone)  now sets the ownerDocu-
-  ment properly.
-• Setting a  boolean  attribute  through  the  DOM  0  interface  now
-  works properly.
 
 
 TO DO
