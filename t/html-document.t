@@ -390,7 +390,7 @@ is $doc->{fred}, $doc->forms->[0],           'hashness (1)';
 is $doc->{alcibiades}, $doc->forms->[1],     'hashness (2)';
 
 # -------------------------#
-use tests 9; # innerHTML
+use tests 10; # innerHTML
 {
 	my $doc = new HTML::DOM;
 	$doc->write('
@@ -454,6 +454,12 @@ use tests 9; # innerHTML
 	$doc->removeChild($doc->documentElement);
 	like eval { $doc->innerHTML }, qr/^\s*<!doctype\s+html\s*>\s*\z/i,
 	 'innerHTML includes the !doctype even when there is no doc elem';
+
+	$doc->innerHTML("");
+	my $list = $doc->getElementsByTagName('br');
+	$list->length; # cache the contents
+	$doc->innerHTML("<br>");
+	is @$list, 1, 'innerHTML resets node lists';
 }
 
 # -------------------------#

@@ -17,7 +17,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.045';
+our $VERSION = '0.046';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.045 (alpha)
+Version 0.046 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -1916,7 +1916,7 @@ B<To report bugs,> please e-mail the author.
 
 =head1 AUTHOR, COPYRIGHT & LICENSE
 
-Copyright (C) 2007-10 Father Chrysostomos
+Copyright (C) 2007-11 Father Chrysostomos
 
   $text = new HTML::DOM ->createTextNode('sprout');
   $text->appendData('@');

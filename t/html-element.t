@@ -59,7 +59,7 @@ isa_ok $doc, 'HTML::DOM';
 
 
 # -------------------------#
-use tests 72; # Element types that just use the HTMLElement interface
+use tests 75; # Element types that just use the HTMLElement interface
               # (and general tests for that interface)
 
 for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
@@ -139,6 +139,13 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	unlike $doc->innerHTML, qr/doctype/i,
 	 'innerHTML’s parser ignores !doctypes';
 
+	# Make sure that innerHTML resets node lists
+	$elem->innerHTML("");
+	my $list = $elem->getElementsByTagName('br');
+	$list->length; # cache the contents
+	$elem->innerHTML("<br>");
+	is scalar @$list, 1, 'innerHTML resets node lists';
+
 	# Yes, the weird capitalisation is on purpose. I forgot the ‘lc’
 	# in these insertAdj* routines at first.
 	$elem->innerHTML('<b></b>');
@@ -154,6 +161,13 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	$elem->insertAdjacentHTML('befOreend','prext');
 	is $elem->innerHTML, '<tt></tt><i></i><u></u><b></b>prext',
 	 'insertAdjacentHTML beforeend';
+
+	# Make sure that insertAdjacentHTML resets node lists
+	$elem->innerHTML("");
+	$list = $elem->getElementsByTagName('br');
+	$list->length; # cache the contents
+	$elem->insertAdjacentHTML(afterbegin=>"<br>");
+	is scalar @$list, 1, 'insertAdjacentHTML resets node lists';
 
 	$elem->innerHTML('<b></b>');
 	$elem->firstChild->insertAdjacentElement(
@@ -176,6 +190,13 @@ for (qw/ sub sup span bdo tt i b u s strike big small em strong dfn code
 	);
 	is $elem->innerHTML, '<tt></tt><i></i><u></u><b></b>pred',
 	 'insertAdjacentElement beforeend';
+
+	# Make sure that insertAdjacentElement resets node lists
+	$elem->innerHTML("");
+	$list = $elem->getElementsByTagName('br');
+	$list->length; # cache the contents
+	$elem->insertAdjacentElement(afterbegin=>createElement $doc 'br');
+	is scalar @$list, 1, 'insertAdjacentElement resets node lists';
 
 	$elem->innerHTML(
 	 "<p>This is a&#32;sentence w/<b>bold <i>and</i></b><i> italics."

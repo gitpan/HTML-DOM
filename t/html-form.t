@@ -10,7 +10,7 @@ use Test::More tests
  => 116 # form.t
   +  24 # form_param.t
   +  2  # misc
-  +  2; # bugs
+  +  4; # bugs
 
 BEGIN{	use_ok 'HTML::DOM' };
 
@@ -662,5 +662,17 @@ $doc->write(
 my $f = $doc->forms->[0];
 $f->value(c => undef);
 ok ! $f->{c}->checked, 'form->value(field, undef) unchecks a checkbox';
+
+local $SIG{__WARN__};
+$f->innerHTML(
+ '<input name=c type=radio value=a><input name=c type=radio value=b>'
+);
+my $radioset = $f->find_input('c');
+$radioset->value('a');
+ok $f->{c}[0]->checked && !$f->{c}[1]->checked,
+    '->value(x) on radio nodelist works if nothing is checked yet';
+$radioset->value('b');
+ok !$f->{c}[0]->checked && $f->{c}[1]->checked,
+    '->value(x) on radio nodelist works if something is checked already';
 
 }

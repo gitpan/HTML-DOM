@@ -338,7 +338,7 @@ use tests 31; # HTMLOptionElement
 }
 
 # -------------------------#
-use tests 75; # HTMLInputElement
+use tests 76; # HTMLInputElement
 
 {
 	is ref(
@@ -430,6 +430,14 @@ use tests 75; # HTMLInputElement
 
 	$doc->default_event_handler_for(click=>undef);
 	test_event($elem,$_) for qw/ blur focus select click /;
+
+	# ->checked(1) on a radio button
+	my $form = $doc->createElement('form');
+	$form->innerHTML("<input type=radio name=c>"x2);
+	($elem = $form->childNodes->[0])->checked(1);
+	$form->childNodes->[1]->checked(1);
+	ok !$elem->checked,
+	 "->checked(1) on a radio button unchecks other buttons";
 }
 
 # -------------------------#

@@ -1,5 +1,16 @@
 Revision history for HTML::DOM
 
+0.046   23 January, 2011
+        Bug fixes:
+        • Setting innerHTML and calling the  insertAdjacent*  methods
+          now cause node lists and collections to be updated.
+        • Calling  ->checked(1)  on a radio button now unchecks other
+          radio buttons in the same group.
+        • Checking  a  radio  button  via  the  HTML::Form  interface
+          ($form->value(...), $form->find_input(...)->value(...)) now
+          causes other radio buttons in  the  same  group  to  become
+          unchecked.
+
 0.045   21 November, 2010
         Incompatible change:  event_parent now holds a weak reference.
         New feature: weaken_response constructor argument to indicate
