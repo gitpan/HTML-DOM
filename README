@@ -1,4 +1,4 @@
-HTML::DOM, version 0.046
+HTML::DOM, version 0.047
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,12 @@ sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.047
+-----
+Bug fix: Implicitly-closed forms were being associated with inputs in subsequent forms,  resulting in there being two  forms  that  contain
+the same input  element  in  their  ->elements  and  ->inputs  arrays
+(RT #65363).
 
 0.046
 -----
@@ -25,10 +31,6 @@ Incompatible change: event_parent now holds a weak reference.
 New feature:  weaken_response  constructor argument to indicate  that
 the  HTML::DOM  object should hold a weak reference to  the  response
 object.
-
-0.044
------
-Fixed to work with HTML::Tree 4
 
 
 TO DO

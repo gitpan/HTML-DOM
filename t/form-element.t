@@ -676,7 +676,7 @@ use tests 7; # reset
 }
 
 # -------------------------#
-use tests 27; # magic element-form association
+use tests 29; # magic element-form association
 {
  # Every element of this array has three tests to go with it
  my @formies = qw 'select input textarea button label fieldset object';
@@ -715,6 +715,14 @@ use tests 27; # magic element-form association
  $doc->body->innerHTML( '<table><tr><td><form><td><input>' );
  is +()=$doc->find('input')->form, 0,
   'elem->innerHTML creates no magical form element associations';
+
+ # Make sure that the current magic form does not get inputs from other
+ # forms associated with it.
+ $doc->innerHTML('<div><form></div><form><input>');
+ is $doc->forms->[0]->elements->length, 0,
+  'magic forms are not attached inputs that are inside other forms';
+ is $doc->forms->[1]->elements->length, 1,
+  'magic forms do not steal inputs from other forms';
 }
 
 # ~~~ I need to write tests for HTML::DOM::Collection::Elements’s namedItem

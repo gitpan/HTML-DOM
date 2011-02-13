@@ -17,7 +17,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.046';
+our $VERSION = '0.047';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.046 (alpha)
+Version 0.047 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -309,6 +309,9 @@ C<response>.
 
 		my $elem = (my $self = shift)->SUPER::start(@_);
 		
+		$_[0] eq 'form' and push @{ $$self{_HTML_DOM_cf} ||= [] },
+		 $elem;
+
 		return $elem unless %event_offsets;
 
 		if(!$HTML::Tagset::emptyElement{$_[0]}) { # container
@@ -321,9 +324,6 @@ C<response>.
 				\%event_offsets,
 			);
 		}
-
-		$_[0] eq 'form' and push @{ $$self{_HTML_DOM_cf} ||= [] },
-		 $elem;
 
 		return $elem;
 	}

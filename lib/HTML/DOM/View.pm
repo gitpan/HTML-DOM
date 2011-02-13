@@ -17,7 +17,7 @@ BEGIN {
 
 fieldhash my %doc;
 
-our $VERSION = '0.046';
+our $VERSION = '0.047';
 
 # -------- DOM ATTRIBUTES -------- #
 

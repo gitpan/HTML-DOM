@@ -1,5 +1,11 @@
 Revision history for HTML::DOM
 
+0.047   13 February, 2011
+        Bug fix:  Implicitly-closed forms were being associated  with
+        inputs in subsequent forms,  resulting  in  there  being  two
+        forms that contain the same input element in their ->elements
+        and ->inputs arrays (RT #65363).
+
 0.046   23 January, 2011
         Bug fixes:
         • Setting innerHTML and calling the  insertAdjacent*  methods
