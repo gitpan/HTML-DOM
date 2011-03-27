@@ -1,5 +1,11 @@
 Revision history for HTML::DOM
 
+0.048   27 March, 2011
+        Bug fix:  Area elements now trigger a DOMActivate  event when
+        the click method is called.  (This means that a default event
+        handler for links gets called with area elements,  as well as
+       ‘a’ elements.)
+
 0.047   13 February, 2011
         Bug fix:  Implicitly-closed forms were being associated  with
         inputs in subsequent forms,  resulting  in  there  being  two

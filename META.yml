@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               HTML-DOM
-version:            0.047
+version:            0.048
 abstract:           A Perl implementation of the HTML Document Object Model
 author:
     - Father Chrysostomos <sprout & cpan . org>

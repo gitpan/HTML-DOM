@@ -439,7 +439,7 @@ cmp_ok $@, '==', HTML::DOM::Exception::UNSPECIFIED_EVENT_TYPE_ERR,
 
 
 # -------------------------#
-use tests 10; # trigger_event and default_event_handler(_for)
+use tests 12; # trigger_event and default_event_handler(_for)
 
 clear_event_listeners($grandchild, 'click');
 
@@ -479,7 +479,7 @@ is $e->target, $grandchild,
 	my $which = '';
 	$doc->default_event_handler(sub { $which = 'default' });
 	$doc->default_event_handler_for(link =>
-		sub { $which = 'link' }
+		my $link_handler = sub { $which = 'link' }
 	);
 	$doc->default_event_handler_for(submit =>
 		sub { $which = 'submit' }
@@ -490,6 +490,13 @@ is $e->target, $grandchild,
 	$doc->default_event_handler_for('link' => undef);
 	$doc->createElement('a')->trigger_event("DOMActivate");
 	is $which, 'default', 'link fallback to default';
+
+	$doc->default_event_handler_for(link => $link_handler);
+	$doc->createElement('area')->trigger_event("DOMActivate");
+	is $which, 'link', 'dehf link (area elem)';
+	$doc->default_event_handler_for('link' => undef);
+	$doc->createElement('area')->trigger_event("DOMActivate");
+	is $which, 'default', 'link fallback to default (area elem)';
 
 	$doc->createElement('form')->submit();
 	is $which, 'submit', 'dehf submit';

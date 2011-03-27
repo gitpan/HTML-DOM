@@ -45,6 +45,19 @@ format STDOUT =
 $message
 .
 
+my %lwp_prq = (
+         HTTP::Message             => eval('require HTTP::Message;
+                                            VERSION HTTP::Message') == 5.81
+                                            ? 5.811 : 0,
+         HTTP::Request             => 0,
+         HTTP::Request::Common     => 0,
+        'HTTP::Headers::Util'      => 0,
+# used only in the tests:
+         HTTP'Response             => 0,
+);
+# also for the tests:
+$lwp_prq{HTTP'Message} = 1.34 unless $lwp_prq{HTTP'Message}; # array ref
+                                                             # headers
 my %prq = (
          Carp                      => 0,
          constant                  => 1.03, # multiple at once
@@ -59,12 +72,6 @@ my %prq = (
         'HTML::Element'            => 0,
 	'HTML::Encoding'           => 0,
          HTML::Parser              => 3,
-         HTTP::Message             => eval('require HTTP::Message;
-                                            VERSION HTTP::Message') == 5.81
-                                            ? 5.811 : 0,
-         HTTP::Request             => 0,
-         HTTP::Request::Common     => 0,
-        'HTTP::Headers::Util'      => 0,
          overload                  => 0,
         'Scalar::Util'             => 1.09, # refaddr
          strict                    => 0,
@@ -76,12 +83,24 @@ my %prq = (
 # used only in the tests:
          CSS'DOM                   => 0.07, # !important ua rules
          Scalar::Util              => 1.14, # refaddr with ties
-         HTTP'Response             => 0,
         'Test::More'               => 0,
 	 utf8                      => 0,
 );
-# also for the tests:
-$prq{HTTP'Message} = 1.34 unless $prq{HTTP'Message}; # array ref headers
+
+my $need_lwp5837;
+if($] < 5.0080071) {
+ while(my($m,$v) = each %lwp_prq) {
+  if(!eval{"require $m"} || !eval{$m->VERSION($v)}) {
+   ++$need_lwp5837; last;
+  }
+ }
+}
+if($need_lwp5837) {
+ $prq{'Bundle::LWP5_837'} = 0;
+}
+else {
+ %prq = (%prq, %lwp_prq);
+}
 
 WriteMakefile(
     NAME                => 'HTML::DOM',

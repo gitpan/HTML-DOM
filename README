@@ -1,4 +1,4 @@
-HTML::DOM, version 0.047
+HTML::DOM, version 0.048
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,12 @@ sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.048
+-----
+Bug fix: Area elements now trigger a DOMActivate event when the click
+method is called.  (This means that a default event handler for links
+gets called with area elements, as well as ‘a’ elements.)
 
 0.047
 -----
@@ -24,13 +30,6 @@ Bug fixes:
   node lists and collections to be updated.
 • Checking a radio button now causes other radio buttons in the  same
   group to become unchecked.
-
-0.045
------
-Incompatible change: event_parent now holds a weak reference.
-New feature:  weaken_response  constructor argument to indicate  that
-the  HTML::DOM  object should hold a weak reference to  the  response
-object.
 
 
 TO DO
