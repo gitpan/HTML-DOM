@@ -1,5 +1,11 @@
 Revision history for HTML::DOM
 
+0.049   4 Sepember, 2011
+        New feature:  <button>  elements are now treated as real  but-
+        tons, instead of being ignored by most form-handling function-
+        ality.  Thanks to a certain Martin for providing a patch upon
+        which this was based (RT #70499).
+
 0.048   27 March, 2011
         Bug fix:  Area elements now trigger a DOMActivate  event when
         the click method is called.  (This means that a default event

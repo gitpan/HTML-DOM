@@ -1,4 +1,4 @@
-HTML::DOM, version 0.048
+HTML::DOM, version 0.049
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -11,6 +11,13 @@ RECENT CHANGES
 
 See the Changes file for the long version.
 
+0.049
+-----
+New feature:  <button>  elements are  now  treated  as  real  buttons,
+instead of being ignored by most form-handling functionality.  Thanks
+to a certain Martin for providing a patch upon which this  was  based
+(RT #70499).
+
 0.048
 -----
 Bug fix: Area elements now trigger a DOMActivate event when the click
@@ -22,14 +29,6 @@ gets called with area elements, as well as ‘a’ elements.)
 Bug fix: Implicitly-closed forms were being associated with inputs in subsequent forms,  resulting in there being two  forms  that  contain
 the same input  element  in  their  ->elements  and  ->inputs  arrays
 (RT #65363).
-
-0.046
------
-Bug fixes:
-• Setting innerHTML and calling the insertAdjacent* methods now cause
-  node lists and collections to be updated.
-• Checking a radio button now causes other radio buttons in the  same
-  group to become unchecked.
 
 
 TO DO

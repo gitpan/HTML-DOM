@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 
 =head1 NAME
 

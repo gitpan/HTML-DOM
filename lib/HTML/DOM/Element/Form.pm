@@ -10,7 +10,7 @@ require HTML::DOM::Element;
 require HTML::DOM::NodeList::Magic;
 #require HTML::DOM::Collection::Elements;
 
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 our @ISA = qw'HTML::DOM::Element';
 
 use overload fallback => 1,
@@ -121,8 +121,11 @@ sub inputs {
 	 grep($elem_elems{tag $_}, $self->descendants),
 	 @{ $self->{_HTML_DOM_mg_elems}||[] }
 	) {
-	  next if (my $tag = tag $_) eq 'button'; # HTML::Form doesn't deal
+	  #next if (my $tag = tag $_) eq 'button'; # HTML::Form doesn't deal
 	                                          # with <button>s.
+	  # NOW IT DOES :)
+	  my $tag = tag $_;
+
 	  no warnings 'uninitialized'; # for 5.11.0
 	  if(lc $_->attr('type') eq 'radio') {
 	    my $name = name $_;
@@ -149,7 +152,9 @@ sub click  # 22/Sep/7: stolen from HTML::Form and modified (particularly
 
     # try to find first submit button to activate
     for ($self->inputs) {
-        next unless $_->type =~ /^(?:submit|image)\z/;
+        my $type = $_->type; my $tag = eval { $_->tag } || '';
+        next unless $tag eq 'input'  && $type =~ /^(?:submit|image)\z/
+	         || $tag eq 'button' && ($type || 'submit') eq 'submit';
         next if $name && $_->name ne $name;
 	next if $_->disabled;
 	$_->click($self, @_);return
@@ -407,7 +412,7 @@ package HTML::DOM::NodeList::Radio; # solely for HTML::Form compatibility
 use Carp 'croak';
 require HTML::DOM::NodeList;
 
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 our @ISA = qw'HTML::DOM::NodeList';
 
 sub type { 'radio' }
@@ -479,7 +484,7 @@ use warnings;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 
 require HTML::DOM::Collection;
 our @ISA = 'HTML::DOM::Collection';
@@ -656,7 +661,7 @@ L<HTML::Form>
 # ------- HTMLSelectElement interface ---------- #
 
 package HTML::DOM::Element::Select;
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 our @ISA = 'HTML::DOM::Element';
 
 use overload fallback=>1, '@{}' => sub { shift->options };
@@ -749,7 +754,7 @@ package HTML::DOM::Collection::Options;
 use strict;
 use warnings;
 
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 
 use Carp 'croak';
 use constant sel => 5; # must not conflict with super
@@ -827,7 +832,7 @@ sub length { # override
 # ------- HTMLOptGroupElement interface ---------- #
 
 package HTML::DOM::Element::OptGroup;
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 our @ISA = 'HTML::DOM::Element';
 
 sub label  { shift->_attr( label => @_) }
@@ -837,7 +842,7 @@ sub label  { shift->_attr( label => @_) }
 # ------- HTMLOptionElement interface ---------- #
 
 package HTML::DOM::Element::Option;
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
@@ -950,7 +955,7 @@ sub _reset { delete shift->{_HTML_DOM_sel} }
 # ------- HTMLInputElement interface ---------- #
 
 package HTML::DOM::Element::Input;
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 our @ISA = qw'HTML::DOM::Element';
 
 use Carp 'croak';
@@ -1172,7 +1177,7 @@ sub content {
 # ------- HTMLTextAreaElement interface ---------- #
 
 package HTML::DOM::Element::TextArea;
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 our @ISA = qw'HTML::DOM::Element';
 
 sub defaultValue { # same as HTML::DOM::Element::Title::text
@@ -1220,7 +1225,7 @@ sub _reset {
 # ------- HTMLButtonElement interface ---------- #
 
 package HTML::DOM::Element::Button;
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1228,14 +1233,56 @@ our @ISA = qw'HTML::DOM::Element';
 *disabled = \&HTML::DOM::Element::Select::disabled;
 *name = \&HTML::DOM::Element::Form::name;
 *tabIndex = \&HTML::DOM::Element::Select::tabIndex;
-sub type       { lc shift->attr('type') }
+sub type       { no warnings 'uninitialized'; lc shift->attr('type') }
 sub value      { shift->attr( value       => @_) }
 
+sub form_name_value
+{
+    my $self = shift;
+    my $type = $self->type;
+    return unless !$type or $type eq 'submit';
+    return unless $self->{_HTML_DOM_clicked};
+    my $name = $self->name;
+    return unless defined $name && length $name;
+    return if $self->disabled;
+    my $value = $self->value;
+    return unless defined $value;
+    return ($name => $value);
+}
+
+
+sub click { for(shift){
+	local($$_{_HTML_DOM_clicked}) = 1;
+	$_->trigger_event('click');
+	return;
+}}
+
+sub trigger_event {
+	my ($a,$evnt) = (shift,shift);
+	my $input_type = $a->type || 'submit';
+	$a->SUPER::trigger_event(
+		$evnt,
+		$input_type =~ /^(?:(submi)|rese)t\z/
+			?( DOMActivate_default =>
+				# I’m not using a closure here, because we
+				# don’t want the overhead of cloning it
+				# when it might not even be used.
+				(sub { (shift->target->form||return)
+					->trigger_event('submit') },
+				 sub { (shift->target->form||return)
+					->trigger_event('reset') })
+				  [!$1]
+			) :(),
+		@_
+	);
+}
+
+sub _reset {}
 
 # ------- HTMLLabelElement interface ---------- #
 
 package HTML::DOM::Element::Label;
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1245,7 +1292,7 @@ sub htmlFor { shift->_attr( for       => @_) }
 # ------- HTMLFieldSetElement interface ---------- #
 
 package HTML::DOM::Element::FieldSet;
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;
@@ -1253,7 +1300,7 @@ our @ISA = qw'HTML::DOM::Element';
 # ------- HTMLLegendElement interface ---------- #
 
 package HTML::DOM::Element::Legend;
-our $VERSION = '0.048';
+our $VERSION = '0.049';
 our @ISA = qw'HTML::DOM::Element';
 
 *form = \&HTML::DOM::Element::Select::form;

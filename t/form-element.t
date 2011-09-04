@@ -70,7 +70,7 @@ my $form;
 my $false = bless [], 'false';
 
 # -------------------------#
-use tests 34; # HTMLFormElement
+use tests 35; # HTMLFormElement
 
 {
 	is ref(
@@ -135,6 +135,16 @@ use tests 34; # HTMLFormElement
 	is $which,
 	   '-button-activate-form submit-button-activate-form reset',
 		'default actions for form events';
+	$which = '';
+	$form	->appendChild($el = $doc->createElement('button'));
+	$el->addEventListener(click => sub { $which .= '-button'});
+	$el->addEventListener(DOMActivate => sub { $which .= '-activate'});
+	$el->click();
+	$el->attr(type=>'reset');
+	$el->click;
+	is $which,
+	   '-button-activate-form submit-button-activate-form reset',
+		'default actions for form events triggered by <button>s';
 	# ~~~ I need tests to make sure that form elements are actually
 	#     reset. Currently they are not.
 }
