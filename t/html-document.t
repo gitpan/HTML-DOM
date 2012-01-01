@@ -134,7 +134,7 @@ SKIP: {
 }
 
 # -------------------------#
-use tests 7; # cookies
+use tests 8; # cookies
 
 # Some things here are stolen from LWP's t/base/cookies.t.
 
@@ -148,7 +148,7 @@ is $doc->cookie(), '',
 
 SKIP: {
 	eval 'require "HTTP/$_.pm" for qw/Cookies Response Request/';
-	skip 'HTTP::(Cookies|Re(sponse|quest)) not installed', 5 if $@;
+	skip 'HTTP::(Cookies|Re(sponse|quest)) not installed', 6 if $@;
 
 	my $jar = new HTTP::Cookies;
 
@@ -184,7 +184,17 @@ SKIP: {
 		'cookie1=val1;cookie2=val2;cookie3=val3',
 		'get cookies after added with both syntaxes';
 
+	(my $response2 = new HTTP::Response 202)->request(
+	  my $request = new HTTP::Request GET => 'http://localhost/ooo'
+	);
+	$jar->add_cookie_header($request);
+	my $doc2 = new HTML::DOM response => $response2, cookie_jar=>$jar;
 
+	is join(';', sort split /;/, $doc2->cookie),
+		'cookie1=val1;cookie2=val2;cookie3=val3',
+		'get cookies after making a request with the cookie jar';
+		# ->cookie used to list cookies in the $request as well,
+		#  due to the way it clones it and adds cookies.
 }
 
 # -------------------------#

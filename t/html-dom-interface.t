@@ -17,6 +17,22 @@ use tests 1; # is the hash there (and does it have somthing in it?)
 ok(%HTML::DOM::Interface);
 
 # -------------------------#
+# Make sure all constants are defined
+BEGIN {
+    $::constests = 0;
+    for (values %HTML::DOM::Interface) {
+	if (ref && $$_{_constants}) { $::constests += @{$$_{_constants}} }
+    }
+}
+use tests $::constests;
+
+for (values %HTML::DOM::Interface) {
+ for(@{ref || next; $$_{_constants} || next}) {
+  ok defined eval, "$_ is defined";
+ }
+}
+
+# -------------------------#
 use tests 4; # changes made in 0.009
 
 ok !exists $HTML::DOM::Interface{Document}, '{Document} doesn\'t exist';

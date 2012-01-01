@@ -1,5 +1,13 @@
 Revision history for HTML::DOM
 
+0.050   1 January, 2012
+        Bug fixes:
+        • $doc->cookie  no longer  lists  cookies  from  the  request
+          object in addition to those from the  cookie  jar  (usually
+          resulting in duplicates).
+        • HTML::DOM::Interface now makes sure that all modules provid-
+          ing constants are loaded.
+
 0.049   4 Sepember, 2011
         New feature:  <button>  elements are now treated as real  but-
         tons, instead of being ignored by most form-handling function-

@@ -51,7 +51,8 @@ my %lwp_prq = (
                                             ? 5.811 : 0,
          HTTP::Request             => 0,
          HTTP::Request::Common     => 0,
-        'HTTP::Headers::Util'      => 0,
+         HTTP'Headers              => 1.59, # comes with LWP 5.79; for the
+        'HTTP::Headers::Util'      => 0,    # header_field_names method
 # used only in the tests:
          HTTP'Response             => 0,
 );

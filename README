@@ -1,4 +1,4 @@
-HTML::DOM, version 0.049
+HTML::DOM, version 0.050
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,14 @@ sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.050
+-----
+Bug fixes:
+• $doc->cookie no longer lists cookies from the request object in add-
+  ition to those from the cookie jar.
+• HTML::DOM::Interface  now makes sure that all modules providing con-
+  stants are loaded.
 
 0.049
 -----
@@ -23,12 +31,6 @@ to a certain Martin for providing a patch upon which this  was  based
 Bug fix: Area elements now trigger a DOMActivate event when the click
 method is called.  (This means that a default event handler for links
 gets called with area elements, as well as ‘a’ elements.)
-
-0.047
------
-Bug fix: Implicitly-closed forms were being associated with inputs in subsequent forms,  resulting in there being two  forms  that  contain
-the same input  element  in  their  ->elements  and  ->inputs  arrays
-(RT #65363).
 
 
 TO DO

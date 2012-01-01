@@ -17,7 +17,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.049';
+our $VERSION = '0.050';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.049 (alpha)
+Version 0.050 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -1150,9 +1150,19 @@ sub cookie {
     # &HTTP::Cookies::add_cookie_header is long and complicated, and I
     # don't want to replicate it here.
     no warnings 'uninitialized';
+    my $reqclone = $self->{_HTML_DOM_response}->request->clone;
+    # Yes  this  is  a  bit  strange,  but  we  don’t  want  to  put
+    # ‘use HTTP::Header 1.59’ in this file, as it would mean loading the
+    #  module even for people who are not using this  feature  or  who  are
+    # duck-typing.
+    if (!$reqclone->can('header_field_names')
+     && $reqclone->isa("HTTP::Headers")) { VERSION HTTP::Headers:: 1.59 }
+    for($reqclone->header_field_names) {
+     /cookie/i and remove_header $reqclone $_;
+    }
     $return = join ';', grep !/\$/, 
       $jar->add_cookie_header(
-        $self->{_HTML_DOM_response}->request->clone
+        $reqclone
       )-> header ('Cookie')
       # Pieces of this regexp were stolen from HTTP::Headers::Util:
       =~ /\G\s* # initial whitespace

@@ -1,7 +1,11 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.049';
+our $VERSION = '0.050';
+
+# for constants
+require HTML'DOM'Event'Mutation;
+require HTML'DOM'Node;
 
 =head1 NAME
 

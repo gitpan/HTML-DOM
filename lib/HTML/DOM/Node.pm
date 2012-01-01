@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.049';
+our $VERSION = '0.050';
 
 
 use strict;
