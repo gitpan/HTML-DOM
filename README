@@ -1,4 +1,4 @@
-HTML::DOM, version 0.050
+HTML::DOM, version 0.051
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,11 @@ sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.051
+-----
+Bug fix:  write() no longer dies inside an element handler if the doc-
+ument has no root element.
 
 0.050
 -----
@@ -25,12 +30,6 @@ New feature:  <button>  elements are  now  treated  as  real  buttons,
 instead of being ignored by most form-handling functionality.  Thanks
 to a certain Martin for providing a patch upon which this  was  based
 (RT #70499).
-
-0.048
------
-Bug fix: Area elements now trigger a DOMActivate event when the click
-method is called.  (This means that a default event handler for links
-gets called with area elements, as well as ‘a’ elements.)
 
 
 TO DO
@@ -69,11 +68,11 @@ Perl modules:
 
 - Scalar::Util 1.14 or later
 - Exporter 5.57 or later
-- HTML::TreeBuilder and HTML::Element (both part of the HTML::Tree
-  distribution)
 - URI
 - LWP 1.13 or later
 - CSS::DOM 0.07 or later
+- HTML::Tagset 3.02 or later
+- HTML::Parser 3.46 or later
 - HTML::Encoding is required if the parse_file method is to be used.
 - Tie::RefHash::Weak 0.08 or higher, if you are using perl 5.8.x
 

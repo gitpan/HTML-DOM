@@ -17,7 +17,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.050';
+our $VERSION = '0.051';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -27,13 +27,13 @@ require  HTML::DOM::Implementation;
 require HTML::DOM::NodeList::Magic;
 require             HTML::DOM::Text;
 require                 HTML::Tagset;
-require             HTML::TreeBuilder;
+require      HTML::DOM::_TreeBuilder;
 
 use overload fallback => 1,
 '%{}' => sub {
 	my $self = shift;
 #return $self; # for debugging
-	$self->isa(scalar caller) || caller->isa('HTML::TreeBuilder')
+	$self->isa(scalar caller) || caller->isa('HTML::DOM::_TreeBuilder')
 		and return $self;
 	$self->forms;
 };
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.050 (alpha)
+Version 0.051 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -95,7 +95,7 @@ The following DOM modules are currently supported:
   Views           2.0
 
 StyleSheets, CSS and CSS2 are actually provided by L<CSS::DOM>. This list
-corresponds to CSS::DOM versions 0.02 to 0.08.
+corresponds to CSS::DOM versions 0.02 to 0.14.
 
 =for comment
 Level 2 interfaces not yet included: Range, Traversal
@@ -158,7 +158,8 @@ C<response>.
 
 {
 	# This  HTML::DOM::Element::HTML  package  represents  the
-	# documentElement. It inherits from HTML::TreeBuilder and acts
+	# documentElement.  It  inherits  from
+        # HTML::DOM::_TreeBuilder  and  acts
 	# as the parser.  It is also  used  as  a  parser  for  innerHTML.
 
 	# Note for potential developers: You can’t refer to ->parent in
@@ -181,7 +182,7 @@ C<response>.
 
 
 	package HTML::DOM::Element::HTML;
-	our @ISA = qw' HTML::DOM::Element HTML::TreeBuilder';
+	our @ISA = qw' HTML::DOM::Element HTML::DOM::_TreeBuilder';
 
 	use Scalar::Util qw 'weaken isweak';
 
@@ -200,7 +201,7 @@ C<response>.
 	sub new {
 		my $tb; # hafta declare it separately so the closures can
 		        # c it
-		($tb = shift->HTML::TreeBuilder::new(
+		($tb = shift->HTML::DOM::_TreeBuilder::new(
 			element_class => 'HTML::DOM::Element',
 			'tweak_~text' => sub {
 				my ($text, $parent) = @_;
@@ -667,7 +668,7 @@ sub write {
 		# This approach stops JS code like this from working (yes,
 		# there *are* websites with code like this!):
 		#   document.write("<img id=img1>")
-		#   document.getElementById("img").src="..."
+		#   document.getElementById("img1").src="..."
 		#
 		# So, now we take care of creating a new parser immedi-
 		# ately. This does mean, however that we end up with mul-
@@ -680,7 +681,7 @@ sub write {
 		my $level = $$self{_HTML_DOM_buffered};
 		local $$self{_HTML_DOM_buffered} = $level + 1;
 
-		my($doc_elem) = $self->content_list;
+		my($doc_elem) = $$self{_HTML_DOM_parser};
 
 		# These handlers delegate the handling to methods of
 		# *another* HTML::Parser object.
@@ -1710,92 +1711,93 @@ __END__
 
 Here are the inheritance hierarchy of HTML::DOM's various classes and the
 DOM interfaces those classes implement. The classes in the left column all
-begin with 'HTML::', which is omitted for brevity. Items in brackets have
+begin with 'HTML::DOM::', which is omitted for brevity, except for
+HTML::DOM itself, which is listed with its full name. Items in brackets
+have
 not yet been implemented. (See also L<HTML::DOM::Interface> for a
 machine-readable list of standard methods.)
 
   Class Inheritance Hierarchy             Interfaces
   ---------------------------             ----------
   
-  DOM::Exception                          DOMException, EventException
-  DOM::Implementation                     DOMImplementation,
+  Exception                               DOMException, EventException
+  Implementation                          DOMImplementation,
                                            [DOMImplementationCSS]
-  Element
-      DOM::Node                           Node, EventTarget
-          DOM::DocumentFragment           DocumentFragment
-          DOM                             Document, HTMLDocument,
+  Node                                    Node, EventTarget
+      DocumentFragment                    DocumentFragment
+      HTML::DOM                           Document, HTMLDocument,
                                             DocumentEvent, DocumentView,
                                             DocumentStyle, [DocumentCSS]
-          DOM::CharacterData              CharacterData
-              DOM::Text                   Text
-              DOM::Comment                Comment
-          DOM::Element                    Element, HTMLElement,
+      CharacterData                       CharacterData
+          Text                            Text
+          Comment                         Comment
+      Element                             Element, HTMLElement,
                                             ElementCSSInlineStyle
-              DOM::Element::HTML          HTMLHtmlElement
-              DOM::Element::Head          HTMLHeadElement
-              DOM::Element::Link          HTMLLinkElement, LinkStyle
-              DOM::Element::Title         HTMLTitleElement
-              DOM::Element::Meta          HTMLMetaElement
-              DOM::Element::Base          HTMLBaseElement
-              DOM::Element::IsIndex       HTMLIsIndexElement
-              DOM::Element::Style         HTMLStyleElement, LinkStyle
-              DOM::Element::Body          HTMLBodyElement
-              DOM::Element::Form          HTMLFormElement
-              DOM::Element::Select        HTMLSelectElement
-              DOM::Element::OptGroup      HTMLOptGroupElement
-              DOM::Element::Option        HTMLOptionElement
-              DOM::Element::Input         HTMLInputElement
-              DOM::Element::TextArea      HTMLTextAreaElement
-              DOM::Element::Button        HTMLButtonElement
-              DOM::Element::Label         HTMLLabelElement
-              DOM::Element::FieldSet      HTMLFieldSetElement
-              DOM::Element::Legend        HTMLLegendElement
-              DOM::Element::UL            HTMLUListElement
-              DOM::Element::OL            HTMLOListElement
-              DOM::Element::DL            HTMLDListElement
-              DOM::Element::Dir           HTMLDirectoryElement
-              DOM::Element::Menu          HTMLMenuElement
-              DOM::Element::LI            HTMLLIElement
-              DOM::Element::Div           HTMLDivElement
-              DOM::Element::P             HTMLParagraphElement
-              DOM::Element::Heading       HTMLHeadingElement
-              DOM::Element::Quote         HTMLQuoteElement
-              DOM::Element::Pre           HTMLPreElement
-              DOM::Element::Br            HTMLBRElement
-              DOM::Element::BaseFont      HTMLBaseFontElement
-              DOM::Element::Font          HTMLFontElement
-              DOM::Element::HR            HTMLHRElement
-              DOM::Element::Mod           HTMLModElement
-              DOM::Element::A             HTMLAnchorElement
-              DOM::Element::Img           HTMLImageElement
-              DOM::Element::Object        HTMLObjectElement
-              DOM::Element::Param         HTMLParamElement
-              DOM::Element::Applet        HTMLAppletElement
-              DOM::Element::Map           HTMLMapElement
-              DOM::Element::Area          HTMLAreaElement
-              DOM::Element::Script        HTMLScriptElement
-              DOM::Element::Table         HTMLTableElement
-              DOM::Element::Caption       HTMLTableCaptionElement
-              DOM::Element::TableColumn   HTMLTableColElement
-              DOM::Element::TableSection  HTMLTableSectionElement
-              DOM::Element::TR            HTMLTableRowElement
-              DOM::Element::TableCell     HTMLTableCellElement
-              DOM::Element::FrameSet      HTMLFrameSetElement
-              DOM::Element::Frame         HTMLFrameElement
-              DOM::Element::IFrame        HTMLIFrameElement
-  DOM::NodeList                           NodeList
-      DOM::NodeList::Radio
-  DOM::NodeList::Magic                    NodeList
-  DOM::NamedNodeMap                       NamedNodeMap
-  DOM::Attr                               Node, Attr, EventTarget
-  DOM::Collection                         HTMLCollection
-      DOM::Collection::Elements
-      DOM::Collection::Options
-  DOM::Event                              Event
-      DOM::Event::UI                      UIEvent
-          DOM::Event::Mouse               MouseEvent
-      DOM::Event::Mutation                MutationEvent
-  DOM::View                               AbstractView, ViewCSS
+          Element::HTML                   HTMLHtmlElement
+          Element::Head                   HTMLHeadElement
+          Element::Link                   HTMLLinkElement, LinkStyle
+          Element::Title                  HTMLTitleElement
+          Element::Meta                   HTMLMetaElement
+          Element::Base                   HTMLBaseElement
+          Element::IsIndex                HTMLIsIndexElement
+          Element::Style                  HTMLStyleElement, LinkStyle
+          Element::Body                   HTMLBodyElement
+          Element::Form                   HTMLFormElement
+          Element::Select                 HTMLSelectElement
+          Element::OptGroup               HTMLOptGroupElement
+          Element::Option                 HTMLOptionElement
+          Element::Input                  HTMLInputElement
+          Element::TextArea               HTMLTextAreaElement
+          Element::Button                 HTMLButtonElement
+          Element::Label                  HTMLLabelElement
+          Element::FieldSet               HTMLFieldSetElement
+          Element::Legend                 HTMLLegendElement
+          Element::UL                     HTMLUListElement
+          Element::OL                     HTMLOListElement
+          Element::DL                     HTMLDListElement
+          Element::Dir                    HTMLDirectoryElement
+          Element::Menu                   HTMLMenuElement
+          Element::LI                     HTMLLIElement
+          Element::Div                    HTMLDivElement
+          Element::P                      HTMLParagraphElement
+          Element::Heading                HTMLHeadingElement
+          Element::Quote                  HTMLQuoteElement
+          Element::Pre                    HTMLPreElement
+          Element::Br                     HTMLBRElement
+          Element::BaseFont               HTMLBaseFontElement
+          Element::Font                   HTMLFontElement
+          Element::HR                     HTMLHRElement
+          Element::Mod                    HTMLModElement
+          Element::A                      HTMLAnchorElement
+          Element::Img                    HTMLImageElement
+          Element::Object                 HTMLObjectElement
+          Element::Param                  HTMLParamElement
+          Element::Applet                 HTMLAppletElement
+          Element::Map                    HTMLMapElement
+          Element::Area                   HTMLAreaElement
+          Element::Script                 HTMLScriptElement
+          Element::Table                  HTMLTableElement
+          Element::Caption                HTMLTableCaptionElement
+          Element::TableColumn            HTMLTableColElement
+          Element::TableSection           HTMLTableSectionElement
+          Element::TR                     HTMLTableRowElement
+          Element::TableCell              HTMLTableCellElement
+          Element::FrameSet               HTMLFrameSetElement
+          Element::Frame                  HTMLFrameElement
+          Element::IFrame                 HTMLIFrameElement
+  NodeList                                NodeList
+      NodeList::Radio
+  NodeList::Magic                         NodeList
+  NamedNodeMap                            NamedNodeMap
+  Attr                                    Node, Attr, EventTarget
+  Collection                              HTMLCollection
+      Collection::Elements
+      Collection::Options
+  Event                                   Event
+      Event::UI                           UIEvent
+          Event::Mouse                    MouseEvent
+      Event::Mutation                     MutationEvent
+  View                                    AbstractView, ViewCSS
 
 The EventListener interface is not implemented by HTML::DOM, but is 
 supported.
@@ -1805,8 +1807,8 @@ Not listed above is L<HTML::DOM::EventTarget>, which is a base class both
 for L<HTML::DOM::Node> and L<HTML::DOM::Attr>. The format I'm using above
 doesn't allow for multiple inheritance, so I probably need to redo it.
 
-Although HTML::DOM::Node inherits from HTML::Element, the interface is not
-entirely compatible. In particular:
+HTML::DOM::Node also implements the L<HTML::Element>, but with a few
+differences. In particular:
 
 =over
 
@@ -1877,14 +1879,22 @@ the time as returned by Perl’s built-in C<time> function.
 
 =back
 
+=head1 ACKNOWLEDGEMENTS
+
+Much of the code was stolen from HTML::Tree.  In fact, HTML::DOM used to
+extend HTML::Tree, but the two were merged to allow a whole pile of
+hacks to be removed.
+
+=for comment
+Actually, they haven’t been removed yet, but are still present.
+HTML::Element and HTML::TreeBuilder have simply been forked so far. The
+code still needs refactoring.
+
 =head1 PREREQUISITES
 
 L<perl> 5.8.3 or later
 
 L<Exporter> 5.57 or later
-
-L<HTML::TreeBuilder> and L<HTML::Element> (both part of the HTML::Tree
-distribution)
 
 L<URI.pm|URI>
 
@@ -1893,6 +1903,10 @@ L<LWP> 5.13 or later
 L<CSS::DOM> 0.06 or later
 
 L<Scalar::Util> 1.14 or later
+
+L<HTML::Tagset> 3.02 or later
+
+L<HTML::Parser> 3.46 or later
 
 L<HTML::Encoding> is required if a file name is passed to 
 C<parse_file>.

@@ -237,7 +237,7 @@ use tests 20; # open, close, unbuffaloed write(ln)
 	is $doc->URL, 'lru', 'oh, and the URL, too!';
 	is $doc->referrer, 'rerrefer',
 		'I nearly forgot--the referrer as well, of course.';
-	ok $doc->documentElement->isa('HTML::TreeBuilder'),
+	ok $doc->documentElement->isa('HTML::DOM::_TreeBuilder'),
 		'Ah, I see we have our tree builder back again!';
 	is $doc->documentElement->parent, $doc,
 		'the HTML elem\'s parent is the document';

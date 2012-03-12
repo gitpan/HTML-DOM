@@ -1,5 +1,21 @@
 Revision history for HTML::DOM
 
+0.051   11 March, 2012
+        Bug fix:  write()  no longer dies inside an  element  handler
+        (e.g.,  <script> element) if the document has no root element.
+        Miscellaneous:
+        • t/html-form.t  no  longer  fails  with  HTTP::Message  6.03
+          (RT #75312).
+        • This version drops the dependency on HTML::Tree.  HTML::DOM
+          is trying to extend it in a way that  HTML::Tree  was never
+          designed for. The result is a pile of hacks upon hacks that
+          is very hard to manage. So forked versions of HTML::Element
+          and HTML::TreeBuilder are now included  (whose forked names
+          remain undocumented in case anyone is tempted to  use  them
+          directly). This is the first step toward refactoring things
+          and merging the  two  HTML  parsers  (what  we  essentially
+          have) together.
+
 0.050   1 January, 2012
         Bug fixes:
         • $doc->cookie  no longer  lists  cookies  from  the  request

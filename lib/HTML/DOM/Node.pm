@@ -1,6 +1,6 @@
 package HTML::DOM::Node;
 
-our $VERSION = '0.050';
+our $VERSION = '0.051';
 
 
 use strict;
@@ -31,10 +31,11 @@ use Scalar::Util qw'refaddr weaken blessed';
 require HTML::DOM::EventTarget;
 require HTML::DOM::Implementation;
 require HTML::DOM::NodeList;
-require HTML::Element;
+require HTML::DOM::_Element;
 
-our @ISA =('HTML::Element', # No,  a node  isn't  an  HTML  element,  but
- 'HTML::DOM::EventTarget'); # HTML::Element has some nice tree-handling
+our @ISA =('HTML::DOM::_Element', # No, a node isn't an HTML element,
+ 'HTML::DOM::EventTarget');    # but HTML::DOM::_Element (forked from
+                             # HTML::Element) has some nice tree-handling
                             # methods (and, after all, TreeBuilder's
                             # pseudo-elements aren't elements either).
 

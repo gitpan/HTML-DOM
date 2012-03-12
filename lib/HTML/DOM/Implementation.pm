@@ -3,7 +3,7 @@ package HTML::DOM::Implementation;
 use strict;
 use warnings;
 
-our $VERSION = '0.050';
+our $VERSION = '0.051';
 
 our $it = bless do{\my$x};
 

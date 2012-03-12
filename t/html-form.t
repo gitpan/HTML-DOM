@@ -106,13 +106,17 @@ EOT
 #print $f->dump;
 #print $f->click->as_string;
 
-is($f->main::click->as_string, <<'EOT');
+my $t = <<'EOT';
 POST http://localhost/
 Content-Length: 76
 Content-Type: application/x-www-form-urlencoded; charset="utf-8"
 
 i.x=1&i.y=1&c=on&r=b&t=&p=&h=xyzzy&f=foo.txt&x=&a=%0Aabc%0A+++&s=bar&m=a&m=b
 EOT
+($t = quotemeta $t) =~ s/\\%0A/(?:%0D)?%0A/g;
+$t =~ s/76/(?:76|82)/;
+like($f->main::click->as_string, qr/^$t\z/);
+
 
 $doc->write(<<'EOT'); $doc->close; $f = ($doc->forms)[0];
 <form>

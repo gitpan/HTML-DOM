@@ -531,7 +531,7 @@ use tests 10; # even laster: make sure event_attr_handler is actually used
 	');
 	$doc->close;
 	
-	isa_ok $__[0][0], 'HTML::Element',
+	isa_ok $__[0][0], 'HTML::DOM::Node',
 		'1st arg to the event attr handler';
 	is $__[1][1], 'submit',
 		'event name is passed to the event attr handler';

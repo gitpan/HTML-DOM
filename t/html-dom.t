@@ -10,7 +10,7 @@
 
 use strict; use warnings; use utf8; use lib 't';
 
-use Test::More tests => reverse 51;
+use Test::More tests => reverse 52;
 
 
 # -------------------------#
@@ -35,7 +35,7 @@ isa_ok $doc, 'HTML::DOM';
 }
 
 # -------------------------#
-# Tests 4-23: elem_handler, parse, eof and write
+# Tests 4-24: elem_handler, parse, eof and write
 
 # It is important that this
 # 18 May, 2010: I’ve just discovered the previous line, which I apparently
@@ -105,8 +105,19 @@ $doc->close;
    'so-called buffered write is not actually buffered' 
 }
 
+{
+ # Test that we don’t get errors when the document’s root element is
+ # detached inside an elem handler just before a write.  Fixed in 0.051
+ my$ h = new HTML::DOM;
+ $h->elem_handler(script => sub { 
+         $h->removeChild($h->firstChild); $h->write("foo") }
+ );
+ ok eval { $h->write("<script></script>"); 1 },
+  'no error from writing inside an elem handler when there is no doc root';
+}
+
 # -------------------------#
-# Tests 24-36: parse_file & charset
+# Tests 25-37: parse_file & charset
 
 use File::Basename;
 use File::Spec::Functions 'catfile';
@@ -242,7 +253,7 @@ is $doc->charset('utf-16be'), 'iso-8859-1', 'charset get/set';
 is $doc->charset, 'utf-16be', 'get charset after set';
 
 # -------------------------#
-# Test 37: another elem_handler test with nested <script> elems
+# Test 38: another elem_handler test with nested <script> elems
 #          This was causing infinite recursion before version 0.004.
 
 {
@@ -267,7 +278,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Test 38: Yet another elem_handler test, this time with '*' for the tag.
+# Test 39: Yet another elem_handler test, this time with '*' for the tag.
 #          I broke this in 0.009 and fixed it in 0.010.
 
 {
@@ -283,7 +294,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 
 
 # -------------------------#
-# Tests 39-42: event_parent
+# Tests 40-43: event_parent
 
 {
 	my $doc = new HTML::DOM;
@@ -298,7 +309,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Tests 43-8: base
+# Tests 44-9: base
 
 {
  my $doc = new HTML::DOM url => 'file:///';
@@ -327,7 +338,7 @@ is $doc->charset, 'utf-16be', 'get charset after set';
 }
 
 # -------------------------#
-# Test 49-51: Yet another elem_handler test, for when elem_handlers orphan
+# Test 50-52: Yet another elem_handler test, for when elem_handlers orphan
 #             the <html> element.  This also makes sure elem_handers  are
 #             called even without closing tags. (Both were fixed 0.036.)
 
