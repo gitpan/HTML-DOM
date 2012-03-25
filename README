@@ -1,4 +1,4 @@
-HTML::DOM, version 0.051
+HTML::DOM, version 0.052
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,15 @@ sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.052
+-----
+Bug fixes:
+• An extraneous  <body>  tag no longer  closes  currently  open  tags,
+  turning <form><body><input> into  <form></form><input>  (RT #75997).
+  Thanks to Tomki Camp for the report.
+• The weird colour methods of the document (fgColor,  etc.) no longer
+  die when there is no body element.
 
 0.051
 -----
@@ -23,13 +32,6 @@ Bug fixes:
   ition to those from the cookie jar.
 • HTML::DOM::Interface  now makes sure that all modules providing con-
   stants are loaded.
-
-0.049
------
-New feature:  <button>  elements are  now  treated  as  real  buttons,
-instead of being ignored by most form-handling functionality.  Thanks
-to a certain Martin for providing a patch upon which this  was  based
-(RT #70499).
 
 
 TO DO
@@ -91,7 +93,7 @@ Or try using man (it's faster, in my experience):
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2007-11 Father Chrysostomos
+Copyright (C) 2007-12 Father Chrysostomos
 
 This program is free software; you may redistribute it and/or modify
 it under the same terms as perl.

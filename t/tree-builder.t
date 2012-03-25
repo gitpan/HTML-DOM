@@ -88,3 +88,13 @@ use tests 1; # </td> and </th> outside of their respective elements should
 	  ."</body></html>",
 		'parsing unmatched </td> and </th>';
 }
+
+# -------------------------#
+use tests 1; # extraneous <body> should not change current insertion pos
+             # See RT #75997 and #76021.
+{
+  my $doc = new HTML::DOM;
+  $doc->innerHTML('<form><body><input name=foo value=bar>');
+  is join(",",$doc->forms->[0]->form), "foo,bar",
+  '<form><body> does not imply </form>';
+}

@@ -1,5 +1,13 @@
 Revision history for HTML::DOM
 
+0.052   25 March, 2012
+        Bug fixes:
+        • An extraneous  <body>  tag no longer closes currently  open
+          tags, turning <form><body><input> into <form></form><input>
+          (RT #75997).  Thanks to Tomki Camp for the report.
+        • The weird colour methods of the document (fgColor, etc.) no
+          longer die when there is no body element.
+
 0.051   11 March, 2012
         Bug fix:  write()  no longer dies inside an  element  handler
         (e.g.,  <script> element) if the document has no root element.

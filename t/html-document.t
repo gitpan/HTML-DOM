@@ -371,7 +371,7 @@ is getElementsByClassName $doc 'aaa,bbb'=>->length, 0,
  'getElementsByClassName("aaa,bbb")';
 
 # -------------------------#
-use tests 12; # weird attributes (fgColor et al.)
+use tests 18; # weird attributes (fgColor et al.)
 
 $doc->write('<body alink=red background=white.gif bgcolor=white
                    text=black link=blue vlink=fuschia>');
@@ -389,6 +389,12 @@ is $doc->linkColor ('yellow'),         'blue', 'set/get linkColor';
 is $doc->linkColor ,'yellow',                , 'get linkColor';
 is $doc->vlinkColor('silver'),      'fuschia', 'set/get vlinkColor';
 is $doc->vlinkColor,'silver',                , 'get vlinkColor';
+
+$doc->body->detach;
+for (qw<alinkColor background bgColor fgColor linkColor vlinkColor>) {
+  $doc->$_("foo");
+  is $doc->$_, "", "$_ is empty string when there is no body (nobody?)";
+}
 
 # -------------------------#
 use tests 2; # hashness

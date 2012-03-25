@@ -5,7 +5,7 @@
 
 use strict; use warnings; use lib 't';
 
-use Test::More tests => 109;
+use Test::More tests => 110;
 
 
 # -------------------------#
@@ -28,7 +28,10 @@ is_deeply [$doc->nodeValue], [], 'nodeValue';
 is_deeply [attributes $doc], [], 'attributes';
 
 # -------------------------#
-# Tests 7-10: attributes
+# Tests 7-11: attributes
+
+is +()=$doc->documentElement, 0,
+  'documentElement returns empty list when there is none';
 
 # Open the doc, so we actually have a doc elem.
 $doc->open;
@@ -43,7 +46,7 @@ isa_ok documentElement $doc, 'HTML::DOM::Element', 'doc elem';
 is documentElement $doc ->tagName, 'HTML', 'tag name of documentElement';
 
 # -------------------------#
-# Tests 11-27: constructor methods
+# Tests 12-28: constructor methods
 
 {
 	isa_ok+(my $elem = createElement $doc eteiGG=>), 
@@ -92,7 +95,7 @@ cmp_ok $@, '==', HTML::DOM::Exception::NOT_SUPPORTED_ERR,
 	'createEntityReference throws a NOT_SUPPORTED_ERR';
 
 # -------------------------#
-# Tests 28-33: getElementsByTagName
+# Tests 29-34: getElementsByTagName
 
 {
 	$doc->write('
@@ -144,7 +147,7 @@ cmp_ok $@, '==', HTML::DOM::Exception::NOT_SUPPORTED_ERR,
 }
 
 # -------------------------#
-# Tests 34-109 (18+13+4+17+12+12=76): importNode
+# Tests 35-110 (18+13+4+17+12+12=76): importNode
 
 use Scalar::Util 'refaddr';
 {

@@ -17,7 +17,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.051';
+our $VERSION = '0.052';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.051 (alpha)
+Version 0.052 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -942,12 +942,12 @@ with 'linkColor' refer to the attributes of the same name but without the
 
 =cut
 
-sub alinkColor { shift->body->aLink     (@_) }
-sub background { shift->body->background(@_) }
-sub    bgColor { shift->body->bgColor   (@_) }
-sub    fgColor { shift->body->text      (@_) }
-sub  linkColor { shift->body->link      (@_) }
-sub vlinkColor { shift->body->vLink     (@_) }
+sub alinkColor { (shift->body||return "")->aLink     (@_) }
+sub background { (shift->body||return "")->background(@_) }
+sub    bgColor { (shift->body||return "")->bgColor   (@_) }
+sub    fgColor { (shift->body||return "")->text      (@_) }
+sub  linkColor { (shift->body||return "")->link      (@_) }
+sub vlinkColor { (shift->body||return "")->vLink     (@_) }
 
 =item title
 
@@ -1940,7 +1940,7 @@ B<To report bugs,> please e-mail the author.
 
 =head1 AUTHOR, COPYRIGHT & LICENSE
 
-Copyright (C) 2007-11 Father Chrysostomos
+Copyright (C) 2007-12 Father Chrysostomos
 
   $text = new HTML::DOM ->createTextNode('sprout');
   $text->appendData('@');

@@ -60,7 +60,7 @@ use HTML::Tagset 3.02 ();
 use HTML::DOM::_Element ();
 use HTML::Parser  ();
 @ISA = qw(HTML::DOM::_Element HTML::Parser);
-$VERSION = 4.2;
+$VERSION = 4.2001;
 
 # This looks schizoid, I know.
 # It's not that we ARE an element AND a parser.
@@ -708,7 +708,8 @@ sub warning {
             for ( keys %$attr ) {
                 $body->attr( $_, $attr->{$_} );
             }
-            return $self->{'_pos'} = $body;         # bypass tweaking.
+            $self->{'_pos'} = $body unless $pos->is_inside('body');
+            return $self->{'_pos'};                 # bypass tweaking.
 
        #----------------------------------------------------------------------
         }
