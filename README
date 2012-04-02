@@ -1,4 +1,4 @@
-HTML::DOM, version 0.052
+HTML::DOM, version 0.053
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,16 @@ sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.053
+-----
+Bug fixes:
+• An extraneous  <body>  tag with  event  attributes  now  calls  the
+  event_attr_handler on the body, not the preceding tag, and actually
+  supplies the value of the attribute,  rather than undef (RT #75997).
+  Thanks again to Tomki Camp for the report.
+• DOMAttrModified  events now always have their type and  cancellabil-
+  ity set correctly.
 
 0.052
 -----
@@ -24,14 +34,6 @@ Bug fixes:
 -----
 Bug fix:  write() no longer dies inside an element handler if the doc-
 ument has no root element.
-
-0.050
------
-Bug fixes:
-• $doc->cookie no longer lists cookies from the request object in add-
-  ition to those from the cookie jar.
-• HTML::DOM::Interface  now makes sure that all modules providing con-
-  stants are loaded.
 
 
 TO DO

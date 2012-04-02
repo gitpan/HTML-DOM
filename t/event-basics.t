@@ -514,7 +514,7 @@ undef $e; # break the circularity that would result if we left this--not so
 
 
 # -------------------------#
-use tests 10; # even laster: make sure event_attr_handler is actually used
+use tests 12; # even laster: make sure event_attr_handler is actually used
 
 {
 	$doc->close;
@@ -561,6 +561,18 @@ use tests 10; # even laster: make sure event_attr_handler is actually used
 	is @__, 1, 'changes to an event attr’s text node call eah';
 
 	@__=(); # remove circularities
+
+	# Test that extra body tags with event attributes cause the
+	# eah to be called on the original body element.
+	$doc->open;
+	$doc->event_attr_handler(sub {
+	 is $_[0], $_[0]->ownerDocument->body,
+	  'event attributes on extra body tags call eah on the body';
+	 is $_[2], 'fwybbles',
+	  'The eah gets the extra body tag’s event attr value';
+	});
+	$doc->write('<form><body onload="fwybbles">');
+	$doc->close;
 }
 
 # -------------------------#

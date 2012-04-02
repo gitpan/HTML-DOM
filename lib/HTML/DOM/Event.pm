@@ -1,6 +1,6 @@
 package HTML::DOM::Event;
 
-our $VERSION = '0.052';
+our $VERSION = '0.053';
 
 
 use strict;
@@ -445,6 +445,8 @@ L<HTML::DOM>
 
 L<HTML::DOM::Event::UI>
 
-L<HTML::DOM::Event::UI::Mouse>
+L<HTML::DOM::Event::Mouse>
+
+L<HTML::DOM::Event::Mutation>
 
 L<HTML::DOM::Node>

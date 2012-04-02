@@ -17,7 +17,7 @@ use HTML::DOM::Node 'DOCUMENT_NODE';
 use Scalar::Util 'weaken';
 use URI;
 
-our $VERSION = '0.052';
+our $VERSION = '0.053';
 our @ISA = 'HTML::DOM::Node';
 
 require    HTML::DOM::Collection;
@@ -45,7 +45,7 @@ HTML::DOM - A Perl implementation of the HTML Document Object Model
 
 =head1 VERSION
 
-Version 0.052 (alpha)
+Version 0.053 (alpha)
 
 B<WARNING:> This module is still at an experimental stage.  The API is 
 subject to change without
@@ -75,7 +75,7 @@ notice.
 =head1 DESCRIPTION
 
 This module implements the HTML Document Object Model by extending the
-HTML::Tree modules. The HTML::DOM class serves both as an HTML parser and
+HTML::Tree modules.  The HTML::DOM class serves both as an HTML parser and
 as the document class.
 
 The following DOM modules are currently supported:
@@ -94,7 +94,7 @@ The following DOM modules are currently supported:
   CSS2            2.0
   Views           2.0
 
-StyleSheets, CSS and CSS2 are actually provided by L<CSS::DOM>. This list
+StyleSheets, CSS and CSS2 are actually provided by L<CSS::DOM>.  This list
 corresponds to CSS::DOM versions 0.02 to 0.14.
 
 =for comment
@@ -108,14 +108,14 @@ Level 2 interfaces not yet included: Range, Traversal
 
 =item $tree = new HTML::DOM %options;
 
-This class method constructs and returns a new HTML::DOM object. The
+This class method constructs and returns a new HTML::DOM object.  The
 C<%options>, which are all optional, are as follows:
 
 =over 4
 
 =item url
 
-The value that the C<URL> method will return. This value is also used by
+The value that the C<URL> method will return.  This value is also used by
 the C<domain> method. 
 
 =item referrer
@@ -124,9 +124,9 @@ The value that the C<referrer> method will return
 
 =item response
 
-An HTTP::Response object. This will be used for information needed for 
-writing cookies. It is expected to have a reference to a request object
-(accessible via its C<request> method--see L<HTTP::Response>). Passing a 
+An HTTP::Response object.  This will be used for information needed for 
+writing cookies.  It is expected to have a reference to a request object
+(accessible via its C<request> method--see L<HTTP::Response>).  Passing a 
 parameter to the 'cookie' method will be a no-op 
 without this.
 
@@ -137,14 +137,14 @@ reference to the response.
 
 =item cookie_jar
 
-An HTTP::Cookies object. As with C<response>, if you omit this, arguments 
+An HTTP::Cookies object.  As with C<response>, if you omit this, arguments 
 passed to the 
 C<cookie> method will be ignored.
 
 =item charset
 
-The original character set of the document. This does not affect parsing
-via the C<write> method (which always assumes Unicode). C<parse_file> will
+The original character set of the document.  This does not affect parsing
+via the C<write> method (which always assumes Unicode).  C<parse_file> will
 use this, if specified, or L<HTML::Encoding> otherwise.
 L<HTML::DOM::Form>'s C<make_request> method uses this to encode form data
 unless the form has a valid 'accept-charset' attribute.
@@ -442,10 +442,11 @@ process of
 being built (as a result of a call to C<write> or C<parse_file>), the 
 subroutine will be called after each C<$elem_name> element 
 is
-added to the tree. If you give '*' as the element name, the subroutine will
-be called for each element that does not have a handler. The subroutine's 
+added to the tree.  If you give '*' as the element name, the subroutine
+will be called for each element that does not have a handler.  The
+subroutine's 
 two arguments will be the tree itself
-and the element in question. The subroutine can call the DOM object's 
+and the element in question.  The subroutine can call the DOM object's 
 C<write>
 method to insert HTML code into the source after the element.
 
@@ -518,13 +519,14 @@ sub elem_handler {
 =item css_url_fetcher( \&sub )
 
 With this method you can provide a subroutine that fetches URLs referenced
-by 'link' tags. Its sole argument is the URL, which is made absolute based
-on the HTML page's own base URL (it is assumed that this is absolute). It 
-should return C<undef> or an empty list on failure. Upon
+by 'link' tags.  Its sole argument is the URL, which is made absolute based
+on the HTML page's own base URL (it is assumed that this is absolute).  It 
+should return C<undef> or an empty list on failure.  Upon
 success, it should return just the CSS code, if it has been decoded (and is
 in Unicode), or, if it has not been decoded, the CSS code followed by
-C<< decode => 1 >>. See L<CSS::DOM/STYLE SHEET ENCODING> for details on
-when you should or should not decode it. (Note that HTML::DOM automatically
+C<< decode => 1 >>.  See L<CSS::DOM/STYLE SHEET ENCODING> for details on
+when you should or should not decode it.  (Note that HTML::DOM
+automatically
 provides an encoding hint based on the HTML document.)
 
 HTML::DOM passes the result of the url fetcher to L<CSS::DOM> and
@@ -544,14 +546,14 @@ sub css_url_fetcher {
 
 This parses the HTML code passed to it, adding it to the end of 
 the
-document. It assumes that its input is a normal Perl Unicode string. Like
+document. It assumes that its input is a normal Perl Unicode string.  Like
 L<HTML::TreeBuilder>'s
 C<parse> method, it can take a coderef.
 
 When it is called from an an element handler (see
 C<elem_handler>, above), the value passed to it
 will be inserted into the HTML code after the current element when the
-element handler returns. (In this case a coderef won't do--maybe that will
+element handler returns.  (In this case a coderef won't do--maybe that will
 be added later.)
 
 If the C<close> method has been called, C<write> will call C<open> before
@@ -560,14 +562,14 @@ parsing the HTML code passed to it.
 =item $tree->writeln(...) (DOM method)
 
 Just like C<write> except that it appends "\n" to its argument and does
-not work with code refs. (Rather
+not work with code refs.  (Rather
 pointless, if you ask me. :-)
 
 =item $tree->close() (DOM method)
 
 Call this method to signal to the parser that the end of the HTML code has
-been reached. It will then parse any residual HTML that happens to be
-buffered. It also makes the next C<write> call C<open>.
+been reached.  It will then parse any residual HTML that happens to be
+buffered.  It also makes the next C<write> call C<open>.
 
 =item $tree->open (DOM method)
 
@@ -577,10 +579,10 @@ and a parser hungry for HTML code.
 =item $tree->parse_file($file)
 
 This method takes a file name or handle and parses the content,
-(effectively) calling C<close> afterwards. In the former case (a file 
-name), L<HTML::Encoding> will be used to detect the encoding. In the
-latter (a file handle), you'll have to C<binmode> it yourself. This could
-be considered a bug. If you have a solution to this (how to make
+(effectively) calling C<close> afterwards.  In the former case (a file 
+name), L<HTML::Encoding> will be used to detect the encoding.  In the
+latter (a file handle), you'll have to C<binmode> it yourself.  This could
+be considered a bug.  If you have a solution to this (how to make
 HTML::Encoding detect an encoding from a file handle), please let me know.
 
 As of version 0.12, this method returns true upon success, or undef/empty
@@ -813,13 +815,14 @@ This creates a style sheet (L<CSS::DOM> object).
 
 =item getElementsByTagName ( $name )
 
-C<$name> can be the name of the tag, or '*', to match all tag names. This
+C<$name> can be the name of the tag, or '*', to match all tag names.  This
 returns a node list object in scalar context, or a list in list context.
 
 =item importNode ( $node, $deep )
 
 Clones the C<$node>, setting its C<ownerDocument> attribute to the document
-with which this method is called. If C<$deep> is true, the C<$node> will be
+with which this method is called.  If C<$deep> is true, the C<$node> will
+be
 cloned recursively.
 
 =cut
@@ -934,9 +937,10 @@ sub importNode {
 =item vlinkColor
 
 These six methods return (optionally set) the corresponding attributes of 
-the body element. Note that most of the names do not map directly to the 
+the body element.  Note that most of the names do not map directly to the 
 names of
-the attributes. C<fgColor> refers to the C<text> attribute. Those that end
+the attributes.  C<fgColor> refers to the C<text> attribute.  Those that
+end
 with 'linkColor' refer to the attributes of the same name but without the
 'Color' on the end.
 
@@ -968,7 +972,8 @@ Returns the document's URL.
 =item body
 
 Returns the body element, or the outermost frame set if the document has
-frames. You can set the body by passing an element as an argument, in which
+frames.  You can set the body by passing an element as an argument, in
+which
 case the old body element is returned.
 
 =item images
@@ -982,12 +987,12 @@ case the old body element is returned.
 =item anchors
 
 These five methods each return a list of the appropriate elements in list
-context, or an L<HTML::DOM::Collection> object in scalar context. In this
+context, or an L<HTML::DOM::Collection> object in scalar context.  In this
 latter case, the object will update automatically when the document is
 modified.
 
 In the case of C<forms> you can access those by using the HTML::DOM object
-itself as a hash. I.e., you can write C<< $doc->{f} >> instead of
+itself as a hash.  I.e., you can write C<< $doc->{f} >> instead of
 S<< C<< $doc->forms->{f} >> >>.
 
 =for comment
@@ -999,9 +1004,9 @@ objects, as well as scalar context.
 =item cookie
 
 This returns a string containing the document's cookies (the format may
-still change). If you pass an 
+still change).  If you pass an 
 argument, it
-will set a cookie as well. Both Netscape-style and RFC2965-style cookie
+will set a cookie as well.  Both Netscape-style and RFC2965-style cookie
 headers are supported.
 
 =cut
@@ -1203,8 +1208,8 @@ sub cookie {
 
 =item getElementsByClassName
 
-These two do what their names imply. The latter will return a list in list
-context, or a node list object in scalar context. Calling it in list
+These two do what their names imply.  The latter will return a list in list
+context, or a node list object in scalar context.  Calling it in list
 context is probably more efficient.
 
 =cut
@@ -1292,7 +1297,7 @@ Returns the L<HTML::DOM::View> object associated with the document.
 There is no such object by default; you have to put one there yourself:
 
 Although it is supposed to be read-only according to the DOM, you can set
-this attribute by passing an argument to it. It I<is> still marked as 
+this attribute by passing an argument to it.  It I<is> still marked as 
 read-only in
 L<C<%HTML::DOM::Interface>|HTML::DOM::Interface>.
 
@@ -1337,7 +1342,7 @@ sub styleSheets {
 
 =item innerHTML
 
-Serialises and returns the HTML document. If you pass an argument, it will
+Serialises and returns the HTML document.  If you pass an argument, it will
 set the contents of the document via C<open>, C<write> and C<close>,
 returning a serialisation of the old contents.
 
@@ -1465,9 +1470,9 @@ sub base {
 
 =item $tree->magic_forms
 
-This is mainly for internal use. This returns a boolean indicating whether
+This is mainly for internal use.  This returns a boolean indicating whether
 the parser needed to associate formies with a form that did not contain
-them. This happens when a closing </form> tag is missing and the form is
+them.  This happens when a closing </form> tag is missing and the form is
 closed implicitly, but a formie is encountered later.
 
 =cut
@@ -1479,7 +1484,7 @@ sub magic_forms { @_ and ++$_[0]{_HTML_DOM_mg_f}; $_[0]{_HTML_DOM_mg_f} }
 =head1 HASH ACCESS
 
 You can use an HTML::DOM object as a hash ref to access it's form elements
-by name. So C<< $doc->{yayaya} >> is short for
+by name.  So C<< $doc->{yayaya} >> is short for
 S<< C<< $doc->forms->{yayaya} >> >>.
 
 =head1 EVENT HANDLING
@@ -1489,25 +1494,25 @@ model.
 
 Throughout this documentation, we make use of HTML 5's distinction between
 handlers and listeners: An event handler is the result of an HTML element
-beginning with 'on', e.g. onsubmit. These are also accessible via the DOM.
+beginning with 'on', e.g. onsubmit.  These are also accessible via the DOM.
 (We also use the word 'handler' in other contexts, such as the 'default
 event handler'.)
 Event listeners are registered solely with the C<addEventListener> method
 and can be removed with C<removeEventListener>.
 
-HTML::DOM accepts as an event handler a coderef, an object with an 
-C<call_with> method, or an object with C<&{}> overloading. If the
+HTML::DOM accepts as an event handler a coderef, an object with a
+C<call_with> method, or an object with C<&{}> overloading.  If the
 C<call_with> method is present, it is called with the current event
 target as the first argument and the event object as the second.
 This is to allow for objects that wrap JavaScript functions (which must be called with the event target as the B<this> value).
 
 An event listener is a coderef, an object with a C<handleEvent>
-method or an object with C<&{}> overloading. HTML::DOM does not implement
+method or an object with C<&{}> overloading.  HTML::DOM does not implement
 any classes that provide a C<handleEvent> method, but will support any
 object that has one.
 
-Listeners and handlers differ in one important aspect. A listener has to
-call C<preventDefault> on the event object to cancel the default action. A
+Listeners and handlers differ in one important aspect.  A listener has to
+call C<preventDefault> on the event object to cancel the default action.  A
 handler simply returns a defined false value (except for mouseover event,
 which must return a true value to cancel the default).
 
@@ -1516,7 +1521,8 @@ which must return a true value to cancel the default).
 Default actions that HTML::DOM is capable of handling internally (such as
 triggering a DOMActivate event when an element is clicked, and triggering a
 form's submit event when the submit button is activated) are dealt with
-automatically. You don't have to worry about those. For others, read on....
+automatically.  You don't have to worry about those.  For others, read
+on....
 
 To specify the default actions associated with an event, provide a
 subroutine (in this case, it not being part of the DOM, you can't use an
@@ -1525,15 +1531,15 @@ and
 C<default_event_handler> methods.
 
 With the former, you can specify the
-default action to be taken when a particular type of event occurs. The
+default action to be taken when a particular type of event occurs.  The
 currently supported types are:
 
   submit         when a form is submitted
   link           called when a link is activated (DOMActivate event)
 
 Pass the type of event as the first argument and a code ref as the second
-argument. When the code ref is called, its sole argument will
-be the event object. For instance:
+argument.  When the code ref is called, its sole argument will
+be the event object.  For instance:
 
   $dom_tree->default_event_handler_for( link => sub {
          my $event = shift;
@@ -1543,14 +1549,14 @@ be the event object. For instance:
 
 C<default_event_handler_for> with just one argument returns the 
 currently 
-assigned coderef. With two arguments it returns the old one after
+assigned coderef.  With two arguments it returns the old one after
 assigning the new one.
 
 Use C<default_event_handler> (without the C<_for>) to specify a fallback
 subroutine that will be used for events not in the list above, and for
 events in the list above that do not have subroutines assigned to them.
 Without any arguments it will return the currently 
-assigned coderef. With an argument it will return the old one after
+assigned coderef.  With an argument it will return the old one after
 assigning the new one.
 
 =head2 Dispatching Events

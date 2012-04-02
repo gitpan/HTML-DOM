@@ -1,5 +1,19 @@
 Revision history for HTML::DOM
 
+0.053   April Fools’ Day, 2012
+        Bug fixes:
+        • An extraneous  <body>  tag with event attributes now  calls
+          the event_attr_handler on the body, not the preceding tag’s
+          element, and actually supplies the value of  the  attribute,
+          rather than undef  (RT #75997).  Thanks again to Tomki Camp
+          for the report.
+        • When DOMAttrModified events were triggered, if it happened
+          that no event listeners were triggered, the event object
+          that HTML::DOM::EventTarget passed to the
+          default_event_handler would not have its type set and its
+          cancellability would be set to true instead of false. This
+          has been fixed.
+
 0.052   25 March, 2012
         Bug fixes:
         • An extraneous  <body>  tag no longer closes currently  open

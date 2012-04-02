@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.052';
+our $VERSION = '0.053';
 
 # for constants
 require HTML'DOM'Event'Mutation;

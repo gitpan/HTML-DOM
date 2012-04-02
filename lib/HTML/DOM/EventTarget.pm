@@ -1,6 +1,6 @@
 package HTML::DOM::EventTarget;
 
-our $VERSION = '0.052';
+our $VERSION = '0.053';
 
 
 use strict;
@@ -451,9 +451,10 @@ sub trigger_event { # non-DOM method
 		# here, and have _dispatch_event create the object on
 		# demand, using the code ref that we pass to it.
 		my ($cat, @init_args) = HTML'DOM'Event'defaults($event);
+		unshift @init_args, type => $event;
 		if(my $rv = _dispatch_event(
 			$target, 0, $cat, $args{auto_viv},
-			type => $event, @init_args
+			@init_args
 		)) {
 			my $def = 
 				$args{"$event\_default"} ||
@@ -462,8 +463,8 @@ sub trigger_event { # non-DOM method
 			unless (ref $rv) {
 				($rv =
 				  HTML'DOM'Event'create_event($cat)
-				)->init(
-					%args, &{$args{auto_viv}}
+				)->init(my @args =
+					@init_args, &{$args{auto_viv}}
 				);
 				$rv->_set_target($target);
 			}

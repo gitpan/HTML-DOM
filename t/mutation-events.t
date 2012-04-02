@@ -1035,7 +1035,7 @@ use tests 8; # Mutations affecting Attr nodes
 }
 
 # -------------------------#
-use tests 2; # Default event handlers triggered by mutation events
+use tests 3; # Default event handlers triggered by mutation events
              # (there’s special handling for this case [auto-vivacious
 {            # events] in EventTarget.pm/trigger_event)
 	my $doc = new HTML::DOM; $doc->open;
@@ -1047,6 +1047,7 @@ use tests 2; # Default event handlers triggered by mutation events
 	isa_ok $e, 'HTML::DOM::Event',
 		'event auto-vivved solely for deh’s sake';
 	is $e->target, $doc->body, 'target is set correctly';
+	is $e->type, 'DOMAttrModified', 'type is set correctly';
 }
 
 # -------------------------#

@@ -709,7 +709,7 @@ sub warning {
                 $body->attr( $_, $attr->{$_} );
             }
             $self->{'_pos'} = $body unless $pos->is_inside('body');
-            return $self->{'_pos'};                 # bypass tweaking.
+            return $body;                           # bypass tweaking.
 
        #----------------------------------------------------------------------
         }
