@@ -4,20 +4,11 @@ use warnings;
 use strict;
 
 use Scalar::Util qw'weaken';
+use HTML::DOM::_FieldHash;
 
-BEGIN {
- if(eval { require Hash::Util::FieldHash }) {
-  import Hash::Util::FieldHash qw < fieldhash >;
- } else {
-  require Tie::RefHash::Weak;
-  VERSION Tie::RefHash::Weak 0.08; # fieldhash
-  import Tie::RefHash::Weak qw < fieldhash >;
- }
-}
+fieldhashes \my %doc;
 
-fieldhash my %doc;
-
-our $VERSION = '0.053';
+our $VERSION = '0.054';
 
 # -------- DOM ATTRIBUTES -------- #
 

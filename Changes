@@ -1,5 +1,11 @@
 Revision history for HTML::DOM
 
+0.054   26 October, 2014
+        New feature: The named node map returned by $elem->attributes
+        can now be used as an array  or  hash  reference.  This  also
+        means that  JavaScript  code  run  by  WWW::Scripter  can  do
+        form.attributes['action'].value, etc.
+
 0.053   April Fools’ Day, 2012
         Bug fixes:
         • An extraneous  <body>  tag with event attributes now  calls

@@ -6,7 +6,7 @@
 use strict; use warnings; use lib 't';
 
 use Scalar::Util qw'blessed refaddr';
-use Test::More tests => 0x13;
+use Test::More tests => 0x21;
 
 
 # -------------------------#
@@ -75,7 +75,24 @@ is $elem->getAttribute('attr1'), '',
 	'changes made by removeNamedItem are reflected in the element';
 
 # -------------------------#
-# Tests 20-?: tie/overload interface
+# Tests 20-33: tie/overload interface
 
-# not yet implemented
+$elem->setAttribute('attr1' => 'attr value');
+$elem->setAttribute('attr2' => 'attr2 value');
 
+is refaddr $map->[0], refaddr $map->item(0), '->[0]';
+is refaddr $map->[1], refaddr $map->item(1), '->[1]';
+is "@$map", $map->item(0) . ' ' . $map->item(1), '@{...}';
+ok exists $map->[0], 'exists ->[0]';
+ok exists $map->[1], 'exists ->[1]';
+ok exists $map->[-1], 'exists ->[-1]';
+ok !exists $map->[2], '!exists ->[2] (length==2)';
+is refaddr $map->{attr1}, refaddr $map->getNamedItem('attr1'), '->{...}';
+is_deeply [sort keys %$map], ['attr1', 'attr2'], 'keys %{...}';
+ok exists $map->{attr1}, 'exists ->{...}';
+ok !exists $map->{a}, '!exists ->{...}';
+ok !exists $map->{_parent}, '!exists ->{_private}';
+delete $map->{attr2};
+is $elem->attr('attr2'),undef, 'delete';
+%$map = ();
+is +()=$elem->all_external_attr_names, 0, '%$map=...';

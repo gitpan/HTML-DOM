@@ -3,20 +3,32 @@ package HTML::DOM::NamedNodeMap;
 use strict;
 use warnings;
 
-# Maybe for later: (this would have to convert all attributes into Attr
-# objects first, or return a tied object [which possibly could be cached])
-#use overload fallback => 1,
-#	'@{}' => sub {
-#		
-#	 },
-#	'%{}' => sub {
-#
-#	 };
-
 use HTML::DOM::Exception qw'NOT_FOUND_ERR';
+use HTML::DOM::_FieldHash;
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.053';
+our $VERSION = '0.054';
+
+fieldhashes \my(%a, %h);
+
+use overload fallback => 1,
+	'@{}' => sub {
+		my $self = ${+shift};
+		$a{$self} ||= do {
+			my $t = [];
+			tie @$t, __PACKAGE__."'_atie", $self;
+			$t
+		};
+	 },
+	'%{}' => sub {
+		my $self = ${+shift};
+		$h{$self} ||= do {
+			my $t = {};
+			tie %$t, __PACKAGE__."'_htie", $self;
+			$t
+		};
+	 };
+
 
 # This object stores nothing more than the Element object whose attributes
 # it purports to hold.
@@ -66,5 +78,55 @@ sub item {
 sub length {
 	scalar(() = ${$_[0]}-> all_external_attr_names);
 }
+
+package HTML::DOM::NamedNodeMap::_atie;
+
+our @ISA = "Tie::Array";
+
+sub TIEARRAY {
+    require Tie::Array;
+    goto &HTML::DOM'NamedNodeMap'new;
+}
+
+*FETCH = *HTML::DOM::NamedNodeMap::item;
+*FETCHSIZE = *HTML::DOM::NamedNodeMap::length;
+sub EXISTS { $_[1] >=0 && $_[1] < &FETCHSIZE }
+
+package HTML::DOM::NamedNodeMap::_htie;
+
+our @ISA = "Tie::Hash";
+
+sub TIEHASH {
+    require Tie::Hash;
+    goto &HTML::DOM'NamedNodeMap'new;
+}
+*STORE = *HTML'DOM'NamedNodeMap'setNamedItem;
+*FETCH = *HTML'DOM'NamedNodeMap'getNamedItem;
+
+sub FIRSTKEY {
+    # reset iterator; I don’t *think* any other code uses it.
+    keys %${$_[0]};
+    goto &NEXTKEY;
+}
+sub NEXTKEY {
+    my $elem = ${+shift};
+    while (defined($_ = each %$elem)) {
+     return $_ unless /^_/;
+    }
+    return undef;
+}
+sub EXISTS {
+	my($elem,$name) = (${+shift},shift);
+	defined $elem->attr($name);
+}
+sub DELETE {
+ my($elem,$name) = (${+shift},shift);
+ $elem->attr($name, undef);
+}
+sub CLEAR {
+ my $elem = ${+shift};
+ $elem->attr($_,undef) for $elem->all_external_attr_names;
+}
+*SCALAR = *HTML::DOM::NamedNodeMap::length;
 
 1

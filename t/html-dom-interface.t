@@ -194,3 +194,7 @@ use tests 2; # changes made in 0.037
 ok exists $HTML::DOM::Interface{"HTMLDocument"}{getElementsByClassName};
 ok exists $HTML::DOM::Interface{"HTMLElement"}{getElementsByClassName};
 
+# -------------------------#
+use tests 2; # changes made in 0.054
+ok $HTML::DOM::Interface{"NamedNodeMap"}{_hash};
+ok $HTML::DOM::Interface{"NamedNodeMap"}{_array};

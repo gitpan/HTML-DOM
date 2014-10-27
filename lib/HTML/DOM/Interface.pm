@@ -1,7 +1,7 @@
 package HTML::DOM::Interface;
 
 use Exporter 5.57 'import';
-our $VERSION = '0.053';
+our $VERSION = '0.054';
 
 # for constants
 require HTML'DOM'Event'Mutation;
@@ -295,8 +295,8 @@ gory details, look at the source code. In fact, here it is:
   		length => NUM | READONLY,
   	 },
   	 NamedNodeMap => {
-		_hash => 0,
-		_array => 0,
+		_hash => 1,
+		_array => 1,
   		getNamedItem => METHOD | OBJ,
   		setNamedItem => METHOD | OBJ,
   		removeNamedItem => METHOD | OBJ,

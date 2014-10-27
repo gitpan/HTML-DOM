@@ -1,4 +1,4 @@
-HTML::DOM, version 0.053
+HTML::DOM, version 0.054
 
 HTML::DOM is a Perl implementation of the HTML Document Object Model
 
@@ -10,6 +10,12 @@ sheet interfaces.
 RECENT CHANGES
 
 See the Changes file for the long version.
+
+0.054
+-----
+New feature:  The named node map returned by $element->attributes can
+now be used as an array or hash reference.  This also means that Java-
+Script code run by WWW::Scripter can do form.attributes[x].value, etc.
 
 0.053
 -----
@@ -29,11 +35,6 @@ Bug fixes:
   Thanks to Tomki Camp for the report.
 • The weird colour methods of the document (fgColor,  etc.) no longer
   die when there is no body element.
-
-0.051
------
-Bug fix:  write() no longer dies inside an element handler if the doc-
-ument has no root element.
 
 
 TO DO
@@ -95,7 +96,7 @@ Or try using man (it's faster, in my experience):
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2007-12 Father Chrysostomos
+Copyright (C) 2007-14 Father Chrysostomos
 
 This program is free software; you may redistribute it and/or modify
 it under the same terms as perl.

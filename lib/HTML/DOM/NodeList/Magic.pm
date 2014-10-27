@@ -6,7 +6,7 @@ use overload fallback => 1, '@{}' => \&_get_tie;
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.053';
+our $VERSION = '0.054';
 
 # Innards: {
 #	get => sub { ... }, # sub that gets the list
@@ -93,7 +93,7 @@ __END__
 
 =head1 NAME
 
-HTML::DOM::NodeList - Magical node list class for HTML::DOM
+HTML::DOM::NodeList::Magic - Magical node list class for HTML::DOM
 
 =head1 SYNOPSIS
 
@@ -123,7 +123,7 @@ See L<HTML::DOM::NodeList> both for a description and the API.
 There is one difference, though: If you want to create a NodeList yourself,
 for whatever reason, you can call the constructor shown in the synopsis.
 The subroutine has to return the entire list that the node list is supposed
-to contain. The second argument is the document to which the node belongs.
+to contain.  The second argument is the document to which the node belongs.
 If the document is modified, the node list is automatically notified, and
 calls the subroutine again the next time it is accessed, to reset itself.
 If you don't provide the document, the node list will never be updated

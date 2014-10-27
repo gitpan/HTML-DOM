@@ -1,5 +1,6 @@
 Changes
 lib/HTML/DOM/_Element.pm
+lib/HTML/DOM/_FieldHash.pm
 lib/HTML/DOM/_TreeBuilder.pm
 lib/HTML/DOM/Attr.pm
 lib/HTML/DOM/CharacterData.pm

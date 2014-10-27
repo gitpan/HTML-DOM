@@ -6,7 +6,7 @@ use overload fallback => 1, '@{}' => sub { ${$_[0]} };
 
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.053';
+our $VERSION = '0.054';
 
 
 # new NodeList \@array;
@@ -63,7 +63,7 @@ Returns the number of items in the array.
 
 =item $list->item($index)
 
-Returns item number C<$index>, numbered from 0. Note that you call also use
+Returns item number C<$index>, numbered from 0. Note that you can also use
 C<< $list->[$index] >> for short.
 
 =back
